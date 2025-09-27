@@ -10,8 +10,7 @@ import axios from "axios";
 import Calendar from "./Calendar/Calendar";
 import Laser from "./Laser/Laser";
 
-// Define variant type for Button component
-type variant = "solid" | "outline";
+
 
 interface Employee {
   id: string;
@@ -76,32 +75,31 @@ export default function UserProfiles() {
 
   return (
     <div className="flex flex-col min-h-screen">
-      {/* Top Tabs */}
-      <div className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 p-4">
-        <div className="flex flex-row gap-2 justify-center sm:justify-start">
-          <Button
-            variant={activeTab === "Profile" ? "solid" : "outline"}
-            className="w-full sm:w-auto"
-            onClick={() => setActiveTab("Profile")}
-          >
-            Profile
-          </Button>
-          <Button
-            variant={activeTab === "Calendar" ? "solid" : "outline"}
-            className="w-full sm:w-auto"
-            onClick={() => setActiveTab("Calendar")}
-          >
-            Calendar
-          </Button>
-          <Button
-            variant={activeTab === "Laser" ? "solid" : "outline"}
-            className="w-full sm:w-auto"
-            onClick={() => setActiveTab("Laser")}
-          >
-            Laser
-          </Button>
-        </div>
-      </div>
+{/* Top Tabs */}
+<div className="bg-white dark:bg-gray-900  dark:border-gray-800 p-4">
+  <div className="flex flex-row gap-2 justify-center sm:justify-start">
+    {["Profile", "Calendar", "Laser"].map((tab) => (
+      <button
+        key={tab}
+        onClick={() => setActiveTab(tab as "Profile" | "Calendar" | "Laser")}
+        className={`
+          px-4 py-2 rounded-lg
+          border border-gray-300 dark:border-gray-700
+         
+          ${
+            activeTab === tab
+              ? "border-blue-500 dark:border-b-blue-400 text-blue-700 dark:text-blue-400 font-semibold"
+              : "text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-white"
+          }
+          transition-colors duration-200
+        `}
+      >
+        {tab}
+      </button>
+    ))}
+  </div>
+</div>
+
 
       {/* Main Content */}
       <div className="flex-1 p-4 lg:p-6">
