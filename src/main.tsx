@@ -38,7 +38,10 @@ const LoginPage = ({ onLogin }: { onLogin: () => void }) => {
    
       if (rememberMe) {
         localStorage.setItem("username", username);
-        localStorage.setItem("token", data.token);
+        localStorage.setItem("token", data?.token);
+      } else {
+        sessionStorage.setItem("username", username);
+        sessionStorage.setItem("token", data?.token)
       }
 
       onLogin();
