@@ -5,7 +5,7 @@ import App from "./App.tsx";
 import { AppWrapper } from "./components/common/PageMeta.tsx";
 import { ThemeProvider } from "./context/ThemeContext.tsx";
 
-const API_BASE = "http://localhost:3000/api/v1"; 
+const API_BASE = "https://api.erp.pssoft.xyz/api/v1"; 
 
 const LoginPage = ({ onLogin }: { onLogin: () => void }) => {
   const [username, setUsername] = useState("");
@@ -24,7 +24,7 @@ const LoginPage = ({ onLogin }: { onLogin: () => void }) => {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          email: username,
+          username: username,
           password: password,
         }),
       });
