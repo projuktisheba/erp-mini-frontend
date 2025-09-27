@@ -1,17 +1,18 @@
 import { StrictMode, useState, useEffect } from "react";
 import { createRoot } from "react-dom/client";
+import { Eye, EyeOff } from "lucide-react"; // Eye icon
 import "./index.css";
 import App from "./App.tsx";
 import { AppWrapper } from "./components/common/PageMeta.tsx";
 import { ThemeProvider } from "./context/ThemeContext.tsx";
 
-const API_BASE = "https://api.erp.pssoft.xyz/api/v1"; 
+const API_BASE = "https://api.erp.pssoft.xyz/api/v1";
 
 const LoginPage = ({ onLogin }: { onLogin: () => void }) => {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
-  const [rememberMe, setRememberMe] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -20,29 +21,17 @@ const LoginPage = ({ onLogin }: { onLogin: () => void }) => {
     try {
       const response = await fetch(`${API_BASE}/login`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          username: username,
-          password: password,
-        }),
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username, password }),
       });
 
-      if (!response.ok) {
-        throw new Error("Invalid credentials");
-      }
+      if (!response.ok) throw new Error("Invalid credentials");
 
       const data = await response.json();
 
-   
-      if (rememberMe) {
-        localStorage.setItem("username", username);
-        localStorage.setItem("token", data?.token);
-      } else {
-        sessionStorage.setItem("username", username);
-        sessionStorage.setItem("token", data?.token)
-      }
+      // Save always in localStorage regardless of "remember me"
+      localStorage.setItem("username", username);
+      localStorage.setItem("token", data.token);
 
       onLogin();
     } catch (err) {
@@ -69,23 +58,20 @@ const LoginPage = ({ onLogin }: { onLogin: () => void }) => {
           className="w-full p-2 mb-4 border rounded"
         />
 
-        <input
-          type="password"
-          placeholder="Password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          className="w-full p-2 mb-4 border rounded"
-        />
-
-        <div className="flex items-center mb-4">
+        <div className="relative mb-4">
           <input
-            type="checkbox"
-            checked={rememberMe}
-            onChange={(e) => setRememberMe(e.target.checked)}
-            className="mr-2"
-            id="rememberMe"
+            type={showPassword ? "text" : "password"}
+            placeholder="Password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            className="w-full p-2 border rounded pr-10"
           />
-          <label htmlFor="rememberMe">Remember Me</label>
+          <span
+            className="absolute right-2 top-2 cursor-pointer"
+            onClick={() => setShowPassword(!showPassword)}
+          >
+            {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+          </span>
         </div>
 
         <button
@@ -105,9 +91,7 @@ const Root = () => {
 
   useEffect(() => {
     const savedToken = localStorage.getItem("token");
-    if (savedToken) {
-      setIsAuthenticated(true);
-    }
+    if (savedToken) setIsAuthenticated(true);
   }, []);
 
   return (
