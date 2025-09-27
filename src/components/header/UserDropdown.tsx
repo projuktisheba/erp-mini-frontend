@@ -134,7 +134,6 @@ export default function UserDropdown() {
             </DropdownItem>
           </li>
         </ul>
-// Sign out item
 <button
   onClick={() => {
 
