@@ -14,33 +14,38 @@ const LoginPage = ({ onLogin }: { onLogin: () => void }) => {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
+const handleSubmit = async (e: React.FormEvent) => {
+  e.preventDefault();
+  setLoading(true);
 
-    try {
-      const response = await fetch(`${API_BASE}/login`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username, password }),
-      });
+  try {
+    const response = await fetch(`${API_BASE}/login`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username, password }),
+    });
 
-      if (!response.ok) throw new Error("Invalid credentials");
+    const data = await response.json();
 
-      const data = await response.json();
-
-      // Save always in localStorage regardless of "remember me"
-      localStorage.setItem("username", username);
-      localStorage.setItem("token", data.token);
-
-      onLogin();
-    } catch (err) {
-      alert("Login failed!");
-      console.error(err);
-    } finally {
-      setLoading(false);
+    // stop if login failed
+    if (!data.token) {
+      alert(data.message || "Invalid credentials");
+      return;
     }
-  };
+
+    // save token
+    localStorage.setItem("username", username);
+    localStorage.setItem("token", data.token);
+
+    onLogin();
+  } catch (err) {
+    alert("Login failed!");
+    console.error(err);
+  } finally {
+    setLoading(false);
+  }
+};
+
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-100">
