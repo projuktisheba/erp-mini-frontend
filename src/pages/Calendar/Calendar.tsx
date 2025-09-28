@@ -1,7 +1,20 @@
-import  { useState, ReactNode } from "react";
+import { useState, ReactNode } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
-const Calendar = (): ReactNode => {
+interface Employee {
+  id: string;
+  first_name?: string;
+  last_name?: string;
+  email?: string;
+  role?: string;
+  status?: string;
+}
+
+interface CalendarProps {
+  employee: Employee;
+}
+
+const Calendar = ({ employee }: CalendarProps): ReactNode => {
   const [currentMonth, setCurrentMonth] = useState(new Date());
 
   // Helper functions
@@ -82,7 +95,7 @@ const Calendar = (): ReactNode => {
   const renderCells = () => {
     const monthStart = getStartOfMonth(currentMonth);
     const monthEnd = getEndOfMonth(monthStart);
-    const startDate = getStartOfWeek(monthStart);
+    const startDate = getStartOfWeek(monthEnd); // corrected
     const endDate = getEndOfWeek(monthEnd);
 
     const rows: ReactNode[] = [];
@@ -138,6 +151,14 @@ const Calendar = (): ReactNode => {
         {renderHeader()}
         {renderDays()}
         {renderCells()}
+
+        {/* Employee info */}
+        <div className="mt-4 text-sm text-gray-700 dark:text-gray-300">
+          <p>
+            Employee: {employee.first_name} {employee.last_name} ({employee.email})
+          </p>
+          <p>Role: {employee.role} | Status: {employee.status}</p>
+        </div>
       </div>
 
       {/* Stats Card */}
@@ -163,18 +184,6 @@ const Calendar = (): ReactNode => {
               style={{ width: `${attendancePercentage}%` }}
             />
           </div>
-        </div>
-      </div>
-
-      {/* Legend */}
-      <div className="flex items-center justify-center space-x-4 mt-4 text-xs text-gray-600 dark:text-gray-400">
-        <div className="flex items-center space-x-1">
-          <div className="w-3 h-3 bg-green-500 rounded"></div>
-          <span>Present</span>
-        </div>
-        <div className="flex items-center space-x-1">
-          <div className="w-3 h-3 bg-blue-500 rounded"></div>
-          <span>Today</span>
         </div>
       </div>
     </div>

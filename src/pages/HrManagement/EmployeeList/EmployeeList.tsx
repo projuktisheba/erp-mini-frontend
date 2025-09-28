@@ -1,74 +1,58 @@
-import { useEffect, useState } from "react";
+import { useState, useEffect } from "react";
+import { Table, TableBody, TableCell, TableHeader, TableRow } from "../../../components/ui/table";
+import Button from "../../../components/ui/button/Button";
+import { Modal } from "../../../components/ui/modal";
+import Input from "../../../components/form/input/InputField";
+import Label from "../../../components/form/Label";
+import { useModal } from "../../../hooks/useModal";
+import axiosInstance from "../../../hooks/AxiosIntence/AxiosIntence";
 import { useNavigate } from "react-router";
-import axios from "axios";
 
 interface Employee {
-  id: string;
-  fullName: string;
+  id: number;
+  first_name: string;
+  last_name: string;
   role: string;
   status: string;
   email: string;
   mobile: string;
 }
 
-const EmployeeList = () => {
-  const navigate = useNavigate();
-  const [employees, setEmployees] = useState<Employee[]>([]);
-  const [attendance, setAttendance] = useState<{ [key: string]: string }>({});
-  const [overtime, setOvertime] = useState<{ [key: string]: string }>({});
+interface AttendanceFormData {
+  name: string;
+  email: string;
+  mobile: string;
+  status: string;
+  overtime: string;
+  checkin: string;
+  checkout: string;
+}
+
+export default function BasicTableOne() {
+  const [tableData, setTableData] = useState<Employee[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
+  const [saving, setSaving] = useState(false);
+  const { isOpen, openModal, closeModal } = useModal();
+  const navigate = useNavigate();
+
+  const [formData, setFormData] = useState<AttendanceFormData>({
+    name: "",
+    email: "",
+    mobile: "",
+    status: "Present",
+    overtime: "",
+    checkin: "",
+    checkout: "",
+  });
 
   const fetchEmployees = async () => {
     try {
       setLoading(true);
-      setError(null);
-      
-      const res = await axios.get(
-        "https://api.erp.pssoft.xyz/api/v1/hr/employees"
-      );
-
-
-
-      // Handle different possible response structures
-      let rawEmployees = [];
-      
-      if (res.data.employees) {
-        rawEmployees = res.data.employees;
-      } else if (Array.isArray(res.data)) {
-        rawEmployees = res.data;
-      } else if (res.data.data && Array.isArray(res.data.data)) {
-        rawEmployees = res.data.data;
-      } else {
-        console.warn("Unexpected response structure:", res.data);
-        rawEmployees = [];
-      }
-
-
-
-      // Map the data to our interface
-      const mapped: Employee[] = rawEmployees.map((emp: any, index: number) => {
-        // console.log(`Employee ${index}:`, emp);
-        
-        return {
-          id: emp.id?.toString() || emp.employee_id?.toString() || `emp_${index}`,
-          fullName: `${emp.first_name || emp.firstName || ""} ${emp.last_name || emp.lastName || ""}`.trim(),
-          role: emp.role || emp.position || emp.designation || "",
-          status: emp.status || "unknown",
-          email: emp.email || "",
-          mobile: emp.mobile || emp.phone || emp.phone_number || "",
-        };
-      });
-
-      // console.log("Mapped employees:", mapped);
-      setEmployees(mapped);
-
-    } catch (error: any) {
-      console.error("Failed to fetch employees:", error);
-      console.error("Error response:", error.response?.data);
-      console.error("Error status:", error.response?.status);
-      
-      setError(error.response?.data?.message || error.message || "Failed to fetch employees");
+      const res = await axiosInstance.get("hr/employees");
+      setTableData(res.data.employees);
+    } catch (err) {
+      console.log(err);
     } finally {
       setLoading(false);
     }
@@ -78,165 +62,281 @@ const EmployeeList = () => {
     fetchEmployees();
   }, []);
 
-  const handleAttendanceChange = (id: string, value: string) => {
-    setAttendance({ ...attendance, [id]: value });
-    if (value === "Absent") {
-      setOvertime({ ...overtime, [id]: "" });
+  const handleAttendanceClick = (employee: Employee) => {
+    setSelectedEmployee(employee);
+    setFormData({
+      name: `${employee.first_name} ${employee.last_name}`,
+      email: employee.email,
+      mobile: employee.mobile,
+      status: "Present",
+      overtime: "",
+      checkin: "",
+      checkout: "",
+    });
+    openModal();
+  };
+
+  const handleChange = (field: string, value: string) => {
+    setFormData((prev) => ({ ...prev, [field]: value }));
+  };
+
+const handleSubmit = async () => {
+  if (!selectedEmployee) return;
+
+  try {
+    setSaving(true);
+
+    const payload = JSON.stringify({
+      attendances: [
+        {
+          id: selectedEmployee.id,
+          overtime: formData.overtime,
+          checkin: formData.checkin,
+          checkout: formData.checkout,
+          date: new Date().toISOString(),
+        }
+      ]
+    });
+
+    const response = await axiosInstance.post("/api/v1/hr/attendance/batch", payload, {
+      headers: { "Content-Type": "application/json" },
+    });
+
+    if (response.data.status === "success") {
+      alert("Attendance recorded successfully!");
+      closeModal();
+    } else {
+      alert("Failed to record attendance: " + response.data.message);
     }
-  };
+  } catch (err) {
+    console.error("Error recording attendance:", err);
+    alert("Failed to record attendance");
+  } finally {
+    setSaving(false);
+  }
+};
 
-  const handleOvertimeChange = (id: string, value: string) => {
-    setOvertime({ ...overtime, [id]: value });
-  };
 
-  const handleSubmit = (id: string) => {
-    alert(
-      `Employee ${id} submitted with ${attendance[id]} and Overtime Hour: ${
-        overtime[id] || 0
-      }`
-    );
-    setOvertime({ ...overtime, [id]: "" });
-  };
-
-  const handleRefresh = () => {
-    fetchEmployees();
-  };
 
   if (loading) {
     return (
-      <div className="p-4 text-center">
-        <div className="text-lg text-gray-600 dark:text-gray-400">Loading employees...</div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="p-4 text-center">
-        <div className="text-red-600 dark:text-red-400 mb-4">
-          Error: {error}
-        </div>
-        <button 
-          onClick={handleRefresh}
-          className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
-        >
-          Try Again
-        </button>
+      <div>
+        <h1>Loading.....</h1>
       </div>
     );
   }
 
   return (
-    <div className="p-4">
-      {/* Header with refresh button */}
-      <div className="flex justify-between items-center mb-4">
-        <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-200">
-          Employee List ({employees.length})
-        </h2>
-        <button 
-          onClick={handleRefresh}
-          className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
-        >
-          Refresh
-        </button>
-      </div>
-
-      {/* Table container */}
-      <div className="overflow-x-auto">
-        <table className="min-w-full border border-gray-200 dark:border-gray-700 divide-y divide-gray-200 dark:divide-gray-700 bg-white dark:bg-gray-800">
-          <thead className="bg-gray-100 dark:bg-gray-700">
-            <tr>
-              <th className="px-4 py-3 text-left text-sm font-medium text-gray-700 dark:text-gray-300">ID</th>
-              <th className="px-4 py-3 text-left text-sm font-medium text-gray-700 dark:text-gray-300">Full Name</th>
-              <th className="px-4 py-3 text-left text-sm font-medium text-gray-700 dark:text-gray-300">Role</th>
-              <th className="px-4 py-3 text-left text-sm font-medium text-gray-700 dark:text-gray-300">Status</th>
-              <th className="px-4 py-3 text-left text-sm font-medium text-gray-700 dark:text-gray-300">Email</th>
-              <th className="px-4 py-3 text-left text-sm font-medium text-gray-700 dark:text-gray-300">Mobile</th>
-              <th className="px-4 py-3 text-left text-sm font-medium text-gray-700 dark:text-gray-300">Profile</th>
-              <th className="px-4 py-3 text-left text-sm font-medium text-gray-700 dark:text-gray-300">Attendance</th>
-            </tr>
-          </thead>
-          <tbody className="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-700">
-            {employees.map((emp) => (
-              <tr key={emp.id} className="hover:bg-gray-50 dark:hover:bg-gray-800">
-                <td className="px-4 py-3 text-sm text-gray-900 dark:text-gray-100">{emp.id}</td>
-                <td className="px-4 py-3 text-sm text-gray-900 dark:text-gray-100">{emp.fullName || 'N/A'}</td>
-                <td className="px-4 py-3 text-sm text-gray-900 dark:text-gray-100">{emp.role || 'N/A'}</td>
-                <td className="px-4 py-3 text-sm">
-                  <span className={`px-2 py-1 rounded-full text-xs ${
-                    emp.status?.toLowerCase() === 'active' 
-                      ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300' 
-                      : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300'
-                  }`}>
-                    {emp.status || 'Unknown'}
-                  </span>
-                </td>
-                <td className="px-4 py-3 text-sm text-gray-900 dark:text-gray-100">{emp.email || 'N/A'}</td>
-                <td className="px-4 py-3 text-sm text-gray-900 dark:text-gray-100">{emp.mobile || 'N/A'}</td>
-                <td className="px-4 py-3">
-                  <button
-                    onClick={() => navigate(`/profile/${emp.id}`)}
-                    className="px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 text-sm transition-colors"
-                  >
-                    View Profile
-                  </button>
-                </td>
-                <td className="px-4 py-3">
-                  <div className="flex flex-col sm:flex-row sm:items-center gap-2">
-                    <select
-                      value={attendance[emp.id] || ""}
-                      onChange={(e) =>
-                        handleAttendanceChange(emp.id, e.target.value)
-                      }
-                      className="p-1 border rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border-gray-300 dark:border-gray-600"
-                    >
-                      <option value="">Select</option>
-                      <option value="Present">Present</option>
-                      <option value="Absent">Absent</option>
-                    </select>
-
-                    {attendance[emp.id] === "Present" && (
-                      <>
-                        <input
-                          type="number"
-                          placeholder="Overtime Hour"
-                          value={overtime[emp.id] || ""}
-                          onChange={(e) =>
-                            handleOvertimeChange(emp.id, e.target.value)
-                          }
-                          className="p-1 border rounded w-24 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border-gray-300 dark:border-gray-600"
-                          min="0"
-                          max="24"
-                        />
-                        <button
-                          onClick={() => handleSubmit(emp.id)}
-                          className="px-3 py-1 bg-green-500 text-white rounded hover:bg-green-600 text-sm transition-colors"
-                        >
-                          Submit
-                        </button>
-                      </>
-                    )}
-                  </div>
-                </td>
-              </tr>
-            ))}
-
-            {employees.length === 0 && (
-              <tr>
-                <td
-                  colSpan={8}
-                  className="px-4 py-8 text-center text-gray-500 dark:text-gray-400"
+    <>
+      <div className="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-white/[0.05] dark:bg-white/[0.03]">
+        <div className="max-w-full overflow-x-auto">
+          <Table>
+            {/* Table Header */}
+            <TableHeader className="border-b border-gray-100 dark:border-white/[0.05]">
+              <TableRow>
+                <TableCell
+                  className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
+                  isHeader
                 >
-                  <div className="text-lg mb-2">No employees found</div>
-                  <div className="text-sm">Try refreshing or check if employees have been added to the system</div>
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  );
-};
+                  ID
+                </TableCell>
+                <TableCell
+                  className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
+                  isHeader
+                >
+                  Name
+                </TableCell>
+                <TableCell
+                  className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
+                  isHeader
+                >
+                  Role
+                </TableCell>
+                <TableCell
+                  className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
+                  isHeader
+                >
+                  Status
+                </TableCell>
+                <TableCell
+                  className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
+                  isHeader
+                >
+                  Email
+                </TableCell>
+                <TableCell
+                  className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
+                  isHeader
+                >
+                  Mobile
+                </TableCell>
+                <TableCell
+                  className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
+                  isHeader
+                >
+                  Profile
+                </TableCell>
+                <TableCell
+                  className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
+                  isHeader
+                >
+                  Attendance
+                </TableCell>
+              </TableRow>
+            </TableHeader>
 
-export default EmployeeList;
+            {/* Table Body */}
+            <TableBody className="divide-y divide-gray-100 dark:divide-white/[0.05]">
+              {tableData.map((employee) => (
+                <TableRow key={employee.id}>
+                  <TableCell className="px-5 py-4 text-start">{employee.id}</TableCell>
+
+                  <TableCell className="px-5 py-4 text-start">
+                    {employee.first_name} {employee.last_name}
+                  </TableCell>
+
+                  <TableCell className="px-5 py-4 text-start">{employee.role}</TableCell>
+
+                  <TableCell className="px-5 py-4 text-start">{employee.status}</TableCell>
+
+                  <TableCell className="px-5 py-4 text-start">{employee.email}</TableCell>
+
+                  <TableCell className="px-5 py-4 text-start">{employee.mobile}</TableCell>
+
+                  <TableCell className="px-5 py-4 text-start">
+                    <Button
+                      onClick={() => navigate(`/profile/${employee.id}`)}
+                      size="sm"
+                      variant="outline"
+                    >
+                      View Profile
+                    </Button>
+                  </TableCell>
+
+                  <TableCell className="px-5 py-4 text-start">
+                    <Button
+                      onClick={() => handleAttendanceClick(employee)}
+                      size="sm"
+                      variant="outline"
+                    >
+                      Check
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      </div>
+
+      {/* Attendance Modal */}
+      <Modal isOpen={isOpen} onClose={closeModal} className="max-w-[700px] m-4">
+        <div className="relative w-full p-4 overflow-y-auto bg-white no-scrollbar rounded-3xl dark:bg-gray-900 lg:p-11">
+          <div className="px-2 pr-14">
+            <h4 className="mb-2 text-2xl font-semibold text-gray-800 dark:text-white/90">
+              Record Attendance
+            </h4>
+            <p className="mb-6 text-sm text-gray-500 dark:text-gray-400 lg:mb-7">
+              Mark employee attendance and update their status.
+            </p>
+          </div>
+          <form className="flex flex-col">
+            <div className="px-2 overflow-y-auto custom-scrollbar">
+              <div className="grid grid-cols-1 gap-x-6 gap-y-5 lg:grid-cols-2">
+                {/* Name Field */}
+                <div>
+                  <Label>Name</Label>
+                  <Input
+                    type="text"
+                    value={formData.name}
+                    onChange={(e) => handleChange("name", e.target.value)}
+                    disabled
+                  />
+                </div>
+
+                {/* Email Field */}
+                <div>
+                  <Label>Email</Label>
+                  <Input
+                    type="email"
+                    value={formData.email}
+                    onChange={(e) => handleChange("email", e.target.value)}
+                    disabled
+                  />
+                </div>
+
+                {/* Mobile Field */}
+                <div>
+                  <Label>Mobile</Label>
+                  <Input
+                    type="text"
+                    value={formData.mobile}
+                    onChange={(e) => handleChange("mobile", e.target.value)}
+                    disabled
+                  />
+                </div>
+
+                {/* Status Field */}
+                <div>
+                  <Label>Status</Label>
+                  <select
+                    value={formData.status}
+                    onChange={(e) => handleChange("status", e.target.value)}
+                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg bg-white dark:bg-gray-800 dark:border-gray-600 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  >
+                    <option value="Present">Present</option>
+                    <option value="Absent">Absent</option>
+                  </select>
+                </div>
+
+                {/* Conditional fields for Present status */}
+                {formData.status === "Present" && (
+                  <>
+                    {/* Overtime Field */}
+                    <div>
+                      <Label>Overtime (Hours)</Label>
+                      <Input
+                        type="number"
+                        placeholder="Enter overtime hours"
+                        value={formData.overtime}
+                        onChange={(e) => handleChange("overtime", e.target.value)}
+                      />
+                    </div>
+
+                    {/* Check-in Time */}
+                    <div>
+                      <Label>Check-in Time</Label>
+                      <Input
+                        type="time"
+                        value={formData.checkin}
+                        onChange={(e) => handleChange("checkin", e.target.value)}
+                      />
+                    </div>
+
+                    {/* Check-out Time */}
+                    <div>
+                      <Label>Check-out Time</Label>
+                      <Input
+                        type="time"
+                        value={formData.checkout}
+                        onChange={(e) => handleChange("checkout", e.target.value)}
+                      />
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+            <div className="flex items-center gap-3 px-2 mt-6 lg:justify-end">
+              <Button size="sm" variant="outline" onClick={closeModal}>
+                Close
+              </Button>
+              <Button size="sm" onClick={handleSubmit} disabled={saving}>
+                {saving ? "Submitting..." : "Submit"}
+              </Button>
+            </div>
+          </form>
+        </div>
+      </Modal>
+    </>
+  );
+}

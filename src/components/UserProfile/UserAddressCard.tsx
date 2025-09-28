@@ -16,10 +16,14 @@ interface UserAddressCardProps {
 
 export default function UserAddressCard({ employee }: UserAddressCardProps) {
   const { isOpen, openModal, closeModal } = useModal();
-  const [formData, setFormData] = useState({
-    baseSalary: employee?.base_salary,
-    overtime: employee?.overtime_rate,
-  });
+const [formData, setFormData] = useState<{
+  baseSalary: string;
+  overtime: string;
+}>({
+  baseSalary: employee?.base_salary?.toString() || "",
+  overtime: employee?.overtime_rate?.toString() || "",
+});
+
 
   const [saving, setSaving] = useState(false);
 
