@@ -1,10 +1,12 @@
+// main.tsx
 import { StrictMode, useState, useEffect } from "react";
 import { createRoot } from "react-dom/client";
-import { Eye, EyeOff } from "lucide-react"; // Eye icon
+import { Eye, EyeOff } from "lucide-react";
 import "./index.css";
 import App from "./App.tsx";
 import { AppWrapper } from "./components/common/PageMeta.tsx";
 import { ThemeProvider } from "./context/ThemeContext.tsx";
+import { UserProvider } from "./components/UserContext/UserContext.tsx";
 
 const API_BASE = "https://api.erp.pssoft.xyz/api/v1";
 
@@ -14,38 +16,37 @@ const LoginPage = ({ onLogin }: { onLogin: () => void }) => {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
-const handleSubmit = async (e: React.FormEvent) => {
-  e.preventDefault();
-  setLoading(true);
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
 
-  try {
-    const response = await fetch(`${API_BASE}/login`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ username, password }),
-    });
+    try {
+      const response = await fetch(`${API_BASE}/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username, password }),
+      });
 
-    const data = await response.json();
+      const data = await response.json();
 
-    // stop if login failed
-    if (!data.token) {
-      alert(data.message || "Invalid credentials");
-      return;
+      if (!data.token) {
+        alert(data.message || "Invalid credentials");
+        return;
+      }
+
+      // Save token + full employee info
+      localStorage.setItem("token", data.token);
+      localStorage.setItem("username", data.employee.email);
+      localStorage.setItem("userData", JSON.stringify(data.employee));
+
+      onLogin();
+    } catch (err) {
+      console.error(err);
+      alert("Login failed!");
+    } finally {
+      setLoading(false);
     }
-
-    // save token
-    localStorage.setItem("username", username);
-    localStorage.setItem("token", data.token);
-
-    onLogin();
-  } catch (err) {
-    alert("Login failed!");
-    console.error(err);
-  } finally {
-    setLoading(false);
-  }
-};
-
+  };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-100">
@@ -102,11 +103,14 @@ const Root = () => {
   return (
     <ThemeProvider>
       <AppWrapper>
+        <UserProvider>
+
         {isAuthenticated ? (
           <App />
         ) : (
           <LoginPage onLogin={() => setIsAuthenticated(true)} />
         )}
+        </UserProvider>
       </AppWrapper>
     </ThemeProvider>
   );

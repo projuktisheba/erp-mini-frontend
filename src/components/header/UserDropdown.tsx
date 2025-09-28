@@ -3,6 +3,7 @@ import { DropdownItem } from "../ui/dropdown/DropdownItem";
 import { Dropdown } from "../ui/dropdown/Dropdown";
 import axios from "axios";
 import { useNavigate } from "react-router";
+import { useUser } from "../UserContext/UserContext";
 
 interface UserData {
   id: string;
@@ -18,8 +19,9 @@ export default function UserDropdown() {
   const [userData, setUserData] = useState<UserData | null>(null);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
+  const { avatar } = useUser();
 
- const pnav = userData?.id;
+ const pnav = userData?.id
 
 const handleProfile = () => {
   navigate(`/profile/${pnav}`)
@@ -89,7 +91,10 @@ const handleProfile = () => {
   // Default values while loading or if no user data
   const displayName = userData?.name || localStorage.getItem("username") || "User";
   const displayEmail = userData?.email || localStorage.getItem("username") || "user@example.com";
-  const profileImage = userData?.avatar_link 
+  const profileImage = avatar
+    ? avatar
+    : `https://api.erp.pssoft.xyz/api/v1${userData?.avatar_link}`;
+  // console.log(profileImage); 
   return (
     <div className="relative">
       <button
