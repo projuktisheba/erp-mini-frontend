@@ -87,20 +87,21 @@ const handleSubmit = async () => {
     setSaving(true);
 
     const payload = JSON.stringify({
-      attendances: [
-        {
-          id: selectedEmployee.id,
-          overtime: formData.overtime,
-          checkin: formData.checkin,
-          checkout: formData.checkout,
-          date: new Date().toISOString(),
-        }
-      ]
+      employee_id: selectedEmployee.id,
+      work_date: new Date().toISOString().split("T")[0], // YYYY-MM-DD
+      status: formData.status, 
+      checkin: formData.checkin || "10:00",
+      checkout: formData.checkout || "6:00",
+      overtime_hours: formData.overtime ? parseFloat(formData.overtime) : 0,
     });
 
-    const response = await axiosInstance.post("/api/v1/hr/attendance/batch", payload, {
-      headers: { "Content-Type": "application/json" },
-    });
+    const response = await axiosInstance.post(
+      "/hr/attendance/present/single",
+      payload,
+      {
+        headers: { "Content-Type": "application/json" },
+      }
+    );
 
     if (response.data.status === "success") {
       alert("Attendance recorded successfully!");
@@ -115,6 +116,7 @@ const handleSubmit = async () => {
     setSaving(false);
   }
 };
+
 
 
 
