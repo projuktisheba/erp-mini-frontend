@@ -85,7 +85,6 @@ const AppHeader: React.FC = () => {
 
           <Link to="/" className="lg:hidden">
           <h1>ERP Mini</h1>
-          <h1>ERP Mini</h1>
           </Link>
 
           <button

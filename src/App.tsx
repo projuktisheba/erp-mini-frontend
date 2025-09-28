@@ -23,7 +23,7 @@ export default function App() {
             <Route index path="/" element={<Home />} />
 
             {/* Others Page */}
-            <Route path="/profile" element={<UserProfiles />} />
+            <Route path="/profile/:id" element={<UserProfiles />} />
             <Route path="/employee-list" element={<ProtectedRoute><EmployeeList></EmployeeList></ProtectedRoute>} />
             <Route path="/add-employee" element={<ProtectedRoute><AddEmployee></AddEmployee></ProtectedRoute>} />
             <Route path="/blank" element={<Blank />} />
