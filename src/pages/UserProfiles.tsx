@@ -54,16 +54,15 @@ export default function UserProfiles() {
         title={`Profile | ${employee.first_name} ${employee.last_name}`}
         description="User profile page"
       />
-     <PageBreadcrumb 
-  pageTitle={
-    activeTab === "profile"
-      ? "Profile"
-      : activeTab === "calendar"
-      ? "Calendar"
-      : "Ledger"
-  } 
-/>
-
+      <PageBreadcrumb
+        pageTitle={
+          activeTab === "profile"
+            ? "Profile"
+            : activeTab === "calendar"
+            ? "Calendar"
+            : "Ledger"
+        }
+      />
 
       <div className="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03] lg:p-6">
         {/* Tabs (Title as first button) */}
@@ -116,11 +115,7 @@ export default function UserProfiles() {
               />
               <UserInfoCard employee={employee} />
               <UserAddressCard employee={employee} />
-              <AccessControll
-                email={employee.email}
-                role={employee.role}
-                status={employee.status}
-              />
+              <AccessControll employee={employee} />
             </>
           )}
           {activeTab === "calendar" && <Calendar employee={employee} />}
