@@ -31,14 +31,17 @@ const navItems: NavItem[] = [
     icon: <CalenderIcon />,
     name: "HR Management",
     subItems: [
-      { name: "Employee List", path: "/employee-list"},
-      { name: "Add Employee ", path: "/add-employee"}
-    ]
+      { name: "Employee List", path: "/employee-list" },
+      { name: "Add Employee ", path: "/add-employee" },
+    ],
   },
   {
-    name: "Inventory",
+    name: "Orders",
     icon: <ListIcon />,
-    subItems: [{ name: "Developer Test", path: "/demo-inventory", pro: false }],
+    subItems: [
+      { name: "Order List", path: "/orders" },
+      { name: "New Order", path: "/add-order" },
+    ],
   },
   {
     name: "Reports",
@@ -119,7 +122,9 @@ const AppSidebar: React.FC = () => {
                   ? "menu-item-active"
                   : "menu-item-inactive"
               } cursor-pointer ${
-                !isExpanded && !isHovered ? "lg:justify-center" : "lg:justify-start"
+                !isExpanded && !isHovered
+                  ? "lg:justify-center"
+                  : "lg:justify-start"
               }`}
             >
               <span
@@ -137,7 +142,9 @@ const AppSidebar: React.FC = () => {
               {(isExpanded || isHovered || isMobileOpen) && (
                 <ChevronDownIcon
                   className={`ml-auto w-5 h-5 transition-transform duration-200 ${
-                    openSubmenu?.index === index ? "rotate-180 text-brand-500" : ""
+                    openSubmenu?.index === index
+                      ? "rotate-180 text-brand-500"
+                      : ""
                   }`}
                 />
               )}

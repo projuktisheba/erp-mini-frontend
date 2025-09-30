@@ -7,6 +7,7 @@ import App from "./App.tsx";
 import { AppWrapper } from "./components/common/PageMeta.tsx";
 import { ThemeProvider } from "./context/ThemeContext.tsx";
 import { UserProvider } from "./components/UserContext/UserContext.tsx";
+import toast, { Toaster } from "react-hot-toast";
 
 const API_BASE = "https://api.erp.pssoft.xyz/api/v1";
 
@@ -30,7 +31,8 @@ const LoginPage = ({ onLogin }: { onLogin: () => void }) => {
       const data = await response.json();
 
       if (!data.token) {
-        alert(data.message || "Invalid credentials");
+        toast.error(data.message || "Invalid credentials");
+        // alert(data.message || "Invalid credentials");
         return;
       }
 
@@ -42,7 +44,8 @@ const LoginPage = ({ onLogin }: { onLogin: () => void }) => {
       onLogin();
     } catch (err) {
       console.error(err);
-      alert("Login failed!");
+      toast.error("Login failed!");
+      // alert("Login failed!");
     } finally {
       setLoading(false);
     }
@@ -104,14 +107,14 @@ const Root = () => {
     <ThemeProvider>
       <AppWrapper>
         <UserProvider>
-
-        {isAuthenticated ? (
-          <App />
-        ) : (
-          <LoginPage onLogin={() => setIsAuthenticated(true)} />
-        )}
+          {isAuthenticated ? (
+            <App />
+          ) : (
+            <LoginPage onLogin={() => setIsAuthenticated(true)} />
+          )}
         </UserProvider>
       </AppWrapper>
+      <Toaster />
     </ThemeProvider>
   );
 };
