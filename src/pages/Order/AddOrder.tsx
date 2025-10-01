@@ -231,7 +231,7 @@ const AddOrder: React.FC = () => {
 
       if (!response.data.error) {
         Swal.fire("Success", "Order created successfully", "success");
-        // navigate("/orders");
+        navigate("/orders");
       }
     } catch (error: any) {
       console.error("Order creation error:", error);
