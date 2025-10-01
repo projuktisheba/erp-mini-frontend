@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import axios from "axios";
 import Swal from "sweetalert2";
 import { useNavigate } from "react-router";
@@ -6,7 +6,7 @@ import { useNavigate } from "react-router";
 const API_BASE = "https://api.erp.pssoft.xyz/api/v1";
 
 interface ProductItem {
-  product_id: string;
+  product_id: number;
   product_name: string;
   quantity: number;
   unit_price: number;
@@ -18,32 +18,65 @@ const AddOrder: React.FC = () => {
   const [salesmans, setSalesmans] = useState<any[]>([]);
   const [customers, setCustomers] = useState<any[]>([]);
 
+  // Fix: Format date with time for backend
+  const getCurrentDateTime = () => {
+    const now = new Date();
+    return now.toISOString().split(".")[0] + "Z"; // Format: "2025-01-30T10:30:00Z"
+  };
+
   const [formData, setFormData] = useState({
     memo_no: "",
-    order_date: new Date().toISOString().split("T")[0],
-    sales_man_id: "",
-    customer_id: "",
+    order_date: getCurrentDateTime(), // Use datetime instead of just date
+    sales_man_id: 0,
+    customer_id: 0,
     total_payable_amount: 0,
     advance_payment_amount: 0,
     due_amount: 0,
-    payment_account_id: "",
+    payment_account_id: 0,
     status: "",
     notes: "",
     items: [] as ProductItem[],
   });
 
-  const [productForm, setProductForm] = useState({
-    product_id: "",
-    product_name: "",
-  });
+  const [selectedProductId, setSelectedProductId] = useState<number>(0);
 
   // search states
   const [salesmanSearch, setSalesmanSearch] = useState("");
   const [filteredSalesmans, setFilteredSalesmans] = useState<any[]>([]);
+  const [showSalesmanDropdown, setShowSalesmanDropdown] = useState(false);
+
   const [customerSearch, setCustomerSearch] = useState("");
   const [filteredCustomers, setFilteredCustomers] = useState<any[]>([]);
+  const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
+
+  // Refs for detecting clicks outside
+  const salesmanRef = useRef<HTMLDivElement>(null);
+  const customerRef = useRef<HTMLDivElement>(null);
 
   const navigate = useNavigate();
+
+  // Close dropdowns when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        salesmanRef.current &&
+        !salesmanRef.current.contains(event.target as Node)
+      ) {
+        setShowSalesmanDropdown(false);
+      }
+      if (
+        customerRef.current &&
+        !customerRef.current.contains(event.target as Node)
+      ) {
+        setShowCustomerDropdown(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
 
   // Recalculate due amount
   useEffect(() => {
@@ -59,34 +92,56 @@ const AddOrder: React.FC = () => {
     >
   ) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: name === "advance_payment_amount" ? Number(value) : value,
-    }));
+
+    if (name === "order_date") {
+      // Convert date input to datetime format for backend
+      const dateTimeString = value + "T00:00:00Z"; // Add time portion
+      setFormData((prev) => ({
+        ...prev,
+        [name]: dateTimeString,
+      }));
+    } else if (name === "payment_account_id") {
+      setFormData((prev) => ({
+        ...prev,
+        [name]: Number(value),
+      }));
+    } else {
+      setFormData((prev) => ({
+        ...prev,
+        [name]: name === "advance_payment_amount" ? Number(value) : value,
+      }));
+    }
   };
 
   const handleProductChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const { name, value } = e.target;
-    setProductForm((prev) => ({ ...prev, [name]: value }));
+    setSelectedProductId(Number(e.target.value));
   };
 
   const addProduct = () => {
-    if (!productForm.product_name) {
+    if (!selectedProductId) {
       Swal.fire("Error", "Please select a product", "error");
       return;
     }
+
+    const selectedProduct = products.find((p) => p.id === selectedProductId);
+    if (!selectedProduct) {
+      Swal.fire("Error", "Selected product not found", "error");
+      return;
+    }
+
     const newItem: ProductItem = {
-      product_id: productForm.product_id,
-      product_name: productForm.product_name,
+      product_id: selectedProductId,
+      product_name: selectedProduct.product_name,
       quantity: 1,
       unit_price: 0,
       total_price: 0,
     };
+
     setFormData((prev) => ({
       ...prev,
       items: [...prev.items, newItem],
     }));
-    setProductForm({ product_id: "", product_name: "" });
+    setSelectedProductId(0);
   };
 
   const removeProduct = (index: number) => {
@@ -127,7 +182,6 @@ const AddOrder: React.FC = () => {
     e.preventDefault();
 
     const requiredFields = [
-      "memo_no",
       "order_date",
       "sales_man_id",
       "customer_id",
@@ -159,15 +213,28 @@ const AddOrder: React.FC = () => {
     }
 
     try {
-      const response = await axios.post(`${API_BASE}/orders`, formData, {
+      // Prepare data for API - remove product_name from items
+      const apiData = {
+        ...formData,
+        items: formData.items.map((item) => ({
+          product_id: item.product_id,
+          quantity: item.quantity,
+          unit_price: item.unit_price,
+          total_price: item.total_price,
+        })),
+      };
+
+      const response = await axios.post(`${API_BASE}/orders`, apiData, {
         headers: { "Content-Type": "application/json" },
       });
+      console.log(response);
 
-      if (response.status === 200 || response.status === 201) {
+      if (!response.data.error) {
         Swal.fire("Success", "Order created successfully", "success");
-        navigate("/orders");
+        // navigate("/orders");
       }
     } catch (error: any) {
+      console.error("Order creation error:", error);
       Swal.fire(
         "Error",
         error.response?.data?.message || "Something went wrong",
@@ -197,22 +264,30 @@ const AddOrder: React.FC = () => {
     fetchCustomers();
   }, []);
 
-  // filter logic
+  // 🔹 Salesman filter by ID or Name
   useEffect(() => {
     setFilteredSalesmans(
-      salesmans.filter((s) =>
-        `${s.first_name} ${s.last_name}`
-          .toLowerCase()
-          .includes(salesmanSearch.toLowerCase())
-      )
+      salesmans.filter((s) => {
+        const fullName = `${s.first_name} ${s.last_name}`.toLowerCase();
+        const idMatch = s.id.toString().includes(salesmanSearch.toLowerCase());
+        const nameMatch = fullName.includes(salesmanSearch.toLowerCase());
+        return idMatch || nameMatch;
+      })
     );
   }, [salesmanSearch, salesmans]);
 
+  // 🔹 Customer filter by Name or Mobile
   useEffect(() => {
     setFilteredCustomers(
-      customers.filter((c) =>
-        c.name.toLowerCase().includes(customerSearch.toLowerCase())
-      )
+      customers.filter((c) => {
+        const nameMatch = c.name
+          .toLowerCase()
+          .includes(customerSearch.toLowerCase());
+        const mobileMatch = c.mobile
+          ?.toString()
+          .includes(customerSearch.toLowerCase());
+        return nameMatch || mobileMatch;
+      })
     );
   }, [customerSearch, customers]);
 
@@ -236,7 +311,6 @@ const AddOrder: React.FC = () => {
               name="memo_no"
               value={formData.memo_no}
               onChange={handleChange}
-              required
               className="w-full p-2 border rounded-lg"
               placeholder="INV-2001"
             />
@@ -248,39 +322,44 @@ const AddOrder: React.FC = () => {
             <input
               type="date"
               name="order_date"
-              value={formData.order_date}
+              value={formData.order_date.split("T")[0]} // Extract just the date part for input
               onChange={handleChange}
               required
               className="w-full p-2 border rounded-lg"
             />
           </div>
 
-          {/* Salesman (Search) */}
-          <div className="relative">
+          {/* Salesman (Search by ID or Name) */}
+          <div className="relative" ref={salesmanRef}>
             <label className="block text-sm font-medium mb-1">Salesman</label>
             <input
               type="text"
-              placeholder="Search Salesman"
+              placeholder="Search by ID or Name"
               value={salesmanSearch}
-              onChange={(e) => setSalesmanSearch(e.target.value)}
+              onChange={(e) => {
+                setSalesmanSearch(e.target.value);
+                setShowSalesmanDropdown(true);
+              }}
+              onFocus={() => setShowSalesmanDropdown(true)}
               className="w-full p-2 border rounded-lg"
             />
-            {salesmanSearch && (
-              <ul className="absolute bg-white border rounded w-full max-h-40 overflow-y-auto z-10">
+            {showSalesmanDropdown && salesmanSearch && (
+              <ul className="absolute bg-white border rounded w-full max-h-40 overflow-y-auto z-10 shadow-lg">
                 {filteredSalesmans.length > 0 ? (
                   filteredSalesmans.map((s) => (
                     <li
                       key={s.id}
-                      className="p-2 hover:bg-gray-200 cursor-pointer"
+                      className="p-2 hover:bg-gray-200 cursor-pointer border-b"
                       onClick={() => {
                         setFormData((prev) => ({
                           ...prev,
                           sales_man_id: s.id,
                         }));
                         setSalesmanSearch(`${s.first_name} ${s.last_name}`);
+                        setShowSalesmanDropdown(false);
                       }}
                     >
-                      {s.first_name} {s.last_name}
+                      {s.id} — {s.first_name} {s.last_name}
                     </li>
                   ))
                 ) : (
@@ -290,34 +369,39 @@ const AddOrder: React.FC = () => {
             )}
           </div>
 
-          {/* Customer (Search + Add new) */}
-          <div className="relative">
+          {/* Customer (Search by Name or Mobile + Add new) */}
+          <div className="relative" ref={customerRef}>
             <label className="block text-sm font-medium mb-1">Customer</label>
             <input
               type="text"
-              placeholder="Search Customer"
+              placeholder="Search by Name or Mobile"
               value={customerSearch}
-              onChange={(e) => setCustomerSearch(e.target.value)}
+              onChange={(e) => {
+                setCustomerSearch(e.target.value);
+                setShowCustomerDropdown(true);
+              }}
+              onFocus={() => setShowCustomerDropdown(true)}
               className="w-full p-2 border rounded-lg"
             />
-            {customerSearch && (
-              <ul className="absolute bg-white border rounded w-full max-h-40 overflow-y-auto z-10">
+            {showCustomerDropdown && customerSearch && (
+              <ul className="absolute bg-white border rounded w-full max-h-40 overflow-y-auto z-10 shadow-lg">
                 {filteredCustomers.length > 0 ? (
                   filteredCustomers.map((c) => (
                     <li
                       key={c.id}
-                      className="p-2 hover:bg-gray-200 cursor-pointer"
+                      className="p-2 hover:bg-gray-200 cursor-pointer border-b"
                       onClick={() => {
                         setFormData((prev) => ({ ...prev, customer_id: c.id }));
                         setCustomerSearch(c.name);
+                        setShowCustomerDropdown(false);
                       }}
                     >
-                      {c.name}
+                      {c.name} {c.mobile ? `(${c.mobile})` : ""}
                     </li>
                   ))
                 ) : (
                   <li
-                    className="p-2 bg-green-100 hover:bg-green-200 cursor-pointer"
+                    className="p-2 bg-green-100 hover:bg-green-200 cursor-pointer border-b"
                     onClick={async () => {
                       try {
                         const { data } = await axios.post(
@@ -331,6 +415,7 @@ const AddOrder: React.FC = () => {
                           customer_id: data.customer.id,
                         }));
                         setCustomerSearch(data.customer.name);
+                        setShowCustomerDropdown(false);
                         Swal.fire(
                           "Success",
                           "Customer created successfully",
@@ -407,8 +492,8 @@ const AddOrder: React.FC = () => {
               className="w-full p-2 border rounded-lg"
             >
               <option value="">Select Account</option>
-              <option value="1">Bank Account</option>
-              <option value="2">Cash Account</option>
+              <option value={1}>Bank Account</option>
+              <option value={2}>Cash Account</option>
             </select>
           </div>
 
@@ -448,14 +533,13 @@ const AddOrder: React.FC = () => {
           <h3 className="font-semibold mb-4">Add Product</h3>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <select
-              name="product_name"
-              value={productForm.product_name}
+              value={selectedProductId}
               onChange={handleProductChange}
               className="w-full p-2 border rounded-lg"
             >
-              <option value="">Select Product</option>
+              <option value={0}>Select Product</option>
               {products.map((product) => (
-                <option key={product.product_id} value={product.product_id}>
+                <option key={product.id} value={product.id}>
                   {product.product_name}
                 </option>
               ))}
