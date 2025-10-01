@@ -12,11 +12,15 @@ export default function Home() {
     completed_orders: 0,
     cancelled_orders: 0,
   });
-  const [reportType, setReportType] = useState("all");
-  const [date, setDate] = useState(() => {
-    const today = new Date();
-    return today.toISOString().split("T")[0];
-  });
+  // const [reportType, setReportType] = useState("all");
+  // const [date, setDate] = useState(() => {
+  //   const today = new Date();
+  //   return today.toISOString().split("T")[0];
+  // });
+
+  const reportType = "all";
+  const date = new Date().toISOString().split("T")[0];
+
   const fetchOverview = async () => {
     try {
       const { data } = await axiosInstance.get(

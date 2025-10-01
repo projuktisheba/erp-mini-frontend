@@ -551,7 +551,10 @@ export default function Orders() {
 
             {/* Footer */}
             <div className="flex justify-end gap-3 border-t border-gray-200 dark:border-gray-700 px-6 py-4">
-              <button className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white">
+              <button
+                onClick={() => handleEdit(selectedOrder)}
+                className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white"
+              >
                 Edit Order
               </button>
             </div>
