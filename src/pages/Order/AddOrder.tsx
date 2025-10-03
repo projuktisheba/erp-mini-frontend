@@ -225,7 +225,7 @@ const AddOrder: React.FC = () => {
       };
 
       const response = await axios.post(`${API_BASE}/orders`, apiData, {
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", "X-Branch-ID": "1" },
       });
       console.log(response);
 
@@ -244,17 +244,29 @@ const AddOrder: React.FC = () => {
   };
 
   const fetchProducts = async () => {
-    const { data } = await axios.get(`${API_BASE}/products`);
+    const { data } = await axios.get(`${API_BASE}/products`, {
+      headers: {
+        "X-Branch-ID": "1",
+      },
+    });
     setProducts(data.products);
   };
 
   const fetchSalesman = async () => {
-    const { data } = await axios.get(`${API_BASE}/hr/employees/names`);
+    const { data } = await axios.get(`${API_BASE}/hr/employees/names`, {
+      headers: {
+        "X-Branch-ID": "1",
+      },
+    });
     setSalesmans(data.employees);
   };
 
   const fetchCustomers = async () => {
-    const { data } = await axios.get(`${API_BASE}/mis/customers/names`);
+    const { data } = await axios.get(`${API_BASE}/mis/customers/names`, {
+      headers: {
+        "X-Branch-ID": "1",
+      },
+    });
     setCustomers(data.customers);
   };
 
@@ -406,7 +418,12 @@ const AddOrder: React.FC = () => {
                       try {
                         const { data } = await axios.post(
                           `${API_BASE}/mis/customer`,
-                          { name: customerSearch }
+                          { name: customerSearch },
+                          {
+                            headers: {
+                              "X-Branch-ID": "1",
+                            },
+                          }
                         );
 
                         setCustomers((prev) => [...prev, data.customer]);

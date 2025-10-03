@@ -31,8 +31,17 @@ const navItems: NavItem[] = [
     icon: <CalenderIcon />,
     name: "HR Management",
     subItems: [
-      { name: "Employee List", path: "/employee-list" },
+      { name: "Worker List", path: "/worker-list" },
+      { name: "Salesperson List", path: "/salesperson-list" },
       { name: "Add Employee ", path: "/add-employee" },
+      {
+        name: "Customer List",
+        path: "/customer-list",
+      },
+      {
+        name: "Add Customer",
+        path: "/add-customer",
+      },
     ],
   },
   {

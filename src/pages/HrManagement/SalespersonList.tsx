@@ -5,16 +5,11 @@ import {
   TableCell,
   TableHeader,
   TableRow,
-} from "../../../components/ui/table";
-import Button from "../../../components/ui/button/Button";
-import { Modal } from "../../../components/ui/modal";
-import Input from "../../../components/form/input/InputField";
-import Label from "../../../components/form/Label";
-import { useModal } from "../../../hooks/useModal";
-import axiosInstance from "../../../hooks/AxiosIntence/AxiosIntence";
+} from "../../components/ui/table";
+import Button from "../../components/ui/button/Button";
+import axiosInstance from "../../hooks/AxiosIntence/AxiosIntence";
 import { useNavigate } from "react-router";
 import { Search } from "lucide-react";
-import Swal from "sweetalert2";
 
 interface Employee {
   id: number;
@@ -31,29 +26,18 @@ const statusColors: Record<string, string> = {
     "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300",
 };
 
-export default function EmployeeList() {
+export default function SalespersonList() {
   const [tableData, setTableData] = useState<Employee[]>([]);
   const [filteredData, setFilteredData] = useState<Employee[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(
-    null
-  );
-  const [saving, setSaving] = useState(false);
-  const { isOpen, openModal, closeModal } = useModal();
   const navigate = useNavigate();
-
-  const [formData, setFormData] = useState({
-    name: "",
-    work_date: new Date().toISOString().split("T")[0],
-    overtime: "",
-  });
 
   const [searchQuery, setSearchQuery] = useState("");
 
   const fetchEmployees = async () => {
     try {
       setLoading(true);
-      const res = await axiosInstance.get("hr/employees?role=worker");
+      const res = await axiosInstance.get("hr/employees?role=salesperson");
       setTableData(res.data.employees);
       setFilteredData(res.data.employees);
     } catch (err) {
@@ -76,49 +60,6 @@ export default function EmployeeList() {
     );
     setFilteredData(filtered);
   }, [searchQuery, tableData]);
-
-  const handleAttendanceClick = (employee: Employee) => {
-    setSelectedEmployee(employee);
-    setFormData({
-      name: employee.name,
-      work_date: new Date().toISOString().split("T")[0],
-      overtime: "",
-    });
-    openModal();
-  };
-
-  const handleSubmit = async () => {
-    if (!selectedEmployee) return;
-    try {
-      setSaving(true);
-      const payload = {
-        employee_id: selectedEmployee.id,
-        work_date: formData.work_date,
-        overtime_hours: formData.overtime ? parseFloat(formData.overtime) : 0,
-      };
-      const response = await axiosInstance.post(
-        "/hr/attendance/present/single",
-        payload,
-        { headers: { "Content-Type": "application/json" } }
-      );
-
-      if (response.data.status === "success") {
-        Swal.fire("Success", "Attendance recorded successfully!", "success");
-        closeModal();
-      } else {
-        Swal.fire(
-          "Error",
-          response.data.message || "Failed to record attendance",
-          "error"
-        );
-      }
-    } catch (err) {
-      console.error("Error recording attendance:", err);
-      Swal.fire("Error", "Failed to record attendance", "error");
-    } finally {
-      setSaving(false);
-    }
-  };
 
   if (loading) {
     return (
@@ -169,7 +110,6 @@ export default function EmployeeList() {
                 <TableCell>Email</TableCell>
                 <TableCell>Mobile</TableCell>
                 <TableCell>Profile</TableCell>
-                <TableCell>Attendance</TableCell>
               </TableRow>
             </TableHeader>
 
@@ -203,22 +143,13 @@ export default function EmployeeList() {
                     </TableCell>
                     <TableCell>{employee.email}</TableCell>
                     <TableCell>{employee.mobile}</TableCell>
-                    <TableCell>
+                    <TableCell className="py-2">
                       <Button
                         onClick={() => navigate(`/profile/${employee.id}`)}
                         size="sm"
                         variant="outline"
                       >
                         View Profile
-                      </Button>
-                    </TableCell>
-                    <TableCell className="py-2">
-                      <Button
-                        onClick={() => handleAttendanceClick(employee)}
-                        size="sm"
-                        variant="outline"
-                      >
-                        Check
                       </Button>
                     </TableCell>
                   </TableRow>
@@ -228,54 +159,6 @@ export default function EmployeeList() {
           </Table>
         </div>
       </div>
-
-      {/* Attendance Modal */}
-      <Modal isOpen={isOpen} onClose={closeModal} className="max-w-[500px] m-4">
-        <div className="relative w-full p-6 bg-white rounded-3xl dark:bg-gray-900">
-          <h4 className="mb-4 text-2xl font-semibold text-gray-800 dark:text-white/90">
-            Record Attendance
-          </h4>
-          <div className="grid grid-cols-1 gap-4">
-            <div>
-              <Label>Name</Label>
-              <Input type="text" value={formData.name} disabled />
-            </div>
-            <div>
-              <Label>Work Date</Label>
-              <Input
-                type="date"
-                value={formData.work_date}
-                onChange={(e) =>
-                  setFormData((prev) => ({
-                    ...prev,
-                    work_date: e.target.value,
-                  }))
-                }
-              />
-            </div>
-            <div>
-              <Label>Overtime Hours</Label>
-              <Input
-                type="number"
-                placeholder="Enter overtime hours"
-                value={formData.overtime}
-                onChange={(e) =>
-                  setFormData((prev) => ({ ...prev, overtime: e.target.value }))
-                }
-              />
-            </div>
-          </div>
-
-          <div className="flex justify-end gap-3 mt-6">
-            <Button size="sm" variant="outline" onClick={closeModal}>
-              Close
-            </Button>
-            <Button size="sm" onClick={handleSubmit} disabled={saving}>
-              {saving ? "Submitting..." : "Submit"}
-            </Button>
-          </div>
-        </div>
-      </Modal>
     </div>
   );
 }

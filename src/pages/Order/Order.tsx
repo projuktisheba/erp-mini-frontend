@@ -17,7 +17,6 @@ import {
   CircleX,
   ArrowRightFromLine,
 } from "lucide-react";
-import Swal from "sweetalert2";
 
 interface OrderItem {
   id: number;
@@ -34,6 +33,7 @@ interface Order {
   order_date: string;
   sales_man_id: number;
   customer_id: number;
+  customer_name: string;
   total_payable_amount: number;
   advance_payment_amount: number;
   due_amount: number;
@@ -45,12 +45,7 @@ interface Order {
   items: OrderItem[];
 }
 
-type OrderStatus =
-  | "pending"
-  | "checkout"
-  | "delivery"
-  | "cancelled"
-  | "returned";
+type OrderStatus = "pending" | "checkout" | "delivery" | "cancelled";
 
 const statusFlow: OrderStatus[] = [
   "pending",
@@ -59,6 +54,11 @@ const statusFlow: OrderStatus[] = [
   "cancelled",
 ];
 
+type ConfirmationAction =
+  | { type: "cancel"; order: Order }
+  | { type: "nextStatus"; order: Order; nextStatus: OrderStatus }
+  | null;
+
 export default function Orders() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
@@ -66,6 +66,12 @@ export default function Orders() {
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [confirmationAction, setConfirmationAction] =
+    useState<ConfirmationAction>(null);
+  const [deliveryFormData, setDeliveryFormData] = useState({
+    paid_amount: 0,
+    payment_account_id: 0,
+  });
 
   const fetchOrders = async () => {
     try {
@@ -83,7 +89,6 @@ export default function Orders() {
     fetchOrders();
   }, []);
 
-  // Filter orders based on search term and status
   const filteredOrders = orders.filter((order) => {
     const matchesSearch =
       order.memo_no.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -135,57 +140,86 @@ export default function Orders() {
 
   const closeModal = () => {
     setSelectedOrder(null);
+    setConfirmationAction(null);
     setIsModalOpen(false);
+    setDeliveryFormData({ paid_amount: 0, payment_account_id: 0 });
   };
 
   const handleEdit = (order: Order) => {
     console.log("Edit", order.id);
   };
 
-  const handleCancel = async (order: Order) => {
-    try {
-      const { data } = await axiosInstance.delete(
-        `/orders?order_id=${order.id}`
-      );
-      Swal.fire({
-        icon: "success",
-        title: data.message,
-      });
-      fetchOrders();
-    } catch (error) {
-      console.log("Error: ", error);
-    }
+  const handleCancelClick = (order: Order) => {
+    setConfirmationAction({ type: "cancel", order });
+    setIsModalOpen(true);
   };
 
-  const handleNextState = async (order: Order) => {
+  const handleNextStateClick = (order: Order) => {
     const nextStatus = getNextStatus(order.status as OrderStatus);
-
-    if (!nextStatus) {
-      Swal.fire({
-        icon: "info",
-        title: "No further state",
-        text: `Order #${order.memo_no} is already in its final state.`,
-      });
-      return;
+    if (!nextStatus) return;
+    setConfirmationAction({ type: "nextStatus", order, nextStatus });
+    if (nextStatus === "delivery") {
+      setDeliveryFormData({ paid_amount: 0, payment_account_id: 0 });
     }
+    setIsModalOpen(true);
+  };
 
-    try {
-      const { data } = await axiosInstance.patch(
-        `/orders/${nextStatus}?order_id=${order.id}`
-      );
-      Swal.fire({
-        icon: "success",
-        title: "Status updated",
-        text: data.message,
-      });
-      fetchOrders();
-    } catch (error) {
-      console.error("Error updating status:", error);
-      Swal.fire({
-        icon: "error",
-        title: "Update Failed",
-        text: "Could not update order status. Please try again.",
-      });
+  const handleConfirmAction = async () => {
+    if (!confirmationAction) return;
+
+    const { type, order } = confirmationAction;
+
+    if (type === "cancel") {
+      try {
+        const { data } = await axiosInstance.delete(
+          `/orders?order_id=${order.id}`
+        );
+        fetchOrders();
+        closeModal();
+        alert(data.message || "Order cancelled successfully");
+      } catch (err) {
+        console.error(err);
+        alert("Failed to cancel order");
+      }
+    } else if (type === "nextStatus") {
+      const { nextStatus } = confirmationAction;
+
+      if (nextStatus === "delivery") {
+        // Delivery requires paid amount and payment account
+        if (
+          !deliveryFormData.paid_amount ||
+          !deliveryFormData.payment_account_id
+        ) {
+          alert("Please fill paid amount and payment account ID");
+          return;
+        }
+
+        try {
+          const { data } = await axiosInstance.patch(`/orders/delivery`, {
+            order_id: order.id,
+            paid_amount: deliveryFormData.paid_amount,
+            payment_account_id: deliveryFormData.payment_account_id,
+          });
+          fetchOrders();
+          closeModal();
+          alert(data.message || "Order marked as delivered");
+        } catch (err) {
+          console.error(err);
+          alert("Failed to deliver order");
+        }
+      } else {
+        try {
+          const { data } = await axiosInstance.patch(
+            `/orders/${nextStatus}?order_id=${order.id}`
+          );
+          fetchOrders();
+          closeModal();
+          alert(data.message || `Order moved to ${nextStatus}`);
+        } catch (err) {
+          console.error(err);
+          alert("Failed to update order status");
+        }
+      }
     }
   };
 
@@ -204,7 +238,7 @@ export default function Orders() {
 
   return (
     <div className="container mx-auto py-6">
-      {/* Header Section */}
+      {/* Header */}
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
           Orders Management
@@ -214,58 +248,9 @@ export default function Orders() {
         </p>
       </div>
 
-      {/* Summary Stats */}
-      {/* {filteredOrders.length > 0 && (
-        <div className="my-6 grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
-            <div className="text-sm text-blue-600 dark:text-blue-400">
-              Total Orders
-            </div>
-            <div className="text-2xl font-bold text-blue-900 dark:text-blue-300">
-              {filteredOrders.length}
-            </div>
-          </div>
-          <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4">
-            <div className="text-sm text-green-600 dark:text-green-400">
-              Total Value
-            </div>
-            <div className="text-2xl font-bold text-green-900 dark:text-green-300">
-              {formatCurrency(
-                filteredOrders.reduce(
-                  (sum, order) => sum + order.total_payable_amount,
-                  0
-                )
-              )}
-            </div>
-          </div>
-          <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4">
-            <div className="text-sm text-yellow-600 dark:text-yellow-400">
-              Pending
-            </div>
-            <div className="text-2xl font-bold text-yellow-900 dark:text-yellow-300">
-              {
-                filteredOrders.filter((order) => order.status === "pending")
-                  .length
-              }
-            </div>
-          </div>
-          <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
-            <div className="text-sm text-red-600 dark:text-red-400">
-              Due Amount
-            </div>
-            <div className="text-2xl font-bold text-red-900 dark:text-red-300">
-              {formatCurrency(
-                filteredOrders.reduce((sum, order) => sum + order.due_amount, 0)
-              )}
-            </div>
-          </div>
-        </div>
-      )} */}
-
-      {/* Filters and Search Section */}
+      {/* Filters */}
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4 mb-6">
         <div className="flex flex-col sm:flex-row gap-4">
-          {/* Search Input */}
           <div className="flex-1 relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
             <input
@@ -277,7 +262,6 @@ export default function Orders() {
             />
           </div>
 
-          {/* Status Filter */}
           <div className="flex items-center gap-2">
             <Filter className="text-gray-400 h-4 w-4" />
             <select
@@ -302,31 +286,18 @@ export default function Orders() {
           <Table>
             <TableHeader className="bg-gray-50 dark:bg-gray-700/50 border-b border-gray-200 dark:border-gray-600">
               <TableRow>
-                <TableCell className="font-semibold text-gray-900 dark:text-white p-2">
-                  Order Info
-                </TableCell>
-                <TableCell className="font-semibold text-gray-900 dark:text-white">
-                  Purchase Date
-                </TableCell>
-                <TableCell className="font-semibold text-gray-900 dark:text-white">
-                  Customer ID
-                </TableCell>
-                <TableCell className="font-semibold text-gray-900 dark:text-white">
-                  Transactions
-                </TableCell>
-                <TableCell className="font-semibold text-gray-900 dark:text-white">
-                  Status
-                </TableCell>
-                <TableCell className="font-semibold text-gray-900 dark:text-white">
-                  Actions
-                </TableCell>
+                <TableCell>Order Info</TableCell>
+                <TableCell>Purchase Date</TableCell>
+                <TableCell>Customer ID</TableCell>
+                <TableCell>Transactions</TableCell>
+                <TableCell>Status</TableCell>
+                <TableCell>Actions</TableCell>
               </TableRow>
             </TableHeader>
-
             <TableBody className="divide-y divide-gray-200 dark:divide-gray-600">
               {filteredOrders.length === 0 ? (
                 <TableRow>
-                  <TableCell className="text-center py-8">
+                  <TableCell className="text-center py-8" >
                     <div className="text-gray-500 dark:text-gray-400">
                       {searchTerm || statusFilter !== "all"
                         ? "No orders match your filters."
@@ -364,7 +335,7 @@ export default function Orders() {
                       <div className="flex items-center gap-2">
                         <User className="h-4 w-4 text-gray-400" />
                         <span className="text-gray-700 dark:text-gray-300">
-                          {order.customer_id}
+                          {order.customer_name}
                         </span>
                       </div>
                     </TableCell>
@@ -384,7 +355,7 @@ export default function Orders() {
                           </div>
                         )}
                         {order.due_amount > 0 && (
-                          <div className="text-xs  text-red-600 dark:text-red-400">
+                          <div className="text-xs text-red-600 dark:text-red-400">
                             Due: {formatCurrency(order.due_amount)}
                           </div>
                         )}
@@ -414,8 +385,11 @@ export default function Orders() {
                         </Button>
 
                         <Button
-                          disabled={order.status === "cancelled"}
-                          onClick={() => handleNextState(order)}
+                          disabled={
+                            order.status === "delivery" ||
+                            order.status === "cancelled"
+                          }
+                          onClick={() => handleNextStateClick(order)}
                           size="sm"
                           variant="outline"
                           className="flex items-center gap-2"
@@ -425,7 +399,7 @@ export default function Orders() {
 
                         <Button
                           disabled={order.status === "cancelled"}
-                          onClick={() => handleCancel(order)}
+                          onClick={() => handleCancelClick(order)}
                           size="sm"
                           variant="outline"
                           className="flex items-center gap-2"
@@ -443,14 +417,17 @@ export default function Orders() {
       </div>
 
       {/* Modal */}
-      {isModalOpen && selectedOrder && (
+      {isModalOpen && (selectedOrder || confirmationAction) && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl w-11/12 max-w-3xl relative animate-fadeIn scale-95 transform transition-all">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl w-11/12 max-w-3xl relative animate-fadeIn scale-95 transform transition-all p-6">
             {/* Header */}
-            <div className="flex items-center justify-between border-b border-gray-200 dark:border-gray-700 px-6 py-4">
+            <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg md:text-xl font-semibold text-gray-900 dark:text-white">
-                Order Details{" "}
-                <span className="text-blue-600">#{selectedOrder.memo_no}</span>
+                {confirmationAction
+                  ? confirmationAction.type === "cancel"
+                    ? `Cancel Order #${confirmationAction.order.memo_no}?`
+                    : `Move Order #${confirmationAction.order.memo_no} to ${confirmationAction.nextStatus}`
+                  : `Order Details #${selectedOrder?.memo_no}`}
               </h2>
               <button
                 className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500 hover:text-gray-900 dark:hover:text-white"
@@ -461,101 +438,135 @@ export default function Orders() {
             </div>
 
             {/* Body */}
-            <div className="px-6 py-4 space-y-6 max-h-[70vh] overflow-y-auto">
-              {/* Order Info */}
-              <div className="grid grid-cols-2 gap-4 text-sm">
-                <div className="bg-gray-50 dark:bg-gray-700/50 p-3 rounded-lg">
-                  <strong className="block text-gray-600 dark:text-gray-400">
-                    Customer ID
-                  </strong>
-                  <span className="text-gray-900 dark:text-gray-200">
-                    {selectedOrder.customer_id}
-                  </span>
+            <div className="space-y-4">
+              {confirmationAction ? (
+                <>
+                  {confirmationAction.type === "nextStatus" &&
+                  confirmationAction.nextStatus === "delivery" ? (
+                    <div className="space-y-2">
+                      <input
+                        type="number"
+                        placeholder="Paid Amount"
+                        value={deliveryFormData.paid_amount}
+                        onChange={(e) =>
+                          setDeliveryFormData((prev) => ({
+                            ...prev,
+                            paid_amount: Number(e.target.value),
+                          }))
+                        }
+                        className="w-full p-2 border rounded"
+                      />
+                      <input
+                        type="number"
+                        placeholder="Payment Account ID"
+                        value={deliveryFormData.payment_account_id}
+                        onChange={(e) =>
+                          setDeliveryFormData((prev) => ({
+                            ...prev,
+                            payment_account_id: Number(e.target.value),
+                          }))
+                        }
+                        className="w-full p-2 border rounded"
+                      />
+                    </div>
+                  ) : (
+                    <p className="text-gray-700 dark:text-gray-400">
+                      Are you sure you want to{" "}
+                      {confirmationAction.type === "cancel"
+                        ? "cancel"
+                        : `move to ${confirmationAction.nextStatus}`}{" "}
+                      this order?
+                    </p>
+                  )}
+                </>
+              ) : (
+                // Order details
+                <div>
+                  <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <strong>Customer ID:</strong> {selectedOrder?.customer_id}
+                    </div>
+                    <div>
+                      <strong>Salesman ID:</strong>{" "}
+                      {selectedOrder?.sales_man_id}
+                    </div>
+                    <div>
+                      <strong>Order Date:</strong>{" "}
+                      {selectedOrder &&
+                        new Date(selectedOrder.order_date).toLocaleDateString()}
+                    </div>
+                    <div>
+                      <strong>Status:</strong>{" "}
+                      <span
+                        className={`inline-block px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(
+                          selectedOrder?.status || ""
+                        )}`}
+                      >
+                        {selectedOrder?.status}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="mt-4">
+                    <strong>Notes:</strong> {selectedOrder?.notes || "—"}
+                  </div>
+                  <div className="mt-4">
+                    <strong>Products:</strong>
+                    <div className="overflow-x-auto border rounded-lg mt-2">
+                      <table className="min-w-full text-sm">
+                        <thead className="bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300">
+                          <tr>
+                            <th className="px-4 py-2 text-left">Product ID</th>
+                            <th className="px-4 py-2 text-left">Quantity</th>
+                            <th className="px-4 py-2 text-left">Unit Price</th>
+                            <th className="px-4 py-2 text-left">Total</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {selectedOrder?.items.map((item) => (
+                            <tr
+                              key={item.id}
+                              className="border-t dark:border-gray-700"
+                            >
+                              <td className="px-4 py-2">{item.product_id}</td>
+                              <td className="px-4 py-2">{item.quantity}</td>
+                              <td className="px-4 py-2">
+                                {formatCurrency(item.unit_price)}
+                              </td>
+                              <td className="px-4 py-2 font-medium">
+                                {formatCurrency(item.total_price)}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
                 </div>
-                <div className="bg-gray-50 dark:bg-gray-700/50 p-3 rounded-lg">
-                  <strong className="block text-gray-600 dark:text-gray-400">
-                    Salesman ID
-                  </strong>
-                  <span className="text-gray-900 dark:text-gray-200">
-                    {selectedOrder.sales_man_id}
-                  </span>
-                </div>
-                <div className="bg-gray-50 dark:bg-gray-700/50 p-3 rounded-lg">
-                  <strong className="block text-gray-600 dark:text-gray-400">
-                    Order Date
-                  </strong>
-                  <span className="text-gray-900 dark:text-gray-200">
-                    {new Date(selectedOrder.order_date).toLocaleDateString()}
-                  </span>
-                </div>
-                <div className="bg-gray-50 dark:bg-gray-700/50 p-3 rounded-lg">
-                  <strong className="block text-gray-600 dark:text-gray-400">
-                    Status
-                  </strong>
-                  <span
-                    className="inline-block px-2 py-1 text-xs font-medium rounded-full
-              ${getStatusColor(selectedOrder.status)}"
-                  >
-                    {selectedOrder.status.charAt(0).toUpperCase() +
-                      selectedOrder.status.slice(1)}
-                  </span>
-                </div>
-              </div>
-
-              {/* Notes */}
-              <div>
-                <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200 mb-2">
-                  Notes
-                </h3>
-                <p className="text-gray-700 dark:text-gray-400">
-                  {selectedOrder.notes || "—"}
-                </p>
-              </div>
-
-              {/* Products */}
-              <div>
-                <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200 mb-2">
-                  Products
-                </h3>
-                <div className="overflow-x-auto border rounded-lg">
-                  <table className="min-w-full text-sm">
-                    <thead className="bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300">
-                      <tr>
-                        <th className="px-4 py-2 text-left">Product ID</th>
-                        <th className="px-4 py-2 text-left">Quantity</th>
-                        <th className="px-4 py-2 text-left">Unit Price</th>
-                        <th className="px-4 py-2 text-left">Total</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {selectedOrder.items.map((item) => (
-                        <tr
-                          key={item.id}
-                          className="border-t dark:border-gray-700"
-                        >
-                          <td className="px-4 py-2">{item.product_id}</td>
-                          <td className="px-4 py-2">{item.quantity}</td>
-                          <td className="px-4 py-2">
-                            {formatCurrency(item.unit_price)}
-                          </td>
-                          <td className="px-4 py-2 font-medium">
-                            {formatCurrency(item.total_price)}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
+              )}
             </div>
 
             {/* Footer */}
-            <div className="flex justify-end gap-3 border-t border-gray-200 dark:border-gray-700 px-6 py-4">
+            <div className="flex justify-end gap-3 mt-6">
+              {confirmationAction ? (
+                <button
+                  onClick={handleConfirmAction}
+                  className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white"
+                >
+                  Confirm
+                </button>
+              ) : (
+                <button
+                  onClick={() => handleEdit(selectedOrder!)}
+                  className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white"
+                >
+                  Edit Order
+                </button>
+              )}
               <button
-                onClick={() => handleEdit(selectedOrder)}
-                className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white"
+                onClick={closeModal}
+                className="px-4 py-2 rounded-lg bg-gray-300 dark:bg-gray-700 hover:bg-gray-400 dark:hover:bg-gray-600"
               >
-                Edit Order
+                Cancel
               </button>
             </div>
           </div>

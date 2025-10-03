@@ -12,6 +12,10 @@ import EmployeeList from "./pages/HrManagement/EmployeeList/EmployeeList";
 import AddEmployee from "./pages/HrManagement/AddEmployee/AddEmployee";
 import Order from "./pages/Order/Order";
 import AddOrder from "./pages/Order/AddOrder";
+import CustomerList from "./pages/HrManagement/CustomerList";
+import CustomerProfile from "./pages/HrManagement/CustomerProfile";
+import AddCustomer from "./pages/HrManagement/AddCustomer";
+import SalespersonList from "./pages/HrManagement/SalespersonList";
 
 export default function App() {
   return (
@@ -31,14 +35,35 @@ export default function App() {
 
             {/* Others Page */}
             <Route path="/profile/:id" element={<UserProfiles />} />
+
             <Route
-              path="/employee-list"
+              path="/salesperson-list"
               element={
                 <ProtectedRoute>
-                  <EmployeeList></EmployeeList>
+                  <SalespersonList />
                 </ProtectedRoute>
               }
             />
+
+            <Route
+              path="/worker-list"
+              element={
+                <ProtectedRoute>
+                  <EmployeeList />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route path="/customer/:id" element={<CustomerProfile />} />
+            <Route
+              path="/customer-list"
+              element={
+                <ProtectedRoute>
+                  <CustomerList />
+                </ProtectedRoute>
+              }
+            />
+
             <Route
               path="/add-employee"
               element={
@@ -47,6 +72,16 @@ export default function App() {
                 </ProtectedRoute>
               }
             />
+
+            <Route
+              path="/add-customer"
+              element={
+                <ProtectedRoute>
+                  <AddCustomer />
+                </ProtectedRoute>
+              }
+            />
+
             <Route path="/blank" element={<Blank />} />
 
             {/* Orders */}
