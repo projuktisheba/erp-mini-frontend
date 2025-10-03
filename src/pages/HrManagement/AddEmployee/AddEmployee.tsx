@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import axios from "axios";
 import Swal from "sweetalert2";
-import { useNavigate } from "react-router";
+// import { useNavigate } from "react-router";
 
 const API_BASE = "https://api.erp.pssoft.xyz/api/v1";
 
@@ -15,7 +15,7 @@ const AddEmployee: React.FC = () => {
     joining_date: new Date().toISOString().split("T")[0], // default today
   });
 
-  const navigate = useNavigate();
+  // const navigate = useNavigate();
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
