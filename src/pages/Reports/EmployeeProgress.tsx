@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from "react";
-import axios from "axios";
 import axiosInstance from "../../hooks/AxiosIntence/AxiosIntence";
 
 interface EmployeeProgressItem {
@@ -18,8 +17,27 @@ const EmployeeProgress: React.FC = () => {
     "daily"
   );
   const [employeeId, setEmployeeId] = useState<number>(1);
-  const [startDate, setStartDate] = useState("2025-09-01");
-  const [endDate, setEndDate] = useState("2025-09-30");
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
+
+  // Helper to set start and end date based on reportType
+  const updateDates = (type: "daily" | "weekly" | "monthly") => {
+    const today = new Date();
+    let start: Date;
+
+    if (type === "daily") {
+      start = today;
+    } else if (type === "weekly") {
+      start = new Date(today);
+      start.setDate(today.getDate() - 6); // last 7 days including today
+    } else {
+      start = new Date(today);
+      start.setMonth(today.getMonth() - 1);
+    }
+
+    setStartDate(start.toISOString().slice(0, 10));
+    setEndDate(today.toISOString().slice(0, 10));
+  };
 
   const fetchProgress = async () => {
     setLoading(true);
@@ -32,7 +50,6 @@ const EmployeeProgress: React.FC = () => {
           report_type: reportType,
         },
       });
-
       setData(res.data.report || []);
     } catch (err) {
       console.error("Failed to fetch employee progress:", err);
@@ -42,8 +59,14 @@ const EmployeeProgress: React.FC = () => {
     }
   };
 
+  // Update dates automatically whenever reportType changes
   useEffect(() => {
-    fetchProgress();
+    updateDates(reportType);
+  }, [reportType]);
+
+  // Fetch data whenever reportType, employeeId, startDate, or endDate changes
+  useEffect(() => {
+    if (startDate && endDate) fetchProgress();
   }, [reportType, startDate, endDate, employeeId]);
 
   return (

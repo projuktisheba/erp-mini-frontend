@@ -17,10 +17,29 @@ const BranchReports: React.FC = () => {
   const [reportType, setReportType] = useState<"daily" | "weekly" | "monthly">(
     "daily"
   );
-  const [startDate, setStartDate] = useState("2025-01-01");
-  const [endDate, setEndDate] = useState("2025-03-31");
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
   const [data, setData] = useState<BranchReportItem[]>([]);
   const [loading, setLoading] = useState(false);
+
+  // Update start and end dates based on reportType
+  const updateDates = (type: "daily" | "weekly" | "monthly") => {
+    const today = new Date();
+    let start: Date;
+
+    if (type === "daily") {
+      start = today;
+    } else if (type === "weekly") {
+      start = new Date(today);
+      start.setDate(today.getDate() - 6); // last 7 days including today
+    } else {
+      start = new Date(today);
+      start.setMonth(today.getMonth() - 1); // last 1 month
+    }
+
+    setStartDate(start.toISOString().slice(0, 10));
+    setEndDate(today.toISOString().slice(0, 10));
+  };
 
   const fetchReports = async () => {
     setLoading(true);
@@ -32,7 +51,7 @@ const BranchReports: React.FC = () => {
           report_type: reportType,
         },
       });
-      console.log(res);
+      console.log(res.data);
 
       setData(res.data.reports || []);
     } catch (err) {
@@ -43,9 +62,15 @@ const BranchReports: React.FC = () => {
     }
   };
 
+  // Update dates whenever reportType changes
   useEffect(() => {
-    fetchReports();
-  }, [reportType, startDate, endDate]);
+    updateDates(reportType);
+  }, [reportType]);
+
+  // Fetch reports whenever startDate, endDate, or reportType changes
+  useEffect(() => {
+    if (startDate && endDate) fetchReports();
+  }, [startDate, endDate, reportType]);
 
   const totals = data.reduce(
     (acc, item) => {
