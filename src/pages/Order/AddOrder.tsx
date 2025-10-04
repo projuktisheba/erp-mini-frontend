@@ -9,7 +9,6 @@ interface ProductItem {
   product_id: number;
   product_name: string;
   quantity: number;
-  unit_price: number;
   total_price: number;
 }
 
@@ -18,29 +17,25 @@ const AddOrder: React.FC = () => {
   const [salesmans, setSalesmans] = useState<any[]>([]);
   const [customers, setCustomers] = useState<any[]>([]);
 
-  // Fix: Format date with time for backend
   const getCurrentDateTime = () => {
     const now = new Date();
-    return now.toISOString().split(".")[0] + "Z"; // Format: "2025-01-30T10:30:00Z"
+    return now.toISOString().split(".")[0] + "Z";
   };
 
   const [formData, setFormData] = useState({
-    memo_no: "",
-    order_date: getCurrentDateTime(), // Use datetime instead of just date
-    sales_man_id: 0,
+    order_date: getCurrentDateTime(),
+    delivery_date: getCurrentDateTime(),
+    salesperson_id: 0,
     customer_id: 0,
     total_payable_amount: 0,
     advance_payment_amount: 0,
     due_amount: 0,
     payment_account_id: 0,
-    status: "",
     notes: "",
     items: [] as ProductItem[],
   });
 
   const [selectedProductId, setSelectedProductId] = useState<number>(0);
-
-  // search states
   const [salesmanSearch, setSalesmanSearch] = useState("");
   const [filteredSalesmans, setFilteredSalesmans] = useState<any[]>([]);
   const [showSalesmanDropdown, setShowSalesmanDropdown] = useState(false);
@@ -49,7 +44,6 @@ const AddOrder: React.FC = () => {
   const [filteredCustomers, setFilteredCustomers] = useState<any[]>([]);
   const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
 
-  // Refs for detecting clicks outside
   const salesmanRef = useRef<HTMLDivElement>(null);
   const customerRef = useRef<HTMLDivElement>(null);
 
@@ -71,11 +65,8 @@ const AddOrder: React.FC = () => {
         setShowCustomerDropdown(false);
       }
     };
-
     document.addEventListener("mousedown", handleClickOutside);
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
   // Recalculate due amount
@@ -92,19 +83,10 @@ const AddOrder: React.FC = () => {
     >
   ) => {
     const { name, value } = e.target;
-
-    if (name === "order_date") {
-      // Convert date input to datetime format for backend
-      const dateTimeString = value + "T00:00:00Z"; // Add time portion
-      setFormData((prev) => ({
-        ...prev,
-        [name]: dateTimeString,
-      }));
+    if (name === "order_date" || name === "delivery_date") {
+      setFormData((prev) => ({ ...prev, [name]: value + "T00:00:00Z" }));
     } else if (name === "payment_account_id") {
-      setFormData((prev) => ({
-        ...prev,
-        [name]: Number(value),
-      }));
+      setFormData((prev) => ({ ...prev, [name]: Number(value) }));
     } else {
       setFormData((prev) => ({
         ...prev,
@@ -133,14 +115,10 @@ const AddOrder: React.FC = () => {
       product_id: selectedProductId,
       product_name: selectedProduct.product_name,
       quantity: 1,
-      unit_price: 0,
       total_price: 0,
     };
 
-    setFormData((prev) => ({
-      ...prev,
-      items: [...prev.items, newItem],
-    }));
+    setFormData((prev) => ({ ...prev, items: [...prev.items, newItem] }));
     setSelectedProductId(0);
   };
 
@@ -166,9 +144,6 @@ const AddOrder: React.FC = () => {
       items[index] = {
         ...items[index],
         [field]: value,
-        total_price:
-          (field === "quantity" ? value : items[index].quantity) *
-          (field === "unit_price" ? value : items[index].unit_price),
       };
       const total_payable_amount = items.reduce(
         (sum, item) => sum + item.total_price,
@@ -180,13 +155,12 @@ const AddOrder: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
     const requiredFields = [
       "order_date",
-      "sales_man_id",
+      "delivery_date",
+      "salesperson_id",
       "customer_id",
       "payment_account_id",
-      "status",
     ];
     for (const field of requiredFields) {
       if (!formData[field as keyof typeof formData]) {
@@ -200,12 +174,11 @@ const AddOrder: React.FC = () => {
       return;
     }
 
-    for (let i = 0; i < formData.items.length; i++) {
-      const item = formData.items[i];
-      if (item.quantity <= 0 || item.unit_price <= 0) {
+    for (let item of formData.items) {
+      if (item.quantity <= 0) {
         Swal.fire(
           "Error",
-          `Product "${item.product_name}" must have quantity > 0 and unit price > 0`,
+          `Product "${item.product_name}" must have quantity > 0`,
           "error"
         );
         return;
@@ -213,13 +186,11 @@ const AddOrder: React.FC = () => {
     }
 
     try {
-      // Prepare data for API - remove product_name from items
       const apiData = {
         ...formData,
         items: formData.items.map((item) => ({
           product_id: item.product_id,
           quantity: item.quantity,
-          unit_price: item.unit_price,
           total_price: item.total_price,
         })),
       };
@@ -245,27 +216,21 @@ const AddOrder: React.FC = () => {
 
   const fetchProducts = async () => {
     const { data } = await axios.get(`${API_BASE}/products`, {
-      headers: {
-        "X-Branch-ID": "1",
-      },
+      headers: { "X-Branch-ID": "1" },
     });
     setProducts(data.products);
   };
 
   const fetchSalesman = async () => {
     const { data } = await axios.get(`${API_BASE}/hr/employees/names`, {
-      headers: {
-        "X-Branch-ID": "1",
-      },
+      headers: { "X-Branch-ID": "1" },
     });
     setSalesmans(data.employees);
   };
 
   const fetchCustomers = async () => {
     const { data } = await axios.get(`${API_BASE}/mis/customers/names`, {
-      headers: {
-        "X-Branch-ID": "1",
-      },
+      headers: { "X-Branch-ID": "1" },
     });
     setCustomers(data.customers);
   };
@@ -276,30 +241,23 @@ const AddOrder: React.FC = () => {
     fetchCustomers();
   }, []);
 
-  // 🔹 Salesman filter by ID or Name
   useEffect(() => {
     setFilteredSalesmans(
-      salesmans.filter((s) => {
-        const fullName = `${s.first_name} ${s.last_name}`.toLowerCase();
-        const idMatch = s.id.toString().includes(salesmanSearch.toLowerCase());
-        const nameMatch = fullName.includes(salesmanSearch.toLowerCase());
-        return idMatch || nameMatch;
-      })
+      salesmans.filter(
+        (s) =>
+          s.id.toString().includes(salesmanSearch.toLowerCase()) ||
+          s.name.toLowerCase().includes(salesmanSearch.toLowerCase())
+      )
     );
   }, [salesmanSearch, salesmans]);
 
-  // 🔹 Customer filter by Name or Mobile
   useEffect(() => {
     setFilteredCustomers(
-      customers.filter((c) => {
-        const nameMatch = c.name
-          .toLowerCase()
-          .includes(customerSearch.toLowerCase());
-        const mobileMatch = c.mobile
-          ?.toString()
-          .includes(customerSearch.toLowerCase());
-        return nameMatch || mobileMatch;
-      })
+      customers.filter(
+        (c) =>
+          c.name.toLowerCase().includes(customerSearch.toLowerCase()) ||
+          c.mobile?.toString().includes(customerSearch.toLowerCase())
+      )
     );
   }, [customerSearch, customers]);
 
@@ -310,38 +268,39 @@ const AddOrder: React.FC = () => {
           New Order
         </h2>
 
-        {/* Main Order Form */}
         <form
           className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
           onSubmit={handleSubmit}
         >
-          {/* Memo No */}
-          <div>
-            <label className="block text-sm font-medium mb-1">Memo No</label>
-            <input
-              type="text"
-              name="memo_no"
-              value={formData.memo_no}
-              onChange={handleChange}
-              className="w-full p-2 border rounded-lg"
-              placeholder="INV-2001"
-            />
-          </div>
-
           {/* Order Date */}
           <div>
             <label className="block text-sm font-medium mb-1">Order Date</label>
             <input
               type="date"
               name="order_date"
-              value={formData.order_date.split("T")[0]} // Extract just the date part for input
+              value={formData.order_date.split("T")[0]}
               onChange={handleChange}
               required
               className="w-full p-2 border rounded-lg"
             />
           </div>
 
-          {/* Salesman (Search by ID or Name) */}
+          {/* Delivery Date */}
+          <div>
+            <label className="block text-sm font-medium mb-1">
+              Delivery Date
+            </label>
+            <input
+              type="date"
+              name="delivery_date"
+              value={formData.delivery_date.split("T")[0]}
+              onChange={handleChange}
+              required
+              className="w-full p-2 border rounded-lg"
+            />
+          </div>
+
+          {/* Salesman */}
           <div className="relative" ref={salesmanRef}>
             <label className="block text-sm font-medium mb-1">Salesman</label>
             <input
@@ -365,13 +324,13 @@ const AddOrder: React.FC = () => {
                       onClick={() => {
                         setFormData((prev) => ({
                           ...prev,
-                          sales_man_id: s.id,
+                          salesperson_id: s.id,
                         }));
-                        setSalesmanSearch(`${s.first_name} ${s.last_name}`);
+                        setSalesmanSearch(s.name);
                         setShowSalesmanDropdown(false);
                       }}
                     >
-                      {s.id} — {s.first_name} {s.last_name}
+                      {s.id} — {s.name}
                     </li>
                   ))
                 ) : (
@@ -381,7 +340,7 @@ const AddOrder: React.FC = () => {
             )}
           </div>
 
-          {/* Customer (Search by Name or Mobile + Add new) */}
+          {/* Customer */}
           <div className="relative" ref={customerRef}>
             <label className="block text-sm font-medium mb-1">Customer</label>
             <input
@@ -419,13 +378,8 @@ const AddOrder: React.FC = () => {
                         const { data } = await axios.post(
                           `${API_BASE}/mis/customer`,
                           { name: customerSearch },
-                          {
-                            headers: {
-                              "X-Branch-ID": "1",
-                            },
-                          }
+                          { headers: { "X-Branch-ID": "1" } }
                         );
-
                         setCustomers((prev) => [...prev, data.customer]);
                         setFormData((prev) => ({
                           ...prev,
@@ -514,23 +468,6 @@ const AddOrder: React.FC = () => {
             </select>
           </div>
 
-          {/* Status */}
-          <div>
-            <label className="block text-sm font-medium mb-1">Status</label>
-            <select
-              name="status"
-              value={formData.status}
-              onChange={handleChange}
-              required
-              className="w-full p-2 border rounded-lg"
-            >
-              <option value="">Select Status</option>
-              <option value="pending">Pending</option>
-              <option value="confirmed">Confirmed</option>
-              <option value="delivered">Delivered</option>
-            </select>
-          </div>
-
           {/* Notes */}
           <div className="md:col-span-3">
             <label className="block text-sm font-medium mb-1">Notes</label>
@@ -578,7 +515,6 @@ const AddOrder: React.FC = () => {
               <tr>
                 <th className="p-2 border">Product</th>
                 <th className="p-2 border">Quantity</th>
-                <th className="p-2 border">Unit Price</th>
                 <th className="p-2 border">Total</th>
                 <th className="p-2 border">Action</th>
               </tr>
@@ -586,7 +522,7 @@ const AddOrder: React.FC = () => {
             <tbody>
               {formData.items.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="text-center p-4 text-gray-500">
+                  <td colSpan={4} className="text-center p-4 text-gray-500">
                     No Product added yet
                   </td>
                 </tr>
@@ -594,6 +530,8 @@ const AddOrder: React.FC = () => {
                 formData.items.map((item, index) => (
                   <tr key={index} className="hover:bg-gray-100">
                     <td className="p-2 border">{item.product_name}</td>
+
+                    {/* Quantity */}
                     <td className="p-2 border">
                       <input
                         type="number"
@@ -610,23 +548,26 @@ const AddOrder: React.FC = () => {
                         required
                       />
                     </td>
+
+                    {/* Total editable */}
                     <td className="p-2 border">
                       <input
                         type="number"
-                        value={item.unit_price}
+                        value={item.total_price}
                         min={0}
                         className="w-full p-1 border rounded"
                         onChange={(e) =>
                           updateProductField(
                             index,
-                            "unit_price",
+                            "total_price",
                             Number(e.target.value)
                           )
                         }
                         required
                       />
                     </td>
-                    <td className="p-2 border">{item.total_price}</td>
+
+                    {/* Remove */}
                     <td className="p-2 border">
                       <button
                         type="button"
