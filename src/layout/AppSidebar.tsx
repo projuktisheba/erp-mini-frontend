@@ -55,7 +55,11 @@ const navItems: NavItem[] = [
   {
     name: "Reports",
     icon: <TableIcon />,
-    subItems: [{ name: "Basic Reports", path: "/basic-reports", pro: false }],
+    subItems: [
+      { name: "Branch Report", path: "/branch-report", pro: false },
+      { name: "Employee Progress", path: "/employee-progress", pro: false },
+      { name: "Worker Progress", path: "/worker-progress", pro: false },
+    ],
   },
   {
     name: "Settings",

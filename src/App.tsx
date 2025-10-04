@@ -5,7 +5,7 @@ import Blank from "./pages/Blank";
 import AppLayout from "./layout/AppLayout";
 import { ScrollToTop } from "./components/common/ScrollToTop";
 import Home from "./pages/Dashboard/Home";
-import Reports from "./pages/Reports/Reports";
+import Reports from "./pages/Reports/BranchReports";
 import SystemSettings from "./pages/Settings/SystemSettings/SystemSettings";
 import ProtectedRoute from "./components/ProtectedRoute/ProtectedRoute";
 import EmployeeList from "./pages/HrManagement/EmployeeList/EmployeeList";
@@ -16,6 +16,9 @@ import CustomerList from "./pages/HrManagement/CustomerList";
 import CustomerProfile from "./pages/HrManagement/CustomerProfile";
 import AddCustomer from "./pages/HrManagement/AddCustomer";
 import SalespersonList from "./pages/HrManagement/SalespersonList";
+import BranchReports from "./pages/Reports/BranchReports";
+import EmployeeProgress from "./pages/Reports/EmployeeProgress";
+import WorkerProgress from "./pages/Reports/WorkerProgress";
 
 export default function App() {
   return (
@@ -89,7 +92,11 @@ export default function App() {
             <Route path="/add-order" element={<AddOrder />} />
 
             {/* Reports */}
-            <Route path="/basic-reports" element={<Reports />} />
+            <Route path="/branch-report" element={<BranchReports />} />
+
+            <Route path="/employee-progress" element={<EmployeeProgress />} />
+
+            <Route path="/worker-progress" element={<WorkerProgress />} />
 
             {/* settings */}
             <Route

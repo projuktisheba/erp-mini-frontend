@@ -23,7 +23,6 @@ interface OrderItem {
   order_id: number;
   product_id: number;
   quantity: number;
-  unit_price: number;
   total_price: number;
 }
 
@@ -34,6 +33,7 @@ interface Order {
   sales_man_id: number;
   customer_id: number;
   customer_name: string;
+  customer_mobile: string;
   total_payable_amount: number;
   advance_payment_amount: number;
   due_amount: number;
@@ -93,7 +93,11 @@ export default function Orders() {
     const matchesSearch =
       order.memo_no.toLowerCase().includes(searchTerm.toLowerCase()) ||
       order.id.toString().includes(searchTerm) ||
-      order.customer_id.toString().includes(searchTerm);
+      order.customer_id.toString().includes(searchTerm) ||
+      (order.customer_mobile || "")
+        .toString()
+        .toLowerCase()
+        .includes(searchTerm.toLowerCase());
 
     const matchesStatus =
       statusFilter === "all" || order.status === statusFilter;
@@ -185,7 +189,6 @@ export default function Orders() {
       const { nextStatus } = confirmationAction;
 
       if (nextStatus === "delivery") {
-        // Delivery requires paid amount and payment account
         if (
           !deliveryFormData.paid_amount ||
           !deliveryFormData.payment_account_id
@@ -255,7 +258,7 @@ export default function Orders() {
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
             <input
               type="text"
-              placeholder="Search by memo no, order ID, or customer ID..."
+              placeholder="Search by memo no, order ID, customer ID, or mobile..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
@@ -297,7 +300,7 @@ export default function Orders() {
             <TableBody className="divide-y divide-gray-200 dark:divide-gray-600">
               {filteredOrders.length === 0 ? (
                 <TableRow>
-                  <TableCell className="text-center py-8" >
+                  <TableCell className="text-center py-8">
                     <div className="text-gray-500 dark:text-gray-400">
                       {searchTerm || statusFilter !== "all"
                         ? "No orders match your filters."
@@ -398,7 +401,10 @@ export default function Orders() {
                         </Button>
 
                         <Button
-                          disabled={order.status === "cancelled"}
+                          disabled={
+                            order.status === "cancelled" ||
+                            order.status === "delivery"
+                          }
                           onClick={() => handleCancelClick(order)}
                           size="sm"
                           variant="outline"
@@ -517,7 +523,6 @@ export default function Orders() {
                           <tr>
                             <th className="px-4 py-2 text-left">Product ID</th>
                             <th className="px-4 py-2 text-left">Quantity</th>
-                            <th className="px-4 py-2 text-left">Unit Price</th>
                             <th className="px-4 py-2 text-left">Total</th>
                           </tr>
                         </thead>
@@ -529,9 +534,6 @@ export default function Orders() {
                             >
                               <td className="px-4 py-2">{item.product_id}</td>
                               <td className="px-4 py-2">{item.quantity}</td>
-                              <td className="px-4 py-2">
-                                {formatCurrency(item.unit_price)}
-                              </td>
                               <td className="px-4 py-2 font-medium">
                                 {formatCurrency(item.total_price)}
                               </td>
