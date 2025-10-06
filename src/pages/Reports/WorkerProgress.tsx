@@ -1,5 +1,6 @@
-import React, { useEffect, useState } from "react";
+import React, { useContext, useEffect, useState } from "react";
 import axiosInstance from "../../hooks/AxiosIntence/AxiosIntence";
+import { AppContext } from "../../context/AppContext";
 
 interface WorkerProgressItem {
   date: string;
@@ -14,6 +15,12 @@ interface WorkerProgressItem {
 }
 
 const WorkerProgress: React.FC = () => {
+  const context = useContext(AppContext);
+  if (!context) {
+    throw new Error("AppContext not provided");
+  }
+  const { branchId } = context;
+
   const [data, setData] = useState<WorkerProgressItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [workerId, setWorkerId] = useState<number>(1);
@@ -32,10 +39,10 @@ const WorkerProgress: React.FC = () => {
       start = today;
     } else if (type === "weekly") {
       start = new Date(today);
-      start.setDate(today.getDate() - 6); // last 7 days including today
+      start.setDate(today.getDate() - 6);
     } else {
       start = new Date(today);
-      start.setMonth(today.getMonth() - 1); // last month
+      start.setMonth(today.getMonth() - 1);
     }
 
     setStartDate(start.toISOString().slice(0, 10));
@@ -46,6 +53,9 @@ const WorkerProgress: React.FC = () => {
     setLoading(true);
     try {
       const res = await axiosInstance.get(`/reports/worker/progress`, {
+        headers: {
+          "X-Branch-ID": branchId,
+        },
         params: {
           worker_id: workerId,
           start_date: startDate,
@@ -53,8 +63,8 @@ const WorkerProgress: React.FC = () => {
           report_type: reportType,
         },
       });
-      console.log(res.data);
 
+      console.log(res.data);
       setData(res.data.report || []);
     } catch (err) {
       console.error("Failed to fetch worker progress:", err);
@@ -64,12 +74,54 @@ const WorkerProgress: React.FC = () => {
     }
   };
 
+  // Function to print report for a specific date
+  const handlePrint = (item: WorkerProgressItem) => {
+    const printWindow = window.open("", "_blank");
+    if (!printWindow) return;
+
+    const html = `
+      <html>
+        <head>
+          <title>Worker Progress Report - ${item.date}</title>
+          <style>
+            body { font-family: Arial, sans-serif; padding: 20px; }
+            h1 { text-align: center; }
+            table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+            th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+            th { background: #f3f3f3; }
+          </style>
+        </head>
+        <body>
+          <h1>Worker Progress Report</h1>
+          <h3>Date: ${item.date}</h3>
+          <table>
+            <tr><th>Total Production Units</th><td>${
+              item.total_production_units
+            }</td></tr>
+            <tr><th>Total Overtime Hours</th><td>${
+              item.total_overtime_hours || "-"
+            }</td></tr>
+            <tr><th>Total Advance Payment</th><td>${
+              item.total_advance_payment || "-"
+            }</td></tr>
+            <tr><th>Attendance</th><td>${item.present_days || "0"}</td></tr>
+            <tr><th>Comments</th><td>${item.comment || "-"}</td></tr>
+          </table>
+        </body>
+      </html>
+    `;
+
+    printWindow.document.write(html);
+    printWindow.document.close();
+    printWindow.print();
+  };
+
   // Update dates whenever reportType changes
   useEffect(() => {
     updateDates(reportType);
   }, [reportType]);
 
-  // Fetch data whenever workerId, startDate, endDate, or reportType changes
+  // Fetch data whenever filters change
   useEffect(() => {
     if (startDate && endDate) fetchWorkerProgress();
   }, [workerId, startDate, endDate, reportType]);
@@ -150,7 +202,7 @@ const WorkerProgress: React.FC = () => {
             <tbody>
               {data.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="text-center py-4 text-gray-500">
+                  <td colSpan={6} className="text-center py-4 text-gray-500">
                     No progress data found.
                   </td>
                 </tr>
@@ -170,15 +222,12 @@ const WorkerProgress: React.FC = () => {
                     <td className="px-4 py-2 border">
                       {item.present_days || "0"}
                     </td>
-
                     <td className="px-4 py-2 border">
                       <button
                         className="px-2 py-1 bg-green-600 text-white rounded hover:bg-green-700"
-                        onClick={() =>
-                          alert(`Viewing progress for ${item.date}`)
-                        }
+                        onClick={() => handlePrint(item)}
                       >
-                        View
+                        🖨️ Print
                       </button>
                     </td>
                   </tr>

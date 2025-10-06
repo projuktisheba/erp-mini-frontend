@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useContext } from "react";
 import {
   Table,
   TableBody,
@@ -10,6 +10,7 @@ import Button from "../../components/ui/button/Button";
 import axiosInstance from "../../hooks/AxiosIntence/AxiosIntence";
 import { useNavigate } from "react-router";
 import { Search } from "lucide-react";
+import { AppContext } from "../../context/AppContext";
 
 interface Measurement {
   length?: number;
@@ -34,6 +35,12 @@ interface Customer {
 }
 
 export default function CustomerList() {
+  const context = useContext(AppContext);
+  if (!context) {
+    throw new Error("AppContext not provided");
+  }
+  const { branchId } = context;
+
   const [tableData, setTableData] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
@@ -42,7 +49,11 @@ export default function CustomerList() {
   const fetchCustomers = async () => {
     try {
       setLoading(true);
-      const res = await axiosInstance.get("mis/customers");
+      const res = await axiosInstance.get("mis/customers", {
+        headers: {
+          "X-Branch-ID": branchId,
+        },
+      });
       setTableData(res.data.customers || []);
     } catch (err) {
       console.log("Error fetching customers:", err);

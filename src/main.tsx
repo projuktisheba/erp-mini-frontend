@@ -8,6 +8,7 @@ import { AppWrapper } from "./components/common/PageMeta.tsx";
 import { ThemeProvider } from "./context/ThemeContext.tsx";
 import { UserProvider } from "./components/UserContext/UserContext.tsx";
 import toast, { Toaster } from "react-hot-toast";
+import AppContextProvider from "./context/AppContext.tsx";
 
 const API_BASE = "https://api.erp.pssoft.xyz/api/v1";
 
@@ -24,7 +25,7 @@ const LoginPage = ({ onLogin }: { onLogin: () => void }) => {
     try {
       const response = await fetch(`${API_BASE}/login`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", "X-Branch-ID": "1" },
         body: JSON.stringify({ username, password }),
       });
 
@@ -107,11 +108,13 @@ const Root = () => {
     <ThemeProvider>
       <AppWrapper>
         <UserProvider>
-          {isAuthenticated ? (
-            <App />
-          ) : (
-            <LoginPage onLogin={() => setIsAuthenticated(true)} />
-          )}
+          <AppContextProvider>
+            {isAuthenticated ? (
+              <App />
+            ) : (
+              <LoginPage onLogin={() => setIsAuthenticated(true)} />
+            )}
+          </AppContextProvider>
         </UserProvider>
       </AppWrapper>
       <Toaster />

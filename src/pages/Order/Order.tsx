@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useContext, useEffect, useState } from "react";
 import axiosInstance from "../../hooks/AxiosIntence/AxiosIntence";
 import {
   Table,
@@ -17,6 +17,7 @@ import {
   CircleX,
   ArrowRightFromLine,
 } from "lucide-react";
+import { AppContext } from "../../context/AppContext";
 
 interface OrderItem {
   id: number;
@@ -30,7 +31,7 @@ interface Order {
   id: number;
   memo_no: string;
   order_date: string;
-  sales_man_id: number;
+  salesperson_id: number;
   customer_id: number;
   customer_name: string;
   customer_mobile: string;
@@ -60,6 +61,12 @@ type ConfirmationAction =
   | null;
 
 export default function Orders() {
+  const context = useContext(AppContext);
+  if (!context) {
+    throw new Error("AppContext not provided");
+  }
+  const { branchId } = context;
+
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
@@ -76,7 +83,13 @@ export default function Orders() {
   const fetchOrders = async () => {
     try {
       setLoading(true);
-      const res = await axiosInstance.get("/orders/list");
+      const res = await axiosInstance.get("/orders/list", {
+        headers: {
+          "X-Branch-ID": branchId,
+        },
+      });
+      console.log(res.data.orders[0]);
+
       setOrders(res.data.orders);
     } catch (err) {
       console.log(err);
@@ -176,7 +189,12 @@ export default function Orders() {
     if (type === "cancel") {
       try {
         const { data } = await axiosInstance.delete(
-          `/orders?order_id=${order.id}`
+          `/orders?order_id=${order.id}`,
+          {
+            headers: {
+              "X-Branch-ID": branchId,
+            },
+          }
         );
         fetchOrders();
         closeModal();
@@ -198,11 +216,19 @@ export default function Orders() {
         }
 
         try {
-          const { data } = await axiosInstance.patch(`/orders/delivery`, {
-            order_id: order.id,
-            paid_amount: deliveryFormData.paid_amount,
-            payment_account_id: deliveryFormData.payment_account_id,
-          });
+          const { data } = await axiosInstance.patch(
+            `/orders/delivery`,
+            {
+              order_id: order.id,
+              paid_amount: deliveryFormData.paid_amount,
+              payment_account_id: deliveryFormData.payment_account_id,
+            },
+            {
+              headers: {
+                "X-Branch-ID": branchId,
+              },
+            }
+          );
           fetchOrders();
           closeModal();
           alert(data.message || "Order marked as delivered");
@@ -213,7 +239,13 @@ export default function Orders() {
       } else {
         try {
           const { data } = await axiosInstance.patch(
-            `/orders/${nextStatus}?order_id=${order.id}`
+            `/orders/${nextStatus}?order_id=${order.id}`,
+            {},
+            {
+              headers: {
+                "X-Branch-ID": branchId,
+              },
+            }
           );
           fetchOrders();
           closeModal();
@@ -320,7 +352,7 @@ export default function Orders() {
                           #{order.memo_no}
                         </div>
                         <div className="text-sm text-gray-500 dark:text-gray-400">
-                          Salesman: {order.sales_man_id}
+                          Salesman: {order.salesperson_id}
                         </div>
                       </div>
                     </TableCell>
@@ -494,7 +526,7 @@ export default function Orders() {
                     </div>
                     <div>
                       <strong>Salesman ID:</strong>{" "}
-                      {selectedOrder?.sales_man_id}
+                      {selectedOrder?.salesperson_id}
                     </div>
                     <div>
                       <strong>Order Date:</strong>{" "}

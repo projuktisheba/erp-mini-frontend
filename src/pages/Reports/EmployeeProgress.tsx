@@ -1,5 +1,6 @@
-import React, { useEffect, useState } from "react";
+import React, { useContext, useEffect, useState, useRef } from "react";
 import axiosInstance from "../../hooks/AxiosIntence/AxiosIntence";
+import { AppContext } from "../../context/AppContext";
 
 interface EmployeeProgressItem {
   date: string;
@@ -11,6 +12,12 @@ interface EmployeeProgressItem {
 }
 
 const EmployeeProgress: React.FC = () => {
+  const context = useContext(AppContext);
+  if (!context) {
+    throw new Error("AppContext not provided");
+  }
+  const { branchId } = context;
+
   const [data, setData] = useState<EmployeeProgressItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [reportType, setReportType] = useState<"daily" | "weekly" | "monthly">(
@@ -19,6 +26,8 @@ const EmployeeProgress: React.FC = () => {
   const [employeeId, setEmployeeId] = useState<number>(1);
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
+
+  const printRef = useRef<HTMLDivElement>(null);
 
   // Helper to set start and end date based on reportType
   const updateDates = (type: "daily" | "weekly" | "monthly") => {
@@ -43,6 +52,9 @@ const EmployeeProgress: React.FC = () => {
     setLoading(true);
     try {
       const res = await axiosInstance.get(`/reports/employee/progress`, {
+        headers: {
+          "X-Branch-ID": branchId,
+        },
         params: {
           employee_id: employeeId,
           start_date: startDate,
@@ -50,6 +62,8 @@ const EmployeeProgress: React.FC = () => {
           report_type: reportType,
         },
       });
+      console.log(res.data);
+
       setData(res.data.report || []);
     } catch (err) {
       console.error("Failed to fetch employee progress:", err);
@@ -68,6 +82,40 @@ const EmployeeProgress: React.FC = () => {
   useEffect(() => {
     if (startDate && endDate) fetchProgress();
   }, [reportType, startDate, endDate, employeeId]);
+
+  // Print report handler
+  const handlePrint = () => {
+    if (!printRef.current) return;
+
+    const printContent = printRef.current.innerHTML;
+    const printWindow = window.open("", "_blank");
+    if (!printWindow) return;
+
+    printWindow.document.write(`
+      <html>
+        <head>
+          <title>Employee Progress Report</title>
+          <style>
+            body { font-family: Arial, sans-serif; padding: 20px; }
+            h2 { text-align: center; margin-bottom: 20px; }
+            table { width: 100%; border-collapse: collapse; }
+            th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+            th { background-color: #f2f2f2; }
+            tr:nth-child(even) { background-color: #f9f9f9; }
+          </style>
+        </head>
+        <body>
+          <h2>Employee Progress Report</h2>
+          <p><strong>Employee ID:</strong> ${employeeId}</p>
+          <p><strong>Report Type:</strong> ${reportType}</p>
+          <p><strong>Date Range:</strong> ${startDate} to ${endDate}</p>
+          ${printContent}
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
+    printWindow.print();
+  };
 
   return (
     <div className="container mx-auto p-6">
@@ -130,51 +178,52 @@ const EmployeeProgress: React.FC = () => {
       {loading ? (
         <div className="text-center py-10">Loading employee progress...</div>
       ) : (
-        <div className="overflow-x-auto">
-          <table className="min-w-full border border-gray-300 rounded-lg overflow-hidden">
-            <thead className="bg-gray-200">
-              <tr>
-                <th className="px-4 py-2 border">Date</th>
-                <th className="px-4 py-2 border">Order Count</th>
-                <th className="px-4 py-2 border">Product Name</th>
-                <th className="px-4 py-2 border">Sale</th>
-                <th className="px-4 py-2 border">Sale Return</th>
-                <th className="px-4 py-2 border">Comment</th>
-                <th className="px-4 py-2 border">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {data.length === 0 ? (
+        <>
+          <div className="flex justify-end mb-3">
+            <button
+              onClick={handlePrint}
+              className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+              disabled={data.length === 0}
+            >
+              Print Report
+            </button>
+          </div>
+
+          <div ref={printRef} className="overflow-x-auto">
+            <table className="min-w-full border border-gray-300 rounded-lg overflow-hidden">
+              <thead className="bg-gray-200">
                 <tr>
-                  <td colSpan={7} className="text-center py-4 text-gray-500">
-                    No progress data found.
-                  </td>
+                  <th className="px-4 py-2 border">Date</th>
+                  <th className="px-4 py-2 border">Order Count</th>
+                  <th className="px-4 py-2 border">Product Name</th>
+                  <th className="px-4 py-2 border">Sale</th>
+                  <th className="px-4 py-2 border">Sale Return</th>
+                  <th className="px-4 py-2 border">Comment</th>
                 </tr>
-              ) : (
-                data.map((item, idx) => (
-                  <tr key={idx} className="hover:bg-gray-100">
-                    <td className="px-4 py-2 border">{item.date}</td>
-                    <td className="px-4 py-2 border">{item.order_count}</td>
-                    <td className="px-4 py-2 border">{item.product_name}</td>
-                    <td className="px-4 py-2 border">{item.sale}</td>
-                    <td className="px-4 py-2 border">{item.sale_return}</td>
-                    <td className="px-4 py-2 border">{item.comment}</td>
-                    <td className="px-4 py-2 border">
-                      <button
-                        className="px-2 py-1 bg-green-600 text-white rounded hover:bg-green-700"
-                        onClick={() =>
-                          alert(`Viewing progress for ${item.date}`)
-                        }
-                      >
-                        View
-                      </button>
+              </thead>
+              <tbody>
+                {data.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="text-center py-4 text-gray-500">
+                      No progress data found.
                     </td>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
+                ) : (
+                  data.map((item, idx) => (
+                    <tr key={idx} className="hover:bg-gray-100">
+                      <td className="px-4 py-2 border">{item.date}</td>
+                      <td className="px-4 py-2 border">{item.order_count}</td>
+                      <td className="px-4 py-2 border">{item.product_name}</td>
+                      <td className="px-4 py-2 border">{item.sale}</td>
+                      <td className="px-4 py-2 border">{item.sale_return}</td>
+                      <td className="px-4 py-2 border">{item.comment}</td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </>
       )}
     </div>
   );

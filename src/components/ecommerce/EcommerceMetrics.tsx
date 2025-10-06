@@ -8,9 +8,13 @@ import Badge from "../ui/badge/Badge";
 
 type EcommerceMetricsPropsType = {
   total_orders: number;
+  total_orders_amount: number;
   pending_orders: number;
-  completed_orders: number;
+  pending_orders_amount: number;
+  checkout_orders: number;
+  checkout_orders_amount: number;
   cancelled_orders: number;
+  cancelled_orders_amount: number;
 };
 
 export default function EcommerceMetrics({
@@ -23,7 +27,7 @@ export default function EcommerceMetrics({
       {/* <!-- Metric Item Start --> */}
       <div className="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03] md:p-6">
         <div className="flex items-center justify-center w-12 h-12 bg-gray-100 rounded-xl dark:bg-gray-800">
-          <GroupIcon className="text-gray-800 size-6 dark:text-white/90" />
+          <BoxIconLine className="text-gray-800 size-6 dark:text-white/90" />
         </div>
 
         <div className="flex items-end justify-between mt-5">
@@ -32,13 +36,10 @@ export default function EcommerceMetrics({
               Total Orders
             </span>
             <h4 className="mt-2 font-bold text-gray-800 text-title-sm dark:text-white/90">
-              {overview.total_orders}
+              {overview.total_orders_amount}
             </h4>
           </div>
-          <Badge color="success">
-            <ArrowUpIcon />
-            11.01%
-          </Badge>
+          <Badge color="success">{overview.total_orders}</Badge>
         </div>
       </div>
       {/* <!-- Metric Item End --> */}
@@ -54,14 +55,11 @@ export default function EcommerceMetrics({
               Pending Orders
             </span>
             <h4 className="mt-2 font-bold text-gray-800 text-title-sm dark:text-white/90">
-              {overview.pending_orders}
+              {overview.pending_orders_amount}
             </h4>
           </div>
 
-          <Badge color="error">
-            <ArrowDownIcon />
-            9.05%
-          </Badge>
+          <Badge color="success">{overview.pending_orders}</Badge>
         </div>
       </div>
       {/* <!-- Metric Item End --> */}
@@ -74,17 +72,14 @@ export default function EcommerceMetrics({
         <div className="flex items-end justify-between mt-5">
           <div>
             <span className="text-sm text-gray-500 dark:text-gray-400">
-              Completed Orders
+              Checkout Orders
             </span>
             <h4 className="mt-2 font-bold text-gray-800 text-title-sm dark:text-white/90">
-              {overview.pending_orders}
+              {overview.checkout_orders_amount}
             </h4>
           </div>
 
-          <Badge color="error">
-            <ArrowDownIcon />
-            9.05%
-          </Badge>
+          <Badge color="success">{overview.checkout_orders}</Badge>
         </div>
       </div>
       {/* <!-- Metric Item End --> */}
@@ -100,14 +95,11 @@ export default function EcommerceMetrics({
               Cancelled Orders
             </span>
             <h4 className="mt-2 font-bold text-gray-800 text-title-sm dark:text-white/90">
-              {overview.cancelled_orders}
+              {overview.cancelled_orders_amount}
             </h4>
           </div>
 
-          <Badge color="error">
-            <ArrowDownIcon />
-            9.05%
-          </Badge>
+          <Badge color="error">{overview.cancelled_orders}</Badge>
         </div>
       </div>
       {/* <!-- Metric Item End --> */}

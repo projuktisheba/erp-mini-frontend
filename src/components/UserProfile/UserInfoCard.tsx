@@ -6,12 +6,10 @@ import Input from "../form/input/InputField";
 import Label from "../form/Label";
 import axiosInstance from "../../hooks/AxiosIntence/AxiosIntence";
 
-
 interface UserInfoCardProps {
   employee: {
     id: string;
-    first_name: string;
-    last_name: string;
+    name: string;
     bio?: string;
     mobile?: string;
     tax_id?: string;
@@ -27,9 +25,9 @@ interface UserInfoCardProps {
 
 export default function UserInfoCard({ employee }: UserInfoCardProps) {
   const { isOpen, openModal, closeModal } = useModal();
+
   const [formData, setFormData] = useState({
-    firstname: employee.first_name || "",
-    lastname: employee.last_name || "",
+    name: employee.name || "",
     bio: employee.bio || "",
     mobile: employee.mobile || "",
     taxId: employee.tax_id || "",
@@ -48,10 +46,10 @@ export default function UserInfoCard({ employee }: UserInfoCardProps) {
   const handleSave = async () => {
     try {
       setSaving(true);
+
       const payload = {
         id: employee.id,
-        first_name: formData.firstname,
-        last_name: formData.lastname,
+        name: formData.name,
         bio: formData.bio,
         mobile: formData.mobile,
         country: formData.country,
@@ -105,6 +103,7 @@ export default function UserInfoCard({ employee }: UserInfoCardProps) {
         </button>
       </div>
 
+      {/* Modal */}
       <Modal isOpen={isOpen} onClose={closeModal} className="max-w-[700px] m-4">
         <div className="no-scrollbar relative w-full max-w-[700px] overflow-y-auto rounded-3xl bg-white p-4 dark:bg-gray-900 lg:p-11">
           <div className="px-2 pr-14">
@@ -115,6 +114,7 @@ export default function UserInfoCard({ employee }: UserInfoCardProps) {
               Update your details to keep your profile up-to-date.
             </p>
           </div>
+
           <form className="flex flex-col">
             <div className="custom-scrollbar h-[450px] overflow-y-auto px-2 pb-3">
               <div className="mt-7">
@@ -141,8 +141,14 @@ export default function UserInfoCard({ employee }: UserInfoCardProps) {
                 </div>
               </div>
             </div>
+
             <div className="flex items-center gap-3 px-2 mt-6 lg:justify-end">
-              <Button size="sm" variant="outline" onClick={closeModal} disabled={saving}>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={closeModal}
+                disabled={saving}
+              >
                 Close
               </Button>
               <Button size="sm" onClick={handleSave} disabled={saving}>

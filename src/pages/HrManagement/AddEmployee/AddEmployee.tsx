@@ -1,11 +1,18 @@
-import React, { useState } from "react";
+import React, { useContext, useState } from "react";
 import axios from "axios";
 import Swal from "sweetalert2";
+import { AppContext } from "../../../context/AppContext";
 // import { useNavigate } from "react-router";
 
 const API_BASE = "https://api.erp.pssoft.xyz/api/v1";
 
 const AddEmployee: React.FC = () => {
+  const context = useContext(AppContext);
+  if (!context) {
+    throw new Error("AppContext not provided");
+  }
+  const { branchId } = context;
+
   const [formData, setFormData] = useState({
     name: "",
     role: "",
@@ -40,7 +47,10 @@ const AddEmployee: React.FC = () => {
         `${API_BASE}/hr/employee`,
         JSON.stringify(payload),
         {
-          headers: { "Content-Type": "application/json", "X-Branch-ID": "1" },
+          headers: {
+            "Content-Type": "application/json",
+            "X-Branch-ID": branchId,
+          },
         }
       );
 

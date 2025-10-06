@@ -61,13 +61,13 @@ const navItems: NavItem[] = [
       { name: "Worker Progress", path: "/worker-progress", pro: false },
     ],
   },
-  {
-    name: "Settings",
-    icon: <PageIcon />,
-    subItems: [
-      { name: "System Settings", path: "/system-settings", pro: false },
-    ],
-  },
+  // {
+  //   name: "Settings",
+  //   icon: <PageIcon />,
+  //   subItems: [
+  //     { name: "System Settings", path: "/system-settings", pro: false },
+  //   ],
+  // },
 ];
 
 const AppSidebar: React.FC = () => {
@@ -253,8 +253,8 @@ const AppSidebar: React.FC = () => {
           )}
         </Link>
       </div>
-      <div className="flex flex-col overflow-y-auto duration-300 ease-linear no-scrollbar">
-        <nav className="mb-6">
+      <div className="flex flex-col overflow-y-auto duration-300 ease-linear no-scrollbar min-h-screen">
+        <nav className="mb-20">
           <div className="flex flex-col gap-4">
             <div>
               <h2
@@ -274,6 +274,7 @@ const AppSidebar: React.FC = () => {
             </div>
           </div>
         </nav>
+
         {isExpanded || isHovered || isMobileOpen ? <SidebarWidget /> : null}
       </div>
     </aside>
