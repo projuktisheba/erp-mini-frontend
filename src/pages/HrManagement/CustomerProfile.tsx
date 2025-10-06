@@ -1,9 +1,10 @@
-import { useEffect, useState } from "react";
+import { useContext, useEffect, useState } from "react";
 import { useParams } from "react-router";
 import PageBreadcrumb from "../../components/common/PageBreadCrumb";
 import PageMeta from "../../components/common/PageMeta";
 import axiosInstance from "../../hooks/AxiosIntence/AxiosIntence";
 import Swal from "sweetalert2";
+import { AppContext } from "../../context/AppContext";
 
 type Tab = "profile" | "ledger";
 
@@ -31,6 +32,12 @@ interface Customer {
 }
 
 export default function CustomerProfile() {
+  const context = useContext(AppContext);
+  if (!context) {
+    throw new Error("AppContext not provided");
+  }
+  const { branchId } = context;
+
   const { id } = useParams();
   const [customer, setCustomer] = useState<Customer | null>(null);
   const [loading, setLoading] = useState(true);
@@ -42,7 +49,11 @@ export default function CustomerProfile() {
     const fetchCustomer = async () => {
       try {
         setLoading(true);
-        const res = await axiosInstance.get(`/mis/customer?id=${id}`);
+        const res = await axiosInstance.get(`/mis/customer?id=${id}`, {
+          headers: {
+            "X-Branch-ID": branchId,
+          },
+        });
         setCustomer(res.data?.customer || null);
         setFormData(res.data?.customer || {});
       } catch (err) {
@@ -63,7 +74,11 @@ export default function CustomerProfile() {
 
   const handleSave = async () => {
     try {
-      const res = await axiosInstance.put(`/mis/customer`, formData);
+      const res = await axiosInstance.put(`/mis/customer`, formData, {
+        headers: {
+          "X-Branch-ID": branchId,
+        },
+      });
 
       setCustomer(res.data?.customer || formData);
       setIsEditing(false);

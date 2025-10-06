@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useContext } from "react";
 import {
   Table,
   TableBody,
@@ -15,6 +15,7 @@ import axiosInstance from "../../../hooks/AxiosIntence/AxiosIntence";
 import { useNavigate } from "react-router";
 import { Search } from "lucide-react";
 import Swal from "sweetalert2";
+import { AppContext } from "../../../context/AppContext";
 
 interface Employee {
   id: number;
@@ -32,6 +33,12 @@ const statusColors: Record<string, string> = {
 };
 
 export default function EmployeeList() {
+  const context = useContext(AppContext);
+  if (!context) {
+    throw new Error("AppContext not provided");
+  }
+  const { branchId } = context;
+
   const [tableData, setTableData] = useState<Employee[]>([]);
   const [filteredData, setFilteredData] = useState<Employee[]>([]);
   const [loading, setLoading] = useState(true);
@@ -53,7 +60,11 @@ export default function EmployeeList() {
   const fetchEmployees = async () => {
     try {
       setLoading(true);
-      const res = await axiosInstance.get("hr/employees?role=worker");
+      const res = await axiosInstance.get("hr/employees?role=worker", {
+        headers: {
+          "X-Branch-ID": branchId,
+        },
+      });
       setTableData(res.data.employees);
       setFilteredData(res.data.employees);
     } catch (err) {

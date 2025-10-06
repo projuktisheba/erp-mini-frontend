@@ -1,7 +1,8 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useContext } from "react";
 import axios from "axios";
 import Swal from "sweetalert2";
 import { useNavigate } from "react-router";
+import { AppContext } from "../../context/AppContext";
 
 const API_BASE = "https://api.erp.pssoft.xyz/api/v1";
 
@@ -13,18 +14,22 @@ interface ProductItem {
 }
 
 const AddOrder: React.FC = () => {
+  const context = useContext(AppContext);
+  if (!context) throw new Error("AppContext not provided");
+  const { branchId } = context;
+
   const [products, setProducts] = useState<any[]>([]);
   const [salesmans, setSalesmans] = useState<any[]>([]);
   const [customers, setCustomers] = useState<any[]>([]);
 
-  const getCurrentDateTime = () => {
-    const now = new Date();
-    return now.toISOString().split(".")[0] + "Z";
-  };
+  const navigate = useNavigate();
+
+  // current date helper
+  const getCurrentDate = () => new Date().toISOString().slice(0, 10);
 
   const [formData, setFormData] = useState({
-    order_date: getCurrentDateTime(),
-    delivery_date: getCurrentDateTime(),
+    order_date: getCurrentDate(),
+    delivery_date: getCurrentDate(),
     salesperson_id: 0,
     customer_id: 0,
     total_payable_amount: 0,
@@ -36,6 +41,7 @@ const AddOrder: React.FC = () => {
   });
 
   const [selectedProductId, setSelectedProductId] = useState<number>(0);
+
   const [salesmanSearch, setSalesmanSearch] = useState("");
   const [filteredSalesmans, setFilteredSalesmans] = useState<any[]>([]);
   const [showSalesmanDropdown, setShowSalesmanDropdown] = useState(false);
@@ -47,29 +53,19 @@ const AddOrder: React.FC = () => {
   const salesmanRef = useRef<HTMLDivElement>(null);
   const customerRef = useRef<HTMLDivElement>(null);
 
-  const navigate = useNavigate();
-
   // Close dropdowns when clicking outside
   useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (
-        salesmanRef.current &&
-        !salesmanRef.current.contains(event.target as Node)
-      ) {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (salesmanRef.current && !salesmanRef.current.contains(e.target as Node))
         setShowSalesmanDropdown(false);
-      }
-      if (
-        customerRef.current &&
-        !customerRef.current.contains(event.target as Node)
-      ) {
+      if (customerRef.current && !customerRef.current.contains(e.target as Node))
         setShowCustomerDropdown(false);
-      }
     };
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // Recalculate due amount
+  // Calculate due amount dynamically
   useEffect(() => {
     setFormData((prev) => ({
       ...prev,
@@ -77,170 +73,93 @@ const AddOrder: React.FC = () => {
     }));
   }, [formData.total_payable_amount, formData.advance_payment_amount]);
 
+  // Handle input changes
   const handleChange = (
-    e: React.ChangeEvent<
-      HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
-    >
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
   ) => {
     const { name, value } = e.target;
-    if (name === "order_date" || name === "delivery_date") {
-      setFormData((prev) => ({ ...prev, [name]: value + "T00:00:00Z" }));
-    } else if (name === "payment_account_id") {
-      setFormData((prev) => ({ ...prev, [name]: Number(value) }));
-    } else {
-      setFormData((prev) => ({
-        ...prev,
-        [name]: name === "advance_payment_amount" ? Number(value) : value,
-      }));
-    }
+    setFormData((prev) => {
+      if (name === "order_date" || name === "delivery_date") {
+        return { ...prev, [name]: value };
+      }
+      if (["advance_payment_amount", "payment_account_id"].includes(name)) {
+        return { ...prev, [name]: Number(value) };
+      }
+      return { ...prev, [name]: value };
+    });
   };
 
-  const handleProductChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    setSelectedProductId(Number(e.target.value));
-  };
-
+  // Product add/remove/update handlers
   const addProduct = () => {
     if (!selectedProductId) {
       Swal.fire("Error", "Please select a product", "error");
       return;
     }
-
-    const selectedProduct = products.find((p) => p.id === selectedProductId);
-    if (!selectedProduct) {
-      Swal.fire("Error", "Selected product not found", "error");
+    const selected = products.find((p) => p.id === selectedProductId);
+    if (!selected) {
+      Swal.fire("Error", "Invalid product", "error");
       return;
     }
-
     const newItem: ProductItem = {
-      product_id: selectedProductId,
-      product_name: selectedProduct.product_name,
+      product_id: selected.id,
+      product_name: selected.product_name,
       quantity: 1,
       total_price: 0,
     };
-
-    setFormData((prev) => ({ ...prev, items: [...prev.items, newItem] }));
+    setFormData((prev) => ({
+      ...prev,
+      items: [...prev.items, newItem],
+    }));
     setSelectedProductId(0);
   };
 
-  const removeProduct = (index: number) => {
+  const removeProduct = (i: number) => {
     setFormData((prev) => {
       const items = [...prev.items];
-      items.splice(index, 1);
-      const total_payable_amount = items.reduce(
-        (sum, item) => sum + item.total_price,
-        0
-      );
-      return { ...prev, items, total_payable_amount };
+      items.splice(i, 1);
+      const total = items.reduce((sum, item) => sum + item.total_price, 0);
+      return { ...prev, items, total_payable_amount: total };
     });
   };
 
-  const updateProductField = (
-    index: number,
-    field: keyof ProductItem,
-    value: number
-  ) => {
+  const updateProductField = (i: number, field: keyof ProductItem, value: number) => {
     setFormData((prev) => {
       const items = [...prev.items];
-      items[index] = {
-        ...items[index],
-        [field]: value,
-      };
-      const total_payable_amount = items.reduce(
-        (sum, item) => sum + item.total_price,
-        0
-      );
-      return { ...prev, items, total_payable_amount };
+      items[i] = { ...items[i], [field]: value };
+      const total = items.reduce((sum, item) => sum + item.total_price, 0);
+      return { ...prev, items, total_payable_amount: total };
     });
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const requiredFields = [
-      "order_date",
-      "delivery_date",
-      "salesperson_id",
-      "customer_id",
-      "payment_account_id",
-    ];
-    for (const field of requiredFields) {
-      if (!formData[field as keyof typeof formData]) {
-        Swal.fire("Error", `Please fill ${field.replace("_", " ")}`, "error");
-        return;
-      }
-    }
-
-    if (formData.items.length === 0) {
-      Swal.fire("Error", "Please add at least one product", "error");
-      return;
-    }
-
-    for (let item of formData.items) {
-      if (item.quantity <= 0) {
-        Swal.fire(
-          "Error",
-          `Product "${item.product_name}" must have quantity > 0`,
-          "error"
-        );
-        return;
-      }
-    }
-
-    try {
-      const apiData = {
-        ...formData,
-        items: formData.items.map((item) => ({
-          product_id: item.product_id,
-          quantity: item.quantity,
-          total_price: item.total_price,
-        })),
-      };
-
-      const response = await axios.post(`${API_BASE}/orders`, apiData, {
-        headers: { "Content-Type": "application/json", "X-Branch-ID": "1" },
-      });
-      console.log(response);
-
-      if (!response.data.error) {
-        Swal.fire("Success", "Order created successfully", "success");
-        navigate("/orders");
-      }
-    } catch (error: any) {
-      console.error("Order creation error:", error);
-      Swal.fire(
-        "Error",
-        error.response?.data?.message || "Something went wrong",
-        "error"
-      );
-    }
-  };
-
+  // Fetch data
   const fetchProducts = async () => {
     const { data } = await axios.get(`${API_BASE}/products`, {
-      headers: { "X-Branch-ID": "1" },
+      headers: { "X-Branch-ID": branchId },
     });
-    setProducts(data.products);
+    setProducts(data.products || []);
   };
 
-  const fetchSalesman = async () => {
+  const fetchSalesmans = async () => {
     const { data } = await axios.get(`${API_BASE}/hr/employees/names`, {
-      headers: { "X-Branch-ID": "1" },
+      headers: { "X-Branch-ID": branchId },
     });
-    setSalesmans(data.employees);
+    setSalesmans(data.employees || []);
   };
 
   const fetchCustomers = async () => {
     const { data } = await axios.get(`${API_BASE}/mis/customers/names`, {
-      headers: { "X-Branch-ID": "1" },
+      headers: { "X-Branch-ID": branchId },
     });
-    setCustomers(data.customers);
+    setCustomers(data.customers || []);
   };
 
   useEffect(() => {
     fetchProducts();
-    fetchSalesman();
+    fetchSalesmans();
     fetchCustomers();
   }, []);
 
+  // Filter dropdown lists
   useEffect(() => {
     setFilteredSalesmans(
       salesmans.filter(
@@ -261,6 +180,53 @@ const AddOrder: React.FC = () => {
     );
   }, [customerSearch, customers]);
 
+  // Submit handler
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!formData.salesperson_id || !formData.customer_id) {
+      Swal.fire("Error", "Please select salesman and customer", "error");
+      return;
+    }
+
+    if (formData.items.length === 0) {
+      Swal.fire("Error", "Please add at least one product", "error");
+      return;
+    }
+
+    try {
+      const apiData = {
+        ...formData,
+        order_date: formData.order_date + "T00:00:00Z",
+        delivery_date: formData.delivery_date + "T00:00:00Z",
+        items: formData.items.map((i) => ({
+          product_id: i.product_id,
+          quantity: i.quantity,
+          total_price: i.total_price,
+        })),
+      };
+
+      const res = await axios.post(`${API_BASE}/orders`, apiData, {
+        headers: {
+          "Content-Type": "application/json",
+          "X-Branch-ID": branchId,
+        },
+      });
+
+      if (!res.data.error) {
+        Swal.fire("Success", "Order created successfully", "success");
+        navigate("/orders");
+      }
+    } catch (error: any) {
+      console.error("Order creation error:", error);
+      Swal.fire(
+        "Error",
+        error.response?.data?.message || "Something went wrong",
+        "error"
+      );
+    }
+  };
+
   return (
     <div className="min-h-screen flex justify-center">
       <div className="w-full p-6 rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
@@ -269,40 +235,34 @@ const AddOrder: React.FC = () => {
         </h2>
 
         <form
-          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
           onSubmit={handleSubmit}
+          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
         >
-          {/* Order Date */}
           <div>
-            <label className="block text-sm font-medium mb-1">Order Date</label>
+            <label>Order Date</label>
             <input
               type="date"
               name="order_date"
-              value={formData.order_date.split("T")[0]}
+              value={formData.order_date}
               onChange={handleChange}
-              required
               className="w-full p-2 border rounded-lg"
             />
           </div>
 
-          {/* Delivery Date */}
           <div>
-            <label className="block text-sm font-medium mb-1">
-              Delivery Date
-            </label>
+            <label>Delivery Date</label>
             <input
               type="date"
               name="delivery_date"
-              value={formData.delivery_date.split("T")[0]}
+              value={formData.delivery_date}
               onChange={handleChange}
-              required
               className="w-full p-2 border rounded-lg"
             />
           </div>
 
-          {/* Salesman */}
+          {/* Salesman search */}
           <div className="relative" ref={salesmanRef}>
-            <label className="block text-sm font-medium mb-1">Salesman</label>
+            <label>Salesman</label>
             <input
               type="text"
               placeholder="Search by ID or Name"
@@ -311,21 +271,17 @@ const AddOrder: React.FC = () => {
                 setSalesmanSearch(e.target.value);
                 setShowSalesmanDropdown(true);
               }}
-              onFocus={() => setShowSalesmanDropdown(true)}
               className="w-full p-2 border rounded-lg"
             />
-            {showSalesmanDropdown && salesmanSearch && (
-              <ul className="absolute bg-white border rounded w-full max-h-40 overflow-y-auto z-10 shadow-lg">
+            {showSalesmanDropdown && (
+              <ul className="absolute bg-white border w-full max-h-40 overflow-y-auto z-10">
                 {filteredSalesmans.length > 0 ? (
                   filteredSalesmans.map((s) => (
                     <li
                       key={s.id}
-                      className="p-2 hover:bg-gray-200 cursor-pointer border-b"
+                      className="p-2 hover:bg-gray-200 cursor-pointer"
                       onClick={() => {
-                        setFormData((prev) => ({
-                          ...prev,
-                          salesperson_id: s.id,
-                        }));
+                        setFormData((prev) => ({ ...prev, salesperson_id: s.id }));
                         setSalesmanSearch(s.name);
                         setShowSalesmanDropdown(false);
                       }}
@@ -340,9 +296,9 @@ const AddOrder: React.FC = () => {
             )}
           </div>
 
-          {/* Customer */}
+          {/* Customer search */}
           <div className="relative" ref={customerRef}>
-            <label className="block text-sm font-medium mb-1">Customer</label>
+            <label>Customer</label>
             <input
               type="text"
               placeholder="Search by Name or Mobile"
@@ -351,16 +307,15 @@ const AddOrder: React.FC = () => {
                 setCustomerSearch(e.target.value);
                 setShowCustomerDropdown(true);
               }}
-              onFocus={() => setShowCustomerDropdown(true)}
               className="w-full p-2 border rounded-lg"
             />
-            {showCustomerDropdown && customerSearch && (
-              <ul className="absolute bg-white border rounded w-full max-h-40 overflow-y-auto z-10 shadow-lg">
+            {showCustomerDropdown && (
+              <ul className="absolute bg-white border w-full max-h-40 overflow-y-auto z-10">
                 {filteredCustomers.length > 0 ? (
                   filteredCustomers.map((c) => (
                     <li
                       key={c.id}
-                      className="p-2 hover:bg-gray-200 cursor-pointer border-b"
+                      className="p-2 hover:bg-gray-200 cursor-pointer"
                       onClick={() => {
                         setFormData((prev) => ({ ...prev, customer_id: c.id }));
                         setCustomerSearch(c.name);
@@ -372,13 +327,13 @@ const AddOrder: React.FC = () => {
                   ))
                 ) : (
                   <li
-                    className="p-2 bg-green-100 hover:bg-green-200 cursor-pointer border-b"
+                    className="p-2 bg-green-100 hover:bg-green-200 cursor-pointer"
                     onClick={async () => {
                       try {
                         const { data } = await axios.post(
                           `${API_BASE}/mis/customer`,
                           { name: customerSearch },
-                          { headers: { "X-Branch-ID": "1" } }
+                          { headers: { "X-Branch-ID": branchId } }
                         );
                         setCustomers((prev) => [...prev, data.customer]);
                         setFormData((prev) => ({
@@ -387,17 +342,9 @@ const AddOrder: React.FC = () => {
                         }));
                         setCustomerSearch(data.customer.name);
                         setShowCustomerDropdown(false);
-                        Swal.fire(
-                          "Success",
-                          "Customer created successfully",
-                          "success"
-                        );
+                        Swal.fire("Success", "Customer added", "success");
                       } catch {
-                        Swal.fire(
-                          "Error",
-                          "Failed to create customer",
-                          "error"
-                        );
+                        Swal.fire("Error", "Failed to create customer", "error");
                       }
                     }}
                   >
@@ -408,58 +355,44 @@ const AddOrder: React.FC = () => {
             )}
           </div>
 
-          {/* Total Payable */}
+          {/* Amounts */}
           <div>
-            <label className="block text-sm font-medium mb-1">
-              Total Payable Amount
-            </label>
+            <label>Total Payable</label>
             <input
               type="number"
-              name="total_payable_amount"
               value={formData.total_payable_amount}
               readOnly
               className="w-full p-2 border rounded-lg"
-              required
             />
           </div>
 
-          {/* Advance Payment */}
           <div>
-            <label className="block text-sm font-medium mb-1">
-              Advance Payment
-            </label>
+            <label>Advance Payment</label>
             <input
               type="number"
               name="advance_payment_amount"
               value={formData.advance_payment_amount}
               onChange={handleChange}
               className="w-full p-2 border rounded-lg"
-              required
             />
           </div>
 
-          {/* Due Amount */}
           <div>
-            <label className="block text-sm font-medium mb-1">Due Amount</label>
+            <label>Due Amount</label>
             <input
               type="number"
-              name="due_amount"
               value={formData.due_amount}
               readOnly
               className="w-full p-2 border rounded-lg"
             />
           </div>
 
-          {/* Payment Account */}
           <div>
-            <label className="block text-sm font-medium mb-1">
-              Payment Account
-            </label>
+            <label>Payment Account</label>
             <select
               name="payment_account_id"
               value={formData.payment_account_id}
               onChange={handleChange}
-              required
               className="w-full p-2 border rounded-lg"
             >
               <option value="">Select Account</option>
@@ -468,40 +401,38 @@ const AddOrder: React.FC = () => {
             </select>
           </div>
 
-          {/* Notes */}
           <div className="md:col-span-3">
-            <label className="block text-sm font-medium mb-1">Notes</label>
+            <label>Notes</label>
             <textarea
               name="notes"
               value={formData.notes}
               onChange={handleChange}
-              rows={4}
+              rows={3}
               className="w-full p-2 border rounded-lg"
-              required
             />
           </div>
         </form>
 
         {/* Add Product Section */}
-        <div className="mt-8 bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
+        <div className="mt-8 bg-gray-50 p-4 rounded-lg">
           <h3 className="font-semibold mb-4">Add Product</h3>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <select
               value={selectedProductId}
-              onChange={handleProductChange}
+              onChange={(e) => setSelectedProductId(Number(e.target.value))}
               className="w-full p-2 border rounded-lg"
             >
               <option value={0}>Select Product</option>
-              {products.map((product) => (
-                <option key={product.id} value={product.id}>
-                  {product.product_name}
+              {products.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.product_name}
                 </option>
               ))}
             </select>
             <button
               type="button"
               onClick={addProduct}
-              className="px-4 py-2 bg-green-500 text-white rounded-lg"
+              className="px-4 py-2 bg-green-600 text-white rounded-lg"
             >
               Add
             </button>
@@ -510,7 +441,7 @@ const AddOrder: React.FC = () => {
 
         {/* Products Table */}
         <div className="mt-4 overflow-x-auto">
-          <table className="w-full text-left border-collapse border">
+          <table className="w-full border-collapse border">
             <thead className="bg-gray-200">
               <tr>
                 <th className="p-2 border">Product</th>
@@ -523,59 +454,37 @@ const AddOrder: React.FC = () => {
               {formData.items.length === 0 ? (
                 <tr>
                   <td colSpan={4} className="text-center p-4 text-gray-500">
-                    No Product added yet
+                    No Product added
                   </td>
                 </tr>
               ) : (
-                formData.items.map((item, index) => (
-                  <tr key={index} className="hover:bg-gray-100">
-                    <td className="p-2 border">{item.product_name}</td>
-
-                    {/* Quantity */}
-                    <td className="p-2 border">
+                formData.items.map((item, i) => (
+                  <tr key={i}>
+                    <td className="border p-2">{item.product_name}</td>
+                    <td className="border p-2">
                       <input
                         type="number"
-                        value={item.quantity}
                         min={1}
+                        value={item.quantity}
                         className="w-full p-1 border rounded"
                         onChange={(e) =>
-                          updateProductField(
-                            index,
-                            "quantity",
-                            Number(e.target.value)
-                          )
+                          updateProductField(i, "quantity", Number(e.target.value))
                         }
-                        required
                       />
                     </td>
-
-                    {/* Total editable */}
-                    <td className="p-2 border">
+                    <td className="border p-2">
                       <input
                         type="number"
-                        value={item.total_price}
                         min={0}
+                        value={item.total_price}
                         className="w-full p-1 border rounded"
                         onChange={(e) =>
-                          updateProductField(
-                            index,
-                            "total_price",
-                            Number(e.target.value)
-                          )
+                          updateProductField(i, "total_price", Number(e.target.value))
                         }
-                        required
                       />
                     </td>
-
-                    {/* Remove */}
-                    <td className="p-2 border">
-                      <button
-                        type="button"
-                        onClick={() => removeProduct(index)}
-                        className="text-red-500"
-                      >
-                        Remove
-                      </button>
+                    <td className="border p-2 text-red-500 cursor-pointer">
+                      <button onClick={() => removeProduct(i)}>Remove</button>
                     </td>
                   </tr>
                 ))
@@ -584,12 +493,11 @@ const AddOrder: React.FC = () => {
           </table>
         </div>
 
-        {/* Add Order Button */}
         <div className="mt-6 flex justify-end">
           <button
             type="submit"
             onClick={handleSubmit}
-            className="px-6 py-2 bg-blue-500 text-white rounded-lg"
+            className="px-6 py-2 bg-blue-600 text-white rounded-lg"
           >
             Add Order
           </button>

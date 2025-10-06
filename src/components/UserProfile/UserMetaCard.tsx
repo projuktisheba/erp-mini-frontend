@@ -1,9 +1,10 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useContext } from "react";
 import { useModal } from "../../hooks/useModal";
 import { Modal } from "../ui/modal";
 import Button from "../ui/button/Button";
 import axiosInstance from "../../hooks/AxiosIntence/AxiosIntence";
 import { useUser } from "../UserContext/UserContext";
+import { AppContext } from "../../context/AppContext";
 
 type UserMetaCardProps = {
   id: number;
@@ -12,6 +13,12 @@ type UserMetaCardProps = {
 };
 
 export default function UserMetaCard({ id, image, name }: UserMetaCardProps) {
+  const context = useContext(AppContext);
+  if (!context) {
+    throw new Error("AppContext not provided");
+  }
+  const { branchId } = context;
+
   const { isOpen, openModal, closeModal } = useModal();
   const { avatar, setAvatar } = useUser();
 
@@ -45,7 +52,12 @@ export default function UserMetaCard({ id, image, name }: UserMetaCardProps) {
       const res = await axiosInstance.post(
         "/hr/employee/profile-picture",
         formData,
-        { headers: { "Content-Type": "multipart/form-data" } }
+        {
+          headers: {
+            "Content-Type": "multipart/form-data",
+            "X-Branch-ID": branchId,
+          },
+        }
       );
 
       if (res.data?.avatar_link) {
