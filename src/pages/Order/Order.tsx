@@ -220,6 +220,7 @@ export default function Orders() {
             `/orders/delivery`,
             {
               order_id: order.id,
+              exit_date: Date.now().toLocaleString(),
               paid_amount: deliveryFormData.paid_amount,
               payment_account_id: deliveryFormData.payment_account_id,
             },
@@ -240,7 +241,6 @@ export default function Orders() {
         try {
           const { data } = await axiosInstance.patch(
             `/orders/${nextStatus}?order_id=${order.id}`,
-            {},
             {
               headers: {
                 "X-Branch-ID": branchId,

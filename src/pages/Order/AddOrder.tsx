@@ -3,6 +3,7 @@ import axios from "axios";
 import Swal from "sweetalert2";
 import { useNavigate } from "react-router";
 import { AppContext } from "../../context/AppContext";
+import axiosInstance from "../../hooks/AxiosIntence/AxiosIntence";
 
 const API_BASE = "https://api.erp.pssoft.xyz/api/v1";
 
@@ -56,9 +57,15 @@ const AddOrder: React.FC = () => {
   // Close dropdowns when clicking outside
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
-      if (salesmanRef.current && !salesmanRef.current.contains(e.target as Node))
+      if (
+        salesmanRef.current &&
+        !salesmanRef.current.contains(e.target as Node)
+      )
         setShowSalesmanDropdown(false);
-      if (customerRef.current && !customerRef.current.contains(e.target as Node))
+      if (
+        customerRef.current &&
+        !customerRef.current.contains(e.target as Node)
+      )
         setShowCustomerDropdown(false);
     };
     document.addEventListener("mousedown", handleClickOutside);
@@ -75,7 +82,9 @@ const AddOrder: React.FC = () => {
 
   // Handle input changes
   const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
+    e: React.ChangeEvent<
+      HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
+    >
   ) => {
     const { name, value } = e.target;
     setFormData((prev) => {
@@ -122,7 +131,11 @@ const AddOrder: React.FC = () => {
     });
   };
 
-  const updateProductField = (i: number, field: keyof ProductItem, value: number) => {
+  const updateProductField = (
+    i: number,
+    field: keyof ProductItem,
+    value: number
+  ) => {
     setFormData((prev) => {
       const items = [...prev.items];
       items[i] = { ...items[i], [field]: value };
@@ -140,16 +153,19 @@ const AddOrder: React.FC = () => {
   };
 
   const fetchSalesmans = async () => {
-    const { data } = await axios.get(`${API_BASE}/hr/employees/names`, {
+    const { data } = await axiosInstance.get(`${API_BASE}/hr/employees/names`, {
       headers: { "X-Branch-ID": branchId },
     });
     setSalesmans(data.employees || []);
   };
 
   const fetchCustomers = async () => {
-    const { data } = await axios.get(`${API_BASE}/mis/customers/names`, {
-      headers: { "X-Branch-ID": branchId },
-    });
+    const { data } = await axiosInstance.get(
+      `${API_BASE}/mis/customers/names`,
+      {
+        headers: { "X-Branch-ID": branchId },
+      }
+    );
     setCustomers(data.customers || []);
   };
 
@@ -206,10 +222,9 @@ const AddOrder: React.FC = () => {
         })),
       };
 
-      const res = await axios.post(`${API_BASE}/orders`, apiData, {
+      const res = await axiosInstance.post(`${API_BASE}/orders`, apiData, {
         headers: {
-          "Content-Type": "application/json",
-          "X-Branch-ID": branchId,
+          "X-Branch-ID": `${branchId}`,
         },
       });
 
@@ -219,6 +234,8 @@ const AddOrder: React.FC = () => {
       }
     } catch (error: any) {
       console.error("Order creation error:", error);
+      console.log(error);
+      
       Swal.fire(
         "Error",
         error.response?.data?.message || "Something went wrong",
@@ -281,7 +298,10 @@ const AddOrder: React.FC = () => {
                       key={s.id}
                       className="p-2 hover:bg-gray-200 cursor-pointer"
                       onClick={() => {
-                        setFormData((prev) => ({ ...prev, salesperson_id: s.id }));
+                        setFormData((prev) => ({
+                          ...prev,
+                          salesperson_id: s.id,
+                        }));
                         setSalesmanSearch(s.name);
                         setShowSalesmanDropdown(false);
                       }}
@@ -344,7 +364,11 @@ const AddOrder: React.FC = () => {
                         setShowCustomerDropdown(false);
                         Swal.fire("Success", "Customer added", "success");
                       } catch {
-                        Swal.fire("Error", "Failed to create customer", "error");
+                        Swal.fire(
+                          "Error",
+                          "Failed to create customer",
+                          "error"
+                        );
                       }
                     }}
                   >
@@ -468,7 +492,11 @@ const AddOrder: React.FC = () => {
                         value={item.quantity}
                         className="w-full p-1 border rounded"
                         onChange={(e) =>
-                          updateProductField(i, "quantity", Number(e.target.value))
+                          updateProductField(
+                            i,
+                            "quantity",
+                            Number(e.target.value)
+                          )
                         }
                       />
                     </td>
@@ -479,7 +507,11 @@ const AddOrder: React.FC = () => {
                         value={item.total_price}
                         className="w-full p-1 border rounded"
                         onChange={(e) =>
-                          updateProductField(i, "total_price", Number(e.target.value))
+                          updateProductField(
+                            i,
+                            "total_price",
+                            Number(e.target.value)
+                          )
                         }
                       />
                     </td>
