@@ -24,7 +24,7 @@ const EmployeeProgress: React.FC = () => {
   const [reportType, setReportType] = useState<"daily" | "weekly" | "monthly">(
     "daily"
   );
-  const [employeeId, setEmployeeId] = useState<number>(1);
+  // const [employeeId, setEmployeeId] = useState<number>(1);
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const printRef = useRef<HTMLDivElement>(null);
@@ -55,7 +55,7 @@ const EmployeeProgress: React.FC = () => {
           "X-Branch-ID": branchId,
         },
         params: {
-          employee_id: employeeId,
+          // employee_id: employeeId,
           start_date: startDate,
           end_date: endDate,
           report_type: reportType,
@@ -77,7 +77,7 @@ const EmployeeProgress: React.FC = () => {
 
   useEffect(() => {
     if (startDate && endDate) fetchProgress();
-  }, [reportType, startDate, endDate, employeeId]);
+  }, [reportType, startDate, endDate]);
 
   const handlePrint = () => {
     if (!printRef.current) return;
