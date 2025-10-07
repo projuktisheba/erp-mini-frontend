@@ -1,9 +1,8 @@
 import EcommerceMetrics from "../../components/ecommerce/EcommerceMetrics";
 import RecentOrders from "../../components/ecommerce/RecentOrders";
 import PageMeta from "../../components/common/PageMeta";
-import { useContext, useEffect, useState } from "react";
+import {  useEffect, useState } from "react";
 import axiosInstance from "../../hooks/AxiosIntence/AxiosIntence";
-import { AppContext } from "../../context/AppContext";
 
 export default function Home() {
   const userDataStr = localStorage.getItem("userData");

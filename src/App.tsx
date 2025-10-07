@@ -5,7 +5,6 @@ import Blank from "./pages/Blank";
 import AppLayout from "./layout/AppLayout";
 import { ScrollToTop } from "./components/common/ScrollToTop";
 import Home from "./pages/Dashboard/Home";
-import SystemSettings from "./pages/Settings/SystemSettings/SystemSettings";
 import ProtectedRoute from "./components/ProtectedRoute/ProtectedRoute";
 import EmployeeList from "./pages/HrManagement/EmployeeList/EmployeeList";
 import AddEmployee from "./pages/HrManagement/AddEmployee/AddEmployee";
