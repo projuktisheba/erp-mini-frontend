@@ -236,7 +236,6 @@ const AddOrder: React.FC = () => {
           "X-Branch-ID": branchId,
         },
       });
-      console.log(res);
 
       if (!res.data.error) {
         Swal.fire("Success", "Order created successfully", "success");

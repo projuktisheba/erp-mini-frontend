@@ -41,7 +41,7 @@ export default function App() {
             <Route
               path="/salesperson-list"
               element={
-                <ProtectedRoute>
+                <ProtectedRoute allowedRoles={["chairman", "manager"]}>
                   <SalespersonList />
                 </ProtectedRoute>
               }
@@ -50,17 +50,18 @@ export default function App() {
             <Route
               path="/worker-list"
               element={
-                <ProtectedRoute>
+                <ProtectedRoute allowedRoles={["chairman", "manager"]}>
                   <EmployeeList />
                 </ProtectedRoute>
               }
             />
 
             <Route path="/customer/:id" element={<CustomerProfile />} />
+
             <Route
               path="/customer-list"
               element={
-                <ProtectedRoute>
+                <ProtectedRoute allowedRoles={["chairman", "manager"]}>
                   <CustomerList />
                 </ProtectedRoute>
               }
@@ -69,8 +70,8 @@ export default function App() {
             <Route
               path="/add-employee"
               element={
-                <ProtectedRoute>
-                  <AddEmployee></AddEmployee>
+                <ProtectedRoute allowedRoles={["chairman", "manager"]}>
+                  <AddEmployee />
                 </ProtectedRoute>
               }
             />
@@ -78,7 +79,7 @@ export default function App() {
             <Route
               path="/add-customer"
               element={
-                <ProtectedRoute>
+                <ProtectedRoute allowedRoles={["chairman", "manager"]}>
                   <AddCustomer />
                 </ProtectedRoute>
               }
@@ -87,20 +88,50 @@ export default function App() {
             <Route path="/blank" element={<Blank />} />
 
             {/* Orders */}
-            <Route path="/orders" element={<Order />} />
-            <Route path="/add-order" element={<AddOrder />} />
+            <Route
+              path="/orders"
+              element={
+                <ProtectedRoute allowedRoles={["chairman", "manager"]}>
+                  <Order />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/add-order"
+              element={
+                <ProtectedRoute allowedRoles={["chairman", "manager"]}>
+                  <AddOrder />
+                </ProtectedRoute>
+              }
+            />
 
             {/* Reports */}
-            <Route path="/branch-report" element={<BranchReports />} />
-
-            <Route path="/employee-progress" element={<EmployeeProgress />} />
-
-            <Route path="/worker-progress" element={<WorkerProgress />} />
-
-            {/* settings */}
             <Route
-              path="/system-settings"
-              element={<SystemSettings></SystemSettings>}
+              path="/branch-report"
+              element={
+                <ProtectedRoute allowedRoles={["chairman", "manager"]}>
+                  <BranchReports />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/employee-progress"
+              element={
+                <ProtectedRoute allowedRoles={["chairman", "manager"]}>
+                  <EmployeeProgress />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/worker-progress"
+              element={
+                <ProtectedRoute allowedRoles={["chairman", "manager"]}>
+                  <WorkerProgress />
+                </ProtectedRoute>
+              }
             />
           </Route>
 

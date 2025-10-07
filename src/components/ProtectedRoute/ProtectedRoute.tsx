@@ -2,15 +2,24 @@ import { ReactNode } from "react";
 import { Navigate } from "react-router";
 
 interface ProtectedRouteProps {
-  children: ReactNode; 
+  children: ReactNode;
+  allowedRoles?: string[];
 }
 
-export default function ProtectedRoute({ children }: ProtectedRouteProps) {
+export default function ProtectedRoute({
+  children,
+  allowedRoles,
+}: ProtectedRouteProps) {
   const token = localStorage.getItem("token");
+  const userDataStr = localStorage.getItem("userData");
+  const userData = userDataStr ? JSON.parse(userDataStr) : null;
 
-  if (!token) {
+  if (!token || !userData) {
     return <Navigate to="/" replace />;
   }
 
+  if (allowedRoles && userData.role && !allowedRoles.includes(userData.role)) {
+    return <Navigate to={"/unauthorized"} replace />;
+  }
   return <>{children}</>;
 }
