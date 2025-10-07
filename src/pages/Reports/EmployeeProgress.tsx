@@ -5,17 +5,18 @@ import { AppContext } from "../../context/AppContext";
 interface EmployeeProgressItem {
   date: string;
   order_count: number;
+  item_count: number;
   product_name: string;
   sale: number;
   sale_return: number;
-  comment: string;
+  sales_person_name: string;
+  base_salary: number;
 }
 
 const EmployeeProgress: React.FC = () => {
   const context = useContext(AppContext);
-  if (!context) {
-    throw new Error("AppContext not provided");
-  }
+  if (!context) throw new Error("AppContext not provided");
+
   const { branchId } = context;
 
   const [data, setData] = useState<EmployeeProgressItem[]>([]);
@@ -26,10 +27,8 @@ const EmployeeProgress: React.FC = () => {
   const [employeeId, setEmployeeId] = useState<number>(1);
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
-
   const printRef = useRef<HTMLDivElement>(null);
 
-  // Helper to set start and end date based on reportType
   const updateDates = (type: "daily" | "weekly" | "monthly") => {
     const today = new Date();
     let start: Date;
@@ -38,7 +37,7 @@ const EmployeeProgress: React.FC = () => {
       start = today;
     } else if (type === "weekly") {
       start = new Date(today);
-      start.setDate(today.getDate() - 6); // last 7 days including today
+      start.setDate(today.getDate() - 6);
     } else {
       start = new Date(today);
       start.setMonth(today.getMonth() - 1);
@@ -62,7 +61,6 @@ const EmployeeProgress: React.FC = () => {
           report_type: reportType,
         },
       });
-      console.log(res.data);
 
       setData(res.data.report || []);
     } catch (err) {
@@ -73,17 +71,14 @@ const EmployeeProgress: React.FC = () => {
     }
   };
 
-  // Update dates automatically whenever reportType changes
   useEffect(() => {
     updateDates(reportType);
   }, [reportType]);
 
-  // Fetch data whenever reportType, employeeId, startDate, or endDate changes
   useEffect(() => {
     if (startDate && endDate) fetchProgress();
   }, [reportType, startDate, endDate, employeeId]);
 
-  // Print report handler
   const handlePrint = () => {
     if (!printRef.current) return;
 
@@ -106,7 +101,7 @@ const EmployeeProgress: React.FC = () => {
         </head>
         <body>
           <h2>Employee Progress Report</h2>
-          <p><strong>Employee ID:</strong> ${employeeId}</p>
+
           <p><strong>Report Type:</strong> ${reportType}</p>
           <p><strong>Date Range:</strong> ${startDate} to ${endDate}</p>
           ${printContent}
@@ -116,6 +111,18 @@ const EmployeeProgress: React.FC = () => {
     printWindow.document.close();
     printWindow.print();
   };
+
+  // Calculate summary totals
+  const totals = data.reduce(
+    (acc, item) => {
+      acc.order_count += item.order_count;
+      acc.item_count += item.item_count;
+      acc.sale += item.sale;
+      acc.sale_return += item.sale_return;
+      return acc;
+    },
+    { order_count: 0, item_count: 0, sale: 0, sale_return: 0 }
+  );
 
   return (
     <div className="container mx-auto p-6">
@@ -156,7 +163,7 @@ const EmployeeProgress: React.FC = () => {
           />
         </div>
 
-        <div>
+        {/* <div>
           <label className="mr-2 font-medium">Employee ID:</label>
           <input
             type="number"
@@ -164,7 +171,7 @@ const EmployeeProgress: React.FC = () => {
             onChange={(e) => setEmployeeId(Number(e.target.value))}
             className="px-3 py-2 border rounded-lg w-24"
           />
-        </div>
+        </div> */}
 
         <button
           onClick={fetchProgress}
@@ -194,31 +201,66 @@ const EmployeeProgress: React.FC = () => {
               <thead className="bg-gray-200">
                 <tr>
                   <th className="px-4 py-2 border">Date</th>
-                  <th className="px-4 py-2 border">Order Count</th>
+                  <th className="px-4 py-2 border">Employee Name</th>
                   <th className="px-4 py-2 border">Product Name</th>
+                  <th className="px-4 py-2 border">Order Count</th>
+                  <th className="px-4 py-2 border">Item Count</th>
                   <th className="px-4 py-2 border">Sale</th>
                   <th className="px-4 py-2 border">Sale Return</th>
-                  <th className="px-4 py-2 border">Comment</th>
                 </tr>
               </thead>
               <tbody>
                 {data.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="text-center py-4 text-gray-500">
+                    <td colSpan={7} className="text-center py-4 text-gray-500">
                       No progress data found.
                     </td>
                   </tr>
                 ) : (
-                  data.map((item, idx) => (
-                    <tr key={idx} className="hover:bg-gray-100">
-                      <td className="px-4 py-2 border">{item.date}</td>
-                      <td className="px-4 py-2 border">{item.order_count}</td>
-                      <td className="px-4 py-2 border">{item.product_name}</td>
-                      <td className="px-4 py-2 border">{item.sale}</td>
-                      <td className="px-4 py-2 border">{item.sale_return}</td>
-                      <td className="px-4 py-2 border">{item.comment}</td>
+                  <>
+                    {data.map((item, idx) => (
+                      <tr key={idx} className="hover:bg-gray-100">
+                        <td className="px-4 py-2 border">{item.date}</td>
+                        <td className="px-4 py-2 border">
+                          {item.sales_person_name}
+                        </td>
+                        <td className="px-4 py-2 border">
+                          {item.product_name}
+                        </td>
+                        <td className="px-4 py-2 border text-right">
+                          {item.order_count}
+                        </td>
+                        <td className="px-4 py-2 border text-right">
+                          {item.item_count}
+                        </td>
+                        <td className="px-4 py-2 border text-right">
+                          {item.sale.toFixed(2)}
+                        </td>
+                        <td className="px-4 py-2 border text-right">
+                          {item.sale_return.toFixed(2)}
+                        </td>
+                      </tr>
+                    ))}
+
+                    {/* Totals Row */}
+                    <tr className="bg-gray-100 font-semibold">
+                      <td className="px-4 py-2 border text-right" colSpan={3}>
+                        Totals:
+                      </td>
+                      <td className="px-4 py-2 border text-right">
+                        {totals.order_count}
+                      </td>
+                      <td className="px-4 py-2 border text-right">
+                        {totals.item_count}
+                      </td>
+                      <td className="px-4 py-2 border text-right">
+                        {totals.sale.toFixed(2)}
+                      </td>
+                      <td className="px-4 py-2 border text-right">
+                        {totals.sale_return.toFixed(2)}
+                      </td>
                     </tr>
-                  ))
+                  </>
                 )}
               </tbody>
             </table>

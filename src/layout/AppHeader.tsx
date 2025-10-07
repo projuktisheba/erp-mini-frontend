@@ -1,11 +1,24 @@
-import { useEffect, useRef, useState } from "react";
+import { useContext, useEffect, useRef, useState } from "react";
 
 import { Link } from "react-router";
 import { useSidebar } from "../context/SidebarContext";
 import { ThemeToggleButton } from "../components/common/ThemeToggleButton";
 import UserDropdown from "../components/header/UserDropdown";
+import { AppContext } from "../context/AppContext";
+
+const branchList = [
+  { id: 1, name: "AL FANAR ABAYAT" },
+  { id: 2, name: "DIVA ABAYAT" },
+  { id: 3, name: "EID AL ABAYAT" },
+];
 
 const AppHeader: React.FC = () => {
+  const context = useContext(AppContext);
+  if (!context) {
+    throw new Error("Branch ID not provided");
+  }
+  const { branchId } = context;
+  const [branchName, setBranchName] = useState("");
   const [isApplicationMenuOpen, setApplicationMenuOpen] = useState(false);
 
   const { isMobileOpen, toggleSidebar, toggleMobileSidebar } = useSidebar();
@@ -38,6 +51,17 @@ const AppHeader: React.FC = () => {
       document.removeEventListener("keydown", handleKeyDown);
     };
   }, []);
+
+  useEffect(() => {
+    const selectedBranch = branchList.find(
+      (branch) => branch.id === Number(branchId)
+    );
+    if (selectedBranch) {
+      setBranchName(selectedBranch.name);
+    } else {
+      setBranchName("Erp Mini");
+    }
+  }, [branchId]);
 
   return (
     <header className="sticky top-0 flex w-full bg-white border-gray-200 z-99999 dark:border-gray-800 dark:bg-gray-900 lg:border-b">
@@ -83,7 +107,7 @@ const AppHeader: React.FC = () => {
           </button>
 
           <Link to="/" className="lg:hidden">
-            <h1>ERP Mini</h1>
+            <h1>{branchName}</h1>
           </Link>
 
           <button

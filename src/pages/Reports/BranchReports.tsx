@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext } from "react";
+import React, { useState, useEffect, useContext, useRef } from "react";
 import axiosInstance from "../../hooks/AxiosIntence/AxiosIntence";
 import { AppContext } from "../../context/AppContext";
 
@@ -18,9 +18,7 @@ interface BranchReportItem {
 
 const BranchReports: React.FC = () => {
   const context = useContext(AppContext);
-  if (!context) {
-    throw new Error("AppContext not provided");
-  }
+  if (!context) throw new Error("AppContext not provided");
   const { branchId } = context;
 
   const [reportType, setReportType] = useState<"daily" | "weekly" | "monthly">(
@@ -30,6 +28,8 @@ const BranchReports: React.FC = () => {
   const [endDate, setEndDate] = useState("");
   const [data, setData] = useState<BranchReportItem[]>([]);
   const [loading, setLoading] = useState(false);
+
+  const printRef = useRef<HTMLDivElement>(null);
 
   // Format date to YYYY-MM-DD
   const formatDate = (date: Date) => date.toISOString().slice(0, 10);
@@ -42,10 +42,10 @@ const BranchReports: React.FC = () => {
     if (type === "daily") start = today;
     else if (type === "weekly") {
       start = new Date(today);
-      start.setDate(today.getDate() - 6); // last 7 days
+      start.setDate(today.getDate() - 6);
     } else {
       start = new Date(today);
-      start.setMonth(today.getMonth() - 1); // last 1 month
+      start.setMonth(today.getMonth() - 1);
     }
 
     setStartDate(formatDate(start));
@@ -58,7 +58,7 @@ const BranchReports: React.FC = () => {
     try {
       const res = await axiosInstance.get(`/reports/branch`, {
         headers: {
-          "X-Branch-ID": branchId.toString(),
+          "x-branch-id": branchId?.toString() || "",
         },
         params: {
           start_date: startDate,
@@ -66,7 +66,6 @@ const BranchReports: React.FC = () => {
           report_type: reportType,
         },
       });
-
       setData(res.data.report || []);
     } catch (err) {
       console.error("Failed to fetch branch reports:", err);
@@ -113,12 +112,48 @@ const BranchReports: React.FC = () => {
     }
   );
 
+  // 🖨️ Print handler with report metadata
+  const handlePrint = () => {
+    const printContent = printRef.current?.innerHTML;
+    if (!printContent) return;
+
+    const printWindow = window.open("", "_blank");
+    if (!printWindow) return;
+
+    printWindow.document.write(`
+      <html>
+        <head>
+          <title>Branch Report - ${reportType.toUpperCase()}</title>
+          <style>
+            body { font-family: Arial, sans-serif; padding: 20px; }
+            h1, h2, p { text-align: center; margin: 4px 0; }
+            table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+            th, td { border: 1px solid #ddd; padding: 8px; text-align: center; }
+            th { background: #f3f3f3; }
+            tr:nth-child(even) { background: #fafafa; }
+          </style>
+        </head>
+        <body>
+          <h1>Branch Report</h1>
+          <h2>Type: ${reportType.toUpperCase()}</h2>
+          <p><strong>From:</strong> ${startDate} &nbsp;&nbsp; <strong>To:</strong> ${endDate}</p>
+          ${printContent}
+        </body>
+      </html>
+    `);
+
+    printWindow.document.close();
+    printWindow.print();
+  };
+
   return (
-    <div className="container mx-auto p-6">
-      <h1 className="text-2xl font-bold mb-4">Branch Reports</h1>
+    <div className="container mx-auto p-6 print:p-2">
+      <h1 className="text-2xl font-bold mb-4 text-gray-900 print:text-black">
+        Branch Reports
+      </h1>
 
       {/* Filters */}
-      <div className="mb-4 flex flex-col md:flex-row gap-4 items-start">
+      <div className="mb-4 flex flex-col md:flex-row gap-4 items-start print:hidden">
         <div>
           <label className="mr-2 font-medium">Report Type:</label>
           <select
@@ -152,20 +187,29 @@ const BranchReports: React.FC = () => {
           />
         </div>
 
-        <button
-          onClick={fetchReports}
-          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-        >
-          Fetch Report
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={fetchReports}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+          >
+            Fetch Report
+          </button>
+
+          <button
+            onClick={handlePrint}
+            className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+          >
+            🖨️ Print Report
+          </button>
+        </div>
       </div>
 
       {loading ? (
         <div className="text-center py-10">Loading reports...</div>
       ) : (
-        <div className="overflow-x-auto">
-          <table className="min-w-full border border-gray-300 rounded-lg overflow-hidden">
-            <thead className="bg-gray-200">
+        <div ref={printRef} className="overflow-x-auto">
+          <table className="min-w-full border border-gray-300 rounded-lg overflow-hidden print:text-black">
+            <thead className="bg-gray-200 print:bg-gray-100">
               <tr>
                 <th className="px-4 py-2 border">Date</th>
                 <th className="px-4 py-2 border">Orders</th>
@@ -174,14 +218,14 @@ const BranchReports: React.FC = () => {
                 <th className="px-4 py-2 border">Total</th>
                 <th className="px-4 py-2 border">Cash</th>
                 <th className="px-4 py-2 border">Bank</th>
-                <th className="px-4 py-2 border">Expensed</th>
+                <th className="px-4 py-2 border">Expense</th>
                 <th className="px-4 py-2 border">Balance</th>
               </tr>
             </thead>
             <tbody>
               {data.length === 0 ? (
                 <tr>
-                  <td colSpan={10} className="text-center py-4 text-gray-500">
+                  <td colSpan={9} className="text-center py-4 text-gray-500">
                     No reports found.
                   </td>
                 </tr>
