@@ -8,7 +8,7 @@ import AccessControll from "../components/UserProfile/AccessControll/AccessContr
 import axiosInstance from "../hooks/AxiosIntence/AxiosIntence";
 import { AppContext } from "../context/AppContext";
 
-type Tab = "profile" | "calendar" | "ledger";
+// type Tab = "profile" | "calendar" | "ledger";
 
 export default function UserProfiles() {
   const context = useContext(AppContext);
