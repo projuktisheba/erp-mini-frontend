@@ -95,7 +95,6 @@ export default function Orders() {
           "X-Branch-ID": branchId,
         },
       });
-      console.log(res.data.orders[0]);
 
       setOrders(res.data.orders);
     } catch (err) {
@@ -111,7 +110,7 @@ export default function Orders() {
         "X-Branch-ID": branchId,
       },
     });
-    setAccounts(res.data.accouts);
+    setAccounts(res.data.accounts);
   };
 
   useEffect(() => {
@@ -337,7 +336,6 @@ export default function Orders() {
               <option value="checkout">Checkout</option>
               <option value="delivery">Delivery</option>
               <option value="cancelled">Cancelled</option>
-              <option value="returned">Returned</option>
             </select>
           </div>
         </div>

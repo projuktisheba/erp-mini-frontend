@@ -21,6 +21,10 @@ const branchList = [
 ];
 
 export default function UserDropdown() {
+  const userDataStr = localStorage.getItem("userData");
+  const user = userDataStr ? JSON.parse(userDataStr) : null;
+  const { role, branch_id } = user || {};
+
   const context = useContext(AppContext);
   if (!context)
     throw new Error("AppContext must be used within AppContextProvider");
@@ -50,9 +54,19 @@ export default function UserDropdown() {
   const handleSignOut = () => {
     localStorage.removeItem("username");
     localStorage.removeItem("token");
+    localStorage.removeItem("branchId");
     window.location.href = "/";
   };
 
+  // 🔹 Load saved branchId from localStorage
+  useEffect(() => {
+    const savedBranch = localStorage.getItem("branchId");
+    if (savedBranch) {
+      setBranchId(Number(savedBranch));
+    }
+  }, [setBranchId]);
+
+  // 🔹 Fetch user data
   useEffect(() => {
     const fetchUserData = async () => {
       setLoading(true);
@@ -91,11 +105,24 @@ export default function UserDropdown() {
     };
 
     fetchUserData();
-  }, []);
+  }, [branchId]);
+
+  // 🔹 Filter branches based on user role
+  const visibleBranches =
+    role === "manager"
+      ? branchList.filter((b) => b.id === branch_id)
+      : role === "chairman"
+      ? branchList
+      : [];
+
+  const handleBranchSelect = (id: number) => {
+    setBranchId(id);
+    localStorage.setItem("branchId", id.toString());
+  };
 
   return (
     <div className="relative">
-      {/* Dropdown toggle button */}
+      {/* Dropdown toggle */}
       <button
         onClick={toggleDropdown}
         className={`flex items-center rounded-full p-1 transition-shadow duration-200 ${
@@ -179,29 +206,31 @@ export default function UserDropdown() {
           </li>
         </ul>
 
-        {/* Branch selector */}
-        <ul className="flex flex-col gap-1 pt-3 border-b border-gray-200 dark:border-gray-800">
-          {branchList.map((branch) => (
-            <li
-              key={branch.id}
-              onClick={() => setBranchId(branch.id)}
-              className={`flex items-center gap-3 px-3 py-2 rounded-lg cursor-pointer transition-colors duration-200 ${
-                branchId === branch.id
-                  ? "bg-blue-500 text-white"
-                  : "hover:bg-gray-100 dark:hover:bg-white/5"
-              }`}
-            >
-              <Store
-                className={`${
+        {/* 🔹 Branch selector (role-based) */}
+        {visibleBranches.length > 0 && (
+          <ul className="flex flex-col gap-1 pt-3 border-b border-gray-200 dark:border-gray-800">
+            {visibleBranches.map((branch) => (
+              <li
+                key={branch.id}
+                onClick={() => handleBranchSelect(branch.id)}
+                className={`flex items-center gap-3 px-3 py-2 rounded-lg cursor-pointer transition-colors duration-200 ${
                   branchId === branch.id
-                    ? "text-white"
-                    : "text-gray-600 dark:text-gray-400"
+                    ? "bg-blue-500 text-white"
+                    : "hover:bg-gray-100 dark:hover:bg-white/5"
                 }`}
-              />
-              {branch.name}
-            </li>
-          ))}
-        </ul>
+              >
+                <Store
+                  className={`${
+                    branchId === branch.id
+                      ? "text-white"
+                      : "text-gray-600 dark:text-gray-400"
+                  }`}
+                />
+                {branch.name}
+              </li>
+            ))}
+          </ul>
+        )}
 
         {/* Sign out button */}
         <button

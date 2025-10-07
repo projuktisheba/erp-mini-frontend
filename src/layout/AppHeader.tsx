@@ -18,6 +18,7 @@ const AppHeader: React.FC = () => {
     throw new Error("Branch ID not provided");
   }
   const { branchId } = context;
+
   const [branchName, setBranchName] = useState("");
   const [isApplicationMenuOpen, setApplicationMenuOpen] = useState(false);
 

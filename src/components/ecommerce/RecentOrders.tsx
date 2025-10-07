@@ -6,9 +6,8 @@ import {
   TableRow,
 } from "../ui/table";
 import Badge from "../ui/badge/Badge";
-import { useContext, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import axiosInstance from "../../hooks/AxiosIntence/AxiosIntence";
-import { AppContext } from "../../context/AppContext";
 import { Link } from "react-router";
 
 interface Order {
@@ -21,11 +20,9 @@ interface Order {
 }
 
 export default function RecentOrders() {
-  const context = useContext(AppContext);
-  if (!context) {
-    throw new Error("AppContext is not provided");
-  }
-  const { branchId } = context;
+  const userDataStr = localStorage.getItem("userData");
+  const userData = userDataStr ? JSON.parse(userDataStr) : null;
+  const branch_id = userData.branch_id;
 
   const [recentOrders, setRecentOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(false);
@@ -37,7 +34,7 @@ export default function RecentOrders() {
         "/orders/list/paginated?pageNo=1&sort_by_date=desc",
         {
           headers: {
-            "X-Branch-ID": branchId,
+            "X-Branch-ID": branch_id,
           },
         }
       );
@@ -52,7 +49,7 @@ export default function RecentOrders() {
 
   useEffect(() => {
     fetchRecentOrders();
-  }, [branchId]);
+  }, [branch_id]);
 
   return (
     <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white px-4 pb-3 pt-4 dark:border-gray-800 dark:bg-white/[0.03] sm:px-6">

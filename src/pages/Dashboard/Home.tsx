@@ -1,10 +1,15 @@
 import EcommerceMetrics from "../../components/ecommerce/EcommerceMetrics";
 import RecentOrders from "../../components/ecommerce/RecentOrders";
 import PageMeta from "../../components/common/PageMeta";
-import { useEffect, useState } from "react";
+import { useContext, useEffect, useState } from "react";
 import axiosInstance from "../../hooks/AxiosIntence/AxiosIntence";
+import { AppContext } from "../../context/AppContext";
 
 export default function Home() {
+  const userDataStr = localStorage.getItem("userData");
+  const userData = userDataStr ? JSON.parse(userDataStr) : null;
+  const branch_id = userData.branch_id;
+
   const [orderOverview, setOrderOverview] = useState({
     total_orders: 0,
     total_orders_amount: 0,
@@ -27,10 +32,16 @@ export default function Home() {
   const fetchOverview = async () => {
     try {
       const { data } = await axiosInstance.get(
-        `/reports/dashboard/orders/overview?type=${reportType}&date=${date}`
+        `/reports/dashboard/orders/overview?type=${reportType}&date=${date}`,
+        {
+          headers: {
+            "X-Branch-ID": branch_id,
+          },
+        }
       );
 
       setOrderOverview(data.order_overview);
+      console.log(data.order_overview);
     } catch (error) {
       console.error("Error fetching dashboard overview:", error);
     }
@@ -38,7 +49,7 @@ export default function Home() {
 
   useEffect(() => {
     fetchOverview();
-  }, [reportType, date]);
+  }, [reportType, date, branch_id]);
 
   return (
     <>
