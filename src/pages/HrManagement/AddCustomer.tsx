@@ -1,9 +1,17 @@
-import React, { useState } from "react";
+import React, { useContext, useState } from "react";
 import axiosInstance from "../../hooks/AxiosIntence/AxiosIntence";
 import Swal from "sweetalert2";
 import { useNavigate } from "react-router";
+import { AppContext } from "../../context/AppContext";
 
 const AddCustomer: React.FC = () => {
+  const context = useContext(AppContext);
+  if (!context) {
+    throw new Error("Branch ID not provided");
+  }
+
+  const { branchId } = context;
+
   const [formData, setFormData] = useState({
     name: "",
     mobile: "",
@@ -52,7 +60,11 @@ const AddCustomer: React.FC = () => {
     e.preventDefault();
 
     try {
-      const response = await axiosInstance.post("/mis/customer", formData);
+      const response = await axiosInstance.post("/mis/customer", formData, {
+        headers: {
+          "X-Branch-ID": branchId,
+        },
+      });
 
       if (response.status === 200 || response.status === 201) {
         Swal.fire({

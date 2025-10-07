@@ -5,8 +5,6 @@ import { useNavigate } from "react-router";
 import { AppContext } from "../../context/AppContext";
 import axiosInstance from "../../hooks/AxiosIntence/AxiosIntence";
 
-const API_BASE = "https://api.erp.pssoft.xyz/api/v1";
-
 interface ProductItem {
   product_id: number;
   product_name: string;
@@ -22,10 +20,11 @@ const AddOrder: React.FC = () => {
   const [products, setProducts] = useState<any[]>([]);
   const [salesmans, setSalesmans] = useState<any[]>([]);
   const [customers, setCustomers] = useState<any[]>([]);
+  const [accounts, setAccounts] = useState<any[]>([]);
 
   const navigate = useNavigate();
 
-  // current date helper
+  // Helper to get current date
   const getCurrentDate = () => new Date().toISOString().slice(0, 10);
 
   const [formData, setFormData] = useState({
@@ -146,33 +145,44 @@ const AddOrder: React.FC = () => {
 
   // Fetch data
   const fetchProducts = async () => {
-    const { data } = await axios.get(`${API_BASE}/products`, {
+    const { data } = await axiosInstance.get(`/products`, {
       headers: { "X-Branch-ID": branchId },
     });
     setProducts(data.products || []);
   };
 
   const fetchSalesmans = async () => {
-    const { data } = await axiosInstance.get(`${API_BASE}/hr/employees/names`, {
+    const { data } = await axiosInstance.get(`/hr/employees/names`, {
       headers: { "X-Branch-ID": branchId },
     });
     setSalesmans(data.employees || []);
   };
 
   const fetchCustomers = async () => {
-    const { data } = await axiosInstance.get(
-      `${API_BASE}/mis/customers/names`,
-      {
-        headers: { "X-Branch-ID": branchId },
-      }
-    );
+    const { data } = await axiosInstance.get(`/mis/customers/names`, {
+      headers: { "X-Branch-ID": branchId },
+    });
     setCustomers(data.customers || []);
+  };
+
+  const fetchAccounts = async () => {
+    try {
+      const res = await axiosInstance.get("/accounts/names", {
+        headers: {
+          "X-Branch-ID": branchId,
+        },
+      });
+      setAccounts(res.data.accounts || []);
+    } catch (error) {
+      console.error(error);
+    }
   };
 
   useEffect(() => {
     fetchProducts();
     fetchSalesmans();
     fetchCustomers();
+    fetchAccounts();
   }, []);
 
   // Filter dropdown lists
@@ -222,11 +232,12 @@ const AddOrder: React.FC = () => {
         })),
       };
 
-      const res = await axiosInstance.post(`${API_BASE}/orders`, apiData, {
+      const res = await axiosInstance.post(`/orders`, apiData, {
         headers: {
-          "X-Branch-ID": `${branchId}`,
+          "X-Branch-ID": branchId,
         },
       });
+      console.log(res);
 
       if (!res.data.error) {
         Swal.fire("Success", "Order created successfully", "success");
@@ -234,8 +245,6 @@ const AddOrder: React.FC = () => {
       }
     } catch (error: any) {
       console.error("Order creation error:", error);
-      console.log(error);
-      
       Swal.fire(
         "Error",
         error.response?.data?.message || "Something went wrong",
@@ -350,11 +359,12 @@ const AddOrder: React.FC = () => {
                     className="p-2 bg-green-100 hover:bg-green-200 cursor-pointer"
                     onClick={async () => {
                       try {
-                        const { data } = await axios.post(
-                          `${API_BASE}/mis/customer`,
+                        const { data } = await axiosInstance.post(
+                          `/mis/customer`,
                           { name: customerSearch },
                           { headers: { "X-Branch-ID": branchId } }
                         );
+
                         setCustomers((prev) => [...prev, data.customer]);
                         setFormData((prev) => ({
                           ...prev,
@@ -411,6 +421,7 @@ const AddOrder: React.FC = () => {
             />
           </div>
 
+          {/* ✅ Dynamic Payment Account Field */}
           <div>
             <label>Payment Account</label>
             <select
@@ -420,8 +431,15 @@ const AddOrder: React.FC = () => {
               className="w-full p-2 border rounded-lg"
             >
               <option value="">Select Account</option>
-              <option value={1}>Bank Account</option>
-              <option value={2}>Cash Account</option>
+              {accounts.length > 0 ? (
+                accounts.map((acc: any) => (
+                  <option key={acc.id} value={acc.id}>
+                    {acc.name}
+                  </option>
+                ))
+              ) : (
+                <option disabled>Loading accounts...</option>
+              )}
             </select>
           </div>
 

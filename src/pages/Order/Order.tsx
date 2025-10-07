@@ -46,6 +46,11 @@ interface Order {
   items: OrderItem[];
 }
 
+interface Account {
+  id: number;
+  name: string;
+}
+
 type OrderStatus = "pending" | "checkout" | "delivery" | "cancelled";
 
 const statusFlow: OrderStatus[] = [
@@ -67,6 +72,7 @@ export default function Orders() {
   }
   const { branchId } = context;
 
+  const [accounts, setAccounts] = useState<Account[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
@@ -76,8 +82,9 @@ export default function Orders() {
   const [confirmationAction, setConfirmationAction] =
     useState<ConfirmationAction>(null);
   const [deliveryFormData, setDeliveryFormData] = useState({
-    paid_amount: 0,
-    payment_account_id: 0,
+    paid_amount: "",
+    payment_account_id: "",
+    exit_date: "",
   });
 
   const fetchOrders = async () => {
@@ -98,8 +105,18 @@ export default function Orders() {
     }
   };
 
+  const fetchAccounts = async () => {
+    const res = await axiosInstance.get("/accounts/names", {
+      headers: {
+        "X-Branch-ID": branchId,
+      },
+    });
+    setAccounts(res.data.accouts);
+  };
+
   useEffect(() => {
     fetchOrders();
+    fetchAccounts();
   }, []);
 
   const filteredOrders = orders.filter((order) => {
@@ -159,7 +176,11 @@ export default function Orders() {
     setSelectedOrder(null);
     setConfirmationAction(null);
     setIsModalOpen(false);
-    setDeliveryFormData({ paid_amount: 0, payment_account_id: 0 });
+    setDeliveryFormData({
+      paid_amount: "",
+      payment_account_id: "",
+      exit_date: "",
+    });
   };
 
   const handleEdit = (order: Order) => {
@@ -176,7 +197,13 @@ export default function Orders() {
     if (!nextStatus) return;
     setConfirmationAction({ type: "nextStatus", order, nextStatus });
     if (nextStatus === "delivery") {
-      setDeliveryFormData({ paid_amount: 0, payment_account_id: 0 });
+      // Set default exit date to today
+      const today = new Date().toISOString().split("T")[0];
+      setDeliveryFormData({
+        paid_amount: "",
+        payment_account_id: "",
+        exit_date: today,
+      });
     }
     setIsModalOpen(true);
   };
@@ -209,9 +236,10 @@ export default function Orders() {
       if (nextStatus === "delivery") {
         if (
           !deliveryFormData.paid_amount ||
-          !deliveryFormData.payment_account_id
+          !deliveryFormData.payment_account_id ||
+          !deliveryFormData.exit_date
         ) {
-          alert("Please fill paid amount and payment account ID");
+          alert("Please fill all delivery information");
           return;
         }
 
@@ -220,9 +248,9 @@ export default function Orders() {
             `/orders/delivery`,
             {
               order_id: order.id,
-              exit_date: Date.now().toLocaleString(),
-              paid_amount: deliveryFormData.paid_amount,
-              payment_account_id: deliveryFormData.payment_account_id,
+              exit_date: deliveryFormData.exit_date,
+              paid_amount: Number(deliveryFormData.paid_amount),
+              payment_account_id: Number(deliveryFormData.payment_account_id),
             },
             {
               headers: {
@@ -481,31 +509,64 @@ export default function Orders() {
                 <>
                   {confirmationAction.type === "nextStatus" &&
                   confirmationAction.nextStatus === "delivery" ? (
-                    <div className="space-y-2">
-                      <input
-                        type="number"
-                        placeholder="Paid Amount"
-                        value={deliveryFormData.paid_amount}
-                        onChange={(e) =>
-                          setDeliveryFormData((prev) => ({
-                            ...prev,
-                            paid_amount: Number(e.target.value),
-                          }))
-                        }
-                        className="w-full p-2 border rounded"
-                      />
-                      <input
-                        type="number"
-                        placeholder="Payment Account ID"
-                        value={deliveryFormData.payment_account_id}
-                        onChange={(e) =>
-                          setDeliveryFormData((prev) => ({
-                            ...prev,
-                            payment_account_id: Number(e.target.value),
-                          }))
-                        }
-                        className="w-full p-2 border rounded"
-                      />
+                    <div className="space-y-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                          Paid Amount
+                        </label>
+                        <input
+                          type="number"
+                          placeholder="Enter paid amount"
+                          value={deliveryFormData.paid_amount}
+                          onChange={(e) =>
+                            setDeliveryFormData((prev) => ({
+                              ...prev,
+                              paid_amount: e.target.value,
+                            }))
+                          }
+                          className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                          Payment Account
+                        </label>
+                        <select
+                          value={deliveryFormData.payment_account_id}
+                          onChange={(e) =>
+                            setDeliveryFormData((prev) => ({
+                              ...prev,
+                              payment_account_id: e.target.value,
+                            }))
+                          }
+                          className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+                        >
+                          <option value="">Select payment account</option>
+                          {accounts.map((account) => (
+                            <option key={account.id} value={account.id}>
+                              {account.name}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                          Exit Date
+                        </label>
+                        <input
+                          type="date"
+                          value={deliveryFormData.exit_date}
+                          onChange={(e) =>
+                            setDeliveryFormData((prev) => ({
+                              ...prev,
+                              exit_date: e.target.value,
+                            }))
+                          }
+                          className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+                        />
+                      </div>
                     </div>
                   ) : (
                     <p className="text-gray-700 dark:text-gray-400">
