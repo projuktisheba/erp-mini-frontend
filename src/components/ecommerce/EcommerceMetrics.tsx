@@ -1,9 +1,4 @@
-import {
-  ArrowDownIcon,
-  ArrowUpIcon,
-  BoxIconLine,
-  GroupIcon,
-} from "../../icons";
+import { BoxIconLine } from "../../icons";
 import Badge from "../ui/badge/Badge";
 
 type EcommerceMetricsPropsType = {

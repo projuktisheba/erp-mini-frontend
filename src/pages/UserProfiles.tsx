@@ -1,6 +1,5 @@
 import { useContext, useEffect, useState } from "react";
 import { useParams } from "react-router";
-import PageBreadcrumb from "../components/common/PageBreadCrumb";
 import PageMeta from "../components/common/PageMeta";
 import UserMetaCard from "../components/UserProfile/UserMetaCard";
 import UserInfoCard from "../components/UserProfile/UserInfoCard";
@@ -21,7 +20,7 @@ export default function UserProfiles() {
   const { id } = useParams();
   const [employee, setEmployee] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<Tab>("profile");
+  // const [activeTab, setActiveTab] = useState<Tab>("profile");
 
   useEffect(() => {
     const fetchEmployee = async () => {
@@ -64,7 +63,7 @@ export default function UserProfiles() {
         title={`Profile | ${employee.first_name} ${employee.last_name}`}
         description="User profile page"
       />
-      <PageBreadcrumb
+      {/* <PageBreadcrumb
         pageTitle={
           activeTab === "profile"
             ? "Profile"
@@ -72,7 +71,7 @@ export default function UserProfiles() {
             ? "Calendar"
             : "Ledger"
         }
-      />
+      /> */}
 
       <div className="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03] lg:p-6">
         {/* Tabs (Title as first button) */}

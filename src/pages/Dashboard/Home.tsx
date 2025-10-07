@@ -1,5 +1,4 @@
 import EcommerceMetrics from "../../components/ecommerce/EcommerceMetrics";
-import MonthlySalesChart from "../../components/ecommerce/MonthlySalesChart";
 import RecentOrders from "../../components/ecommerce/RecentOrders";
 import PageMeta from "../../components/common/PageMeta";
 import { useEffect, useState } from "react";
@@ -30,7 +29,6 @@ export default function Home() {
       const { data } = await axiosInstance.get(
         `/reports/dashboard/orders/overview?type=${reportType}&date=${date}`
       );
-      console.log(data.order_overview);
 
       setOrderOverview(data.order_overview);
     } catch (error) {
@@ -58,8 +56,6 @@ export default function Home() {
             cancelled_orders_amount: orderOverview.cancelled_orders_amount,
           }}
         />
-
-        {/* <MonthlySalesChart /> */}
 
         <RecentOrders />
       </div>

@@ -35,7 +35,7 @@ const statusColors: Record<string, string> = {
 export default function EmployeeList() {
   const context = useContext(AppContext);
   if (!context) {
-    throw new Error("AppContext not provided");
+    throw new Error("Branch Id is not provided");
   }
   const { branchId } = context;
 
@@ -110,7 +110,12 @@ export default function EmployeeList() {
       const response = await axiosInstance.post(
         "/hr/attendance/present/single",
         payload,
-        { headers: { "Content-Type": "application/json" } }
+        {
+          headers: {
+            "Content-Type": "application/json",
+            "X-Branch-ID": branchId,
+          },
+        }
       );
 
       if (response.data.status === "success") {
