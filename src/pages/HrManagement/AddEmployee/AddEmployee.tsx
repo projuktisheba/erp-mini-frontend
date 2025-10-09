@@ -2,6 +2,7 @@ import React, { useContext, useState } from "react";
 import axios from "axios";
 import Swal from "sweetalert2";
 import { AppContext } from "../../../context/AppContext";
+import { Loader2 } from "lucide-react";
 // import { useNavigate } from "react-router";
 
 const API_BASE = "https://api.erp.pssoft.xyz/api/v1";
@@ -12,6 +13,8 @@ const AddEmployee: React.FC = () => {
     throw new Error("AppContext not provided");
   }
   const { branchId } = context;
+
+  const[isSubmitting, setIsSubmitting] = useState(false)
 
   const [formData, setFormData] = useState({
     name: "",
@@ -37,6 +40,7 @@ const AddEmployee: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    setIsSubmitting(true)
     try {
       const payload = {
         ...formData,
@@ -81,19 +85,21 @@ const AddEmployee: React.FC = () => {
           error.response?.data?.message ||
           "Something went wrong while adding employee.",
       });
+    } finally{
+      setIsSubmitting(false)
     }
   };
 
   return (
-    <div className="flex items-center justify-center p-4 px-4 dark:bg-gray-900 transition-colors duration-300">
-      <div className="dark:bg-gray-800 p-6 rounded-xl shadow-md w-full max-w-3xl transition-colors duration-300">
-        <h2 className="text-2xl font-bold mb-6 text-center text-gray-800 dark:text-gray-100">
-          Add Employee
+    <div className="flex items-center justify-center p-4 bg-gray-50 dark:bg-gray-900 transition-colors duration-300">
+      <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md w-full max-w-2xl transition-colors duration-300">
+        <h2 className="text-xl font-semibold mb-4 text-center text-gray-800 dark:text-gray-100">
+          Add New Employee
         </h2>
 
         <form
           onSubmit={handleSubmit}
-          className="grid grid-cols-1 md:grid-cols-2 gap-4"
+          className="grid grid-cols-1 md:grid-cols-2 gap-3"
         >
           {/* Name */}
           <div className="md:col-span-2">
@@ -106,7 +112,7 @@ const AddEmployee: React.FC = () => {
               value={formData.name}
               onChange={handleChange}
               required
-              className="w-full p-2 border rounded-lg bg-gray-50 dark:bg-gray-700"
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-gray-50 dark:bg-gray-700 dark:text-gray-100 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none"
               placeholder="John Doe"
             />
           </div>
@@ -121,7 +127,7 @@ const AddEmployee: React.FC = () => {
               value={formData.role}
               onChange={handleChange}
               required
-              className="w-full p-2 border rounded-lg bg-gray-50 dark:bg-gray-700"
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-gray-50 dark:bg-gray-700 dark:text-gray-100 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none"
             >
               <option value="">Select Role</option>
               <option value="salesperson">Salesperson</option>
@@ -140,7 +146,7 @@ const AddEmployee: React.FC = () => {
               value={formData.mobile}
               onChange={handleChange}
               required
-              className="w-full p-2 border rounded-lg bg-gray-50 dark:bg-gray-700"
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-gray-50 dark:bg-gray-700 dark:text-gray-100 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none"
               placeholder="0123456789"
             />
           </div>
@@ -155,7 +161,7 @@ const AddEmployee: React.FC = () => {
               name="email"
               value={formData.email}
               onChange={handleChange}
-              className="w-full p-2 border rounded-lg bg-gray-50 dark:bg-gray-700"
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-gray-50 dark:bg-gray-700 dark:text-gray-100 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none"
               placeholder="john@example.com"
             />
           </div>
@@ -170,7 +176,7 @@ const AddEmployee: React.FC = () => {
               name="passport_no"
               value={formData.passport_no}
               onChange={handleChange}
-              className="w-full p-2 border rounded-lg bg-gray-50 dark:bg-gray-700"
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-gray-50 dark:bg-gray-700 dark:text-gray-100 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none"
               placeholder="Passport Number"
             />
           </div>
@@ -186,19 +192,34 @@ const AddEmployee: React.FC = () => {
               value={formData.joining_date}
               onChange={handleChange}
               required
-              className="w-full p-2 border rounded-lg bg-gray-50 dark:bg-gray-700"
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-gray-50 dark:bg-gray-700 dark:text-gray-100 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none"
             />
           </div>
 
           {/* Submit */}
-          <div className="md:col-span-2">
-            <button
-              type="submit"
-              className="w-full py-2 rounded-lg text-white bg-blue-500 hover:bg-blue-600 transition-colors duration-300"
-            >
-              Add Employee
-            </button>
-          </div>
+<div className="md:col-span-2 mt-3">
+  <button
+    type="submit"
+    disabled={isSubmitting}
+    className={`w-full py-3 rounded-md text-white font-medium text-sm transition-colors duration-300 flex items-center justify-center
+      ${
+        isSubmitting
+          ? "bg-blue-400 cursor-not-allowed"
+          : "bg-blue-600 hover:bg-blue-700"
+      }`}
+  >
+    {isSubmitting ? (
+      <>
+        <Loader2 className="animate-spin w-4 h-4 mr-2" />
+        Processing...
+      </>
+    ) : (
+      "Add Customer"
+    )}
+  </button>
+</div>
+
+          
         </form>
       </div>
     </div>

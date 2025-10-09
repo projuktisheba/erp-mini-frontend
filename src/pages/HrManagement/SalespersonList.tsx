@@ -7,7 +7,7 @@ import {
   TableRow,
 } from "../../components/ui/table";
 import Button from "../../components/ui/button/Button";
-import axiosInstance from "../../hooks/AxiosIntence/AxiosIntence";
+import axiosInstance from "../../hooks/AxiosInstance/AxiosInstance";
 import { useNavigate } from "react-router";
 import { Search } from "lucide-react";
 import { AppContext } from "../../context/AppContext";
@@ -60,7 +60,7 @@ export default function SalespersonList() {
 
   useEffect(() => {
     fetchEmployees();
-  }, []);
+  }, [branchId]);
 
   useEffect(() => {
     const query = searchQuery.toLowerCase();
@@ -90,10 +90,10 @@ export default function SalespersonList() {
       {/* Header */}
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
-          Employee Management
+          Salesperson Management
         </h1>
         <p className="text-gray-600 dark:text-gray-400">
-          Manage employees and record attendance
+          Manage salesperson details
         </p>
       </div>
 
@@ -127,7 +127,7 @@ export default function SalespersonList() {
             <TableBody className="divide-y divide-gray-200 dark:divide-gray-600">
               {filteredData.length === 0 ? (
                 <TableRow>
-                  <TableCell className="text-center py-8 text-gray-500 dark:text-gray-400">
+                  <TableCell colSpan={6} className="text-center py-8 text-gray-500 dark:text-gray-400">
                     {searchQuery
                       ? "No employees match your search."
                       : "No employees found."}

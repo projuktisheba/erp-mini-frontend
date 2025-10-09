@@ -2,7 +2,8 @@ import React, { useState, useEffect, useRef, useContext } from "react";
 import Swal from "sweetalert2";
 import { useNavigate } from "react-router";
 import { AppContext } from "../../context/AppContext";
-import axiosInstance from "../../hooks/AxiosIntence/AxiosIntence";
+import axiosInstance from "../../hooks/AxiosInstance/AxiosInstance";
+import { Loader2 } from "lucide-react";
 
 interface ProductItem {
   product_id: number;
@@ -20,7 +21,7 @@ const AddOrder: React.FC = () => {
   const [salesmans, setSalesmans] = useState<any[]>([]);
   const [customers, setCustomers] = useState<any[]>([]);
   const [accounts, setAccounts] = useState<any[]>([]);
-
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const navigate = useNavigate();
 
   // Helper to get current date
@@ -151,9 +152,12 @@ const AddOrder: React.FC = () => {
   };
 
   const fetchSalesmans = async () => {
-    const { data } = await axiosInstance.get(`/hr/employees/names`, {
-      headers: { "X-Branch-ID": branchId },
-    });
+    const { data } = await axiosInstance.get(
+      `/hr/employees/names?role=salesperson`,
+      {
+        headers: { "X-Branch-ID": branchId },
+      }
+    );
     setSalesmans(data.employees || []);
   };
 
@@ -182,7 +186,7 @@ const AddOrder: React.FC = () => {
     fetchSalesmans();
     fetchCustomers();
     fetchAccounts();
-  }, []);
+  }, [branchId]);
 
   // Filter dropdown lists
   useEffect(() => {
@@ -208,9 +212,14 @@ const AddOrder: React.FC = () => {
   // Submit handler
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isSubmitting) return;
 
     if (!formData.salesperson_id || !formData.customer_id) {
       Swal.fire("Error", "Please select salesman and customer", "error");
+      return;
+    }
+    if (!formData.payment_account_id) {
+      Swal.fire("Error", "Please select the payment method", "error");
       return;
     }
 
@@ -218,7 +227,7 @@ const AddOrder: React.FC = () => {
       Swal.fire("Error", "Please add at least one product", "error");
       return;
     }
-
+    setIsSubmitting(true);
     try {
       const apiData = {
         ...formData,
@@ -248,6 +257,8 @@ const AddOrder: React.FC = () => {
         error.response?.data?.message || "Something went wrong",
         "error"
       );
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -545,9 +556,17 @@ const AddOrder: React.FC = () => {
           <button
             type="submit"
             onClick={handleSubmit}
-            className="px-6 py-2 bg-blue-600 text-white rounded-lg"
+            disabled={isSubmitting}
+            className="px-6 py-2 rounded-lg text-white flex items-center gap-2 justify-center bg-blue-600 hover:bg-blue-700"
           >
-            Add Order
+            {isSubmitting ? (
+              <>
+                <Loader2 className="animate-spin w-4 h-4 mr-2" />
+                Processing...
+              </>
+            ) : (
+              "Confirm Order"
+            )}
           </button>
         </div>
       </div>

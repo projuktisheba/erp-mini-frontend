@@ -2,7 +2,7 @@ import { useState, useEffect, useContext } from "react";
 import { useModal } from "../../hooks/useModal";
 import { Modal } from "../ui/modal";
 import Button from "../ui/button/Button";
-import axiosInstance from "../../hooks/AxiosIntence/AxiosIntence";
+import axiosInstance from "../../hooks/AxiosInstance/AxiosInstance";
 import { useUser } from "../UserContext/UserContext";
 import { AppContext } from "../../context/AppContext";
 

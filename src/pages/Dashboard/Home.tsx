@@ -1,13 +1,14 @@
 import EcommerceMetrics from "../../components/ecommerce/EcommerceMetrics";
 import RecentOrders from "../../components/ecommerce/RecentOrders";
 import PageMeta from "../../components/common/PageMeta";
-import {  useEffect, useState } from "react";
-import axiosInstance from "../../hooks/AxiosIntence/AxiosIntence";
+import {  useEffect, useContext, useState } from "react";
+import { AppContext } from "../../context/AppContext";
+import axiosInstance from "../../hooks/AxiosInstance/AxiosInstance";
 
 export default function Home() {
-  const userDataStr = localStorage.getItem("userData");
-  const userData = userDataStr ? JSON.parse(userDataStr) : null;
-  const branch_id = userData.branch_id;
+  const context = useContext(AppContext);
+  if (!context) throw new Error("AppContext not provided");
+  const { branchId } = context;
 
   const [orderOverview, setOrderOverview] = useState({
     total_orders: 0,
@@ -34,7 +35,7 @@ export default function Home() {
         `/reports/dashboard/orders/overview?type=${reportType}&date=${date}`,
         {
           headers: {
-            "X-Branch-ID": branch_id,
+            "X-Branch-ID": branchId,
           },
         }
       );
@@ -48,7 +49,7 @@ export default function Home() {
 
   useEffect(() => {
     fetchOverview();
-  }, [reportType, date, branch_id]);
+  }, [reportType, date, branchId]);
 
   return (
     <>

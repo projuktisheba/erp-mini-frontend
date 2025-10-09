@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useContext, useRef } from "react";
-import axiosInstance from "../../hooks/AxiosIntence/AxiosIntence";
+import axiosInstance from "../../hooks/AxiosInstance/AxiosInstance";
 import { AppContext } from "../../context/AppContext";
 
 interface BranchReportItem {
@@ -16,6 +16,11 @@ interface BranchReportItem {
   order_count: number;
 }
 
+const branchList = [
+  { id: 1, name: "AL FANAR ABAYAT" },
+  { id: 2, name: "DIVA ABAYAT" },
+  { id: 3, name: "EID AL ABAYAT" },
+];
 const BranchReports: React.FC = () => {
   const context = useContext(AppContext);
   if (!context) throw new Error("AppContext not provided");
@@ -112,152 +117,273 @@ const BranchReports: React.FC = () => {
     }
   );
 
-  // 🖨️ Print handler with report metadata
-  const handlePrint = () => {
-    const printContent = printRef.current?.innerHTML;
-    if (!printContent) return;
+  // Print handler with report metadata
+  // --- Print handler for branch reports ---
+const handlePrint = () => {
+  if (data.length === 0) {
+    alert("No report data to print!");
+    return;
+  }
 
-    const printWindow = window.open("", "_blank");
-    if (!printWindow) return;
+  // Generate table rows
+  const rows = data
+    .map(
+      (item) => `
+      <tr>
+        <td>${item.date.slice(0, 10)}</td>
+        <td>${item.total_amount}</td>
+        <td>${item.cash}</td>
+        <td>${item.bank}</td>
+        <td>${item.expense}</td>
+        <td>${item.balance}</td>
+        <td>${item.order_count}</td>
+        <td>${item.checkout}</td>
+        <td>${item.delivery}</td>
+      </tr>`
+    )
+    .join("");
 
-    printWindow.document.write(`
-      <html>
-        <head>
-          <title>Branch Report - ${reportType.toUpperCase()}</title>
-          <style>
-            body { font-family: Arial, sans-serif; padding: 20px; }
-            h1, h2, p { text-align: center; margin: 4px 0; }
-            table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-            th, td { border: 1px solid #ddd; padding: 8px; text-align: center; }
-            th { background: #f3f3f3; }
-            tr:nth-child(even) { background: #fafafa; }
-          </style>
-        </head>
-        <body>
+  // Totals row
+  const totalsRow = `
+    <tr style="font-weight:bold; background:#f3f3f3;">
+      <td>Total</td>
+      <td>${totals.order_count}</td>
+      <td>${totals.checkout}</td>
+      <td>${totals.delivery}</td>
+      <td>${totals.total_amount}</td>
+      <td>${totals.cash}</td>
+      <td>${totals.bank}</td>
+      <td>${totals.expense}</td>
+      <td>${totals.balance}</td>
+    </tr>
+  `;
+
+  // Full HTML
+  const html = `
+    <html>
+      <head>
+        <title>Branch Report - ${reportType.toUpperCase()}</title>
+        <style>
+          body { font-family: Arial, sans-serif; padding: 20px; color: #222; }
+          .header { text-align: center; margin-bottom: 20px; }
+          .header h1 { margin: 0; font-size: 22px; }
+          .header .meta { margin-top: 5px; font-size: 14px; }
+          table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+          th, td { border: 1px solid #ccc; padding: 8px; text-align: center; }
+          th { background: #f3f3f3; text-transform: uppercase; }
+          tfoot tr { font-weight: bold; background: #f9f9f9; }
+        </style>
+      </head>
+      <body>
+        <div class="header">
           <h1>Branch Report</h1>
-          <h2>Type: ${reportType.toUpperCase()}</h2>
-          <p><strong>From:</strong> ${startDate} &nbsp;&nbsp; <strong>To:</strong> ${endDate}</p>
-          ${printContent}
-        </body>
-      </html>
-    `);
+          <div class="meta">
+            <strong>Branch:</strong> ${branchList[branchId]?.name || "N/A"}<br/>
+            <strong>Date Range:</strong> ${startDate} to ${endDate}<br/>
+            <strong>Report Type:</strong> ${reportType.charAt(0).toUpperCase() + reportType.slice(1)}
+          </div>
+        </div>
 
-    printWindow.document.close();
-    printWindow.print();
-  };
+        <table>
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Orders</th>
+              <th>Checkout</th>
+              <th>Delivery</th>
+              <th>Total</th>
+              <th>Cash</th>
+              <th>Bank</th>
+              <th>Expense</th>
+              <th>Balance</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${rows}
+          </tbody>
+          <tfoot>
+            ${totalsRow}
+          </tfoot>
+        </table>
+      </body>
+    </html>
+  `;
+
+  // Open in new window and print
+  const iframe = document.createElement("iframe");
+  iframe.style.position = "fixed";
+  iframe.style.width = "0";
+  iframe.style.height = "0";
+  iframe.style.border = "none";
+  iframe.style.visibility = "hidden";
+  document.body.appendChild(iframe);
+
+  const doc = iframe.contentDocument || iframe.contentWindow?.document;
+  if (!doc) return;
+
+  doc.open();
+  doc.write(html);
+  doc.close();
+
+  iframe.contentWindow?.focus();
+  iframe.contentWindow?.print();
+
+  setTimeout(() => document.body.removeChild(iframe), 1000);
+};
+
 
   return (
-    <div className="container mx-auto p-6 print:p-2">
-      <h1 className="text-2xl font-bold mb-4 text-gray-900 print:text-black">
+    <div className="container mx-auto p-4">
+      <h1 className="text-2xl font-bold mb-4 text-gray-900 dark:text-white">
         Branch Reports
       </h1>
 
       {/* Filters */}
-      <div className="mb-4 flex flex-col md:flex-row gap-4 items-start print:hidden">
-        <div>
-          <label className="mr-2 font-medium">Report Type:</label>
-          <select
-            value={reportType}
-            onChange={(e) => setReportType(e.target.value as any)}
-            className="px-3 py-2 border rounded-lg"
-          >
-            <option value="daily">Daily</option>
-            <option value="weekly">Weekly</option>
-            <option value="monthly">Monthly</option>
-          </select>
-        </div>
+      <div className="mb-6 flex flex-col md:flex-row gap-3 items-end print:hidden">
+  {/* Report Type */}
+  <div className="flex flex-col">
+    <label className="mb-1 font-semibold text-gray-700 dark:text-gray-200">
+      Report Type
+    </label>
+    <select
+      value={reportType}
+      onChange={(e) => setReportType(e.target.value as any)}
+      className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+    >
+      <option value="daily">Daily</option>
+      <option value="weekly">Weekly</option>
+      <option value="monthly">Monthly</option>
+    </select>
+  </div>
 
-        <div>
-          <label className="mr-2 font-medium">Start Date:</label>
-          <input
-            type="date"
-            value={startDate}
-            onChange={(e) => setStartDate(e.target.value)}
-            className="px-3 py-2 border rounded-lg"
-          />
-        </div>
+  {/* Start Date */}
+  <div className="flex flex-col">
+    <label className="mb-1 font-semibold text-gray-700 dark:text-gray-200">
+      Start Date
+    </label>
+    <input
+      type="date"
+      value={startDate}
+      onChange={(e) => setStartDate(e.target.value)}
+      className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+    />
+  </div>
 
-        <div>
-          <label className="mr-2 font-medium">End Date:</label>
-          <input
-            type="date"
-            value={endDate}
-            onChange={(e) => setEndDate(e.target.value)}
-            className="px-3 py-2 border rounded-lg"
-          />
-        </div>
+  {/* End Date */}
+  <div className="flex flex-col">
+    <label className="mb-1 font-semibold text-gray-700 dark:text-gray-200">
+      End Date
+    </label>
+    <input
+      type="date"
+      value={endDate}
+      onChange={(e) => setEndDate(e.target.value)}
+      className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+    />
+  </div>
 
-        <div className="flex gap-2">
-          <button
-            onClick={fetchReports}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-          >
-            Fetch Report
-          </button>
+  {/* Buttons */}
+  <div className="flex gap-2">
+    <button
+      onClick={fetchReports}
+      className="px-4 py-2 text-sm font-medium text-blue-800 border border-blue-400 rounded-lg hover:bg-blue-100 hover:text-blue-800 transition-all duration-200 shadow-sm flex items-center justify-center"
+    >
+      Fetch Report
+    </button>
 
-          <button
-            onClick={handlePrint}
-            className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
-          >
-            🖨️ Print Report
-          </button>
-        </div>
-      </div>
+    <button
+      onClick={handlePrint}
+      className="px-4 py-2 text-sm font-medium text-green-800 border border-green-400 rounded-lg hover:bg-green-100 hover:text-green-800 transition-all duration-200 shadow-sm flex items-center justify-center"
+    >
+      Print Report
+    </button>
+  </div>
+</div>
+
 
       {loading ? (
-        <div className="text-center py-10">Loading reports...</div>
+        <div className="text-center py-10 text-gray-500 dark:text-gray-400">
+          Loading reports...
+        </div>
       ) : (
-        <div ref={printRef} className="overflow-x-auto">
-          <table className="min-w-full border border-gray-300 rounded-lg overflow-hidden print:text-black">
-            <thead className="bg-gray-200 print:bg-gray-100">
+        <div
+          ref={printRef}
+          className="overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm"
+        >
+          <table className="min-w-full text-sm text-gray-700 dark:text-gray-200">
+            <thead className="bg-gray-100 dark:bg-gray-800">
               <tr>
-                <th className="px-4 py-2 border">Date</th>
-                <th className="px-4 py-2 border">Orders</th>
-                <th className="px-4 py-2 border">Checkout</th>
-                <th className="px-4 py-2 border">Delivery</th>
-                <th className="px-4 py-2 border">Total</th>
-                <th className="px-4 py-2 border">Cash</th>
-                <th className="px-4 py-2 border">Bank</th>
-                <th className="px-4 py-2 border">Expense</th>
-                <th className="px-4 py-2 border">Balance</th>
+                <th className="px-3 py-2 border-b border-gray-200 dark:border-gray-700 text-left">
+                  Date
+                </th>
+                <th className="px-3 py-2 border-b border-gray-200 dark:border-gray-700 text-left">
+                  Orders
+                </th>
+                <th className="px-3 py-2 border-b border-gray-200 dark:border-gray-700 text-left">
+                  Checkout
+                </th>
+                <th className="px-3 py-2 border-b border-gray-200 dark:border-gray-700 text-left">
+                  Delivery
+                </th>
+                <th className="px-3 py-2 border-b border-gray-200 dark:border-gray-700 text-left">
+                  Total
+                </th>
+                <th className="px-3 py-2 border-b border-gray-200 dark:border-gray-700 text-left">
+                  Cash
+                </th>
+                <th className="px-3 py-2 border-b border-gray-200 dark:border-gray-700 text-left">
+                  Bank
+                </th>
+                <th className="px-3 py-2 border-b border-gray-200 dark:border-gray-700 text-left">
+                  Expense
+                </th>
+                <th className="px-3 py-2 border-b border-gray-200 dark:border-gray-700 text-left">
+                  Balance
+                </th>
               </tr>
             </thead>
             <tbody>
               {data.length === 0 ? (
                 <tr>
-                  <td colSpan={9} className="text-center py-4 text-gray-500">
+                  <td
+                    colSpan={9}
+                    className="text-center py-4 text-gray-500 dark:text-gray-400"
+                  >
                     No reports found.
                   </td>
                 </tr>
               ) : (
                 data.map((item, idx) => (
-                  <tr key={idx} className="hover:bg-gray-100">
-                    <td className="px-4 py-2 border">
+                  <tr
+                    key={idx}
+                    className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                  >
+                    <td className="px-3 py-2 border-b">
                       {item.date.slice(0, 10)}
                     </td>
-                    <td className="px-4 py-2 border">{item.order_count}</td>
-                    <td className="px-4 py-2 border">{item.checkout}</td>
-                    <td className="px-4 py-2 border">{item.delivery}</td>
-                    <td className="px-4 py-2 border">{item.total_amount}</td>
-                    <td className="px-4 py-2 border">{item.cash}</td>
-                    <td className="px-4 py-2 border">{item.bank}</td>
-                    <td className="px-4 py-2 border">{item.expense}</td>
-                    <td className="px-4 py-2 border">{item.balance}</td>
+                    <td className="px-3 py-2 border-b">{item.order_count}</td>
+                    <td className="px-3 py-2 border-b">{item.checkout}</td>
+                    <td className="px-3 py-2 border-b">{item.delivery}</td>
+                    <td className="px-3 py-2 border-b">{item.total_amount}</td>
+                    <td className="px-3 py-2 border-b">{item.cash}</td>
+                    <td className="px-3 py-2 border-b">{item.bank}</td>
+                    <td className="px-3 py-2 border-b">{item.expense}</td>
+                    <td className="px-3 py-2 border-b">{item.balance}</td>
                   </tr>
                 ))
               )}
 
               {data.length > 0 && (
-                <tr className="font-semibold bg-gray-100">
-                  <td className="px-4 py-2 border">Total</td>
-                  <td className="px-4 py-2 border">{totals.order_count}</td>
-                  <td className="px-4 py-2 border">{totals.checkout}</td>
-                  <td className="px-4 py-2 border">{totals.delivery}</td>
-                  <td className="px-4 py-2 border">{totals.total_amount}</td>
-                  <td className="px-4 py-2 border">{totals.cash}</td>
-                  <td className="px-4 py-2 border">{totals.bank}</td>
-                  <td className="px-4 py-2 border">{totals.expense}</td>
-                  <td className="px-4 py-2 border">{totals.balance}</td>
+                <tr className="font-semibold bg-gray-200 dark:bg-gray-700">
+                  <td className="px-3 py-2 border-b">Total</td>
+                  <td className="px-3 py-2 border-b">{totals.order_count}</td>
+                  <td className="px-3 py-2 border-b">{totals.checkout}</td>
+                  <td className="px-3 py-2 border-b">{totals.delivery}</td>
+                  <td className="px-3 py-2 border-b">{totals.total_amount}</td>
+                  <td className="px-3 py-2 border-b">{totals.cash}</td>
+                  <td className="px-3 py-2 border-b">{totals.bank}</td>
+                  <td className="px-3 py-2 border-b">{totals.expense}</td>
+                  <td className="px-3 py-2 border-b">{totals.balance}</td>
                 </tr>
               )}
             </tbody>

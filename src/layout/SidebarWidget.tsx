@@ -1,15 +1,25 @@
 export default function SidebarWidget() {
   return (
-    <div className="mx-auto mb-10 w-full max-w-60 rounded-2xl bg-white shadow-md px-6 py-6 text-center dark:bg-gray-800">
-      <h3 className="mb-2 text-xl font-bold text-gray-900 dark:text-white">
-        Developed By
-      </h3>
-      <p className="mb-4 text-gray-500 text-sm dark:text-gray-400">
-        Projukti Sheba
-      </p>
-      <div className="inline-flex items-center justify-center rounded-lg bg-blue-500 px-4 py-2 text-white text-sm font-medium hover:bg-blue-600 cursor-pointer">
-        Learn More
+    <div className="flex w-full items-center justify-between rounded-lg border border-gray-200 bg-white p-3 mb-3 shadow-sm dark:border-gray-700 dark:bg-gray-800">
+      {/* Text Content */}
+      <div>
+        <p className="text-xs text-gray-500 dark:text-gray-400">
+          Developed by
+        </p>
+        <h4 className="text-sm font-semibold text-gray-900 dark:text-white">
+          Projukti Sheba
+        </h4>
       </div>
+      
+      {/* Button */}
+      <a
+        href="https://projuktisheba.com/"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="ml-4 flex-shrink-0 rounded-md bg-blue-600 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800"
+      >
+        Learn More
+      </a>
     </div>
   );
 }

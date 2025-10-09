@@ -1,12 +1,12 @@
 import { useState } from "react";
 import { useModal } from "../../../hooks/useModal";
-import axiosInstance from "../../../hooks/AxiosIntence/AxiosIntence";
+import axiosInstance from "../../../hooks/AxiosInstance/AxiosInstance";
 import { Modal } from "../../ui/modal";
 import Label from "../../form/Label";
 import Input from "../../form/input/InputField";
 import Button from "../../ui/button/Button";
 
-interface AccessControllProps {
+interface AccessControlProps {
   employee: {
     id: string;
     email?: string;
@@ -15,7 +15,7 @@ interface AccessControllProps {
   };
 }
 
-export default function AccessControll({ employee }: AccessControllProps) {
+export default function AccessControl({ employee }: AccessControlProps) {
   const { isOpen, openModal, closeModal } = useModal();
   const [formData, setFormData] = useState({
     email: employee?.email,
@@ -49,7 +49,7 @@ export default function AccessControll({ employee }: AccessControllProps) {
       );
 
       if (response.data.status === "success") {
-        alert("Employee Access Controll updated successfully!");
+        alert("Employee Access Control updated successfully!");
         closeModal();
       } else {
         alert("Failed to update employee: " + response.data.message);
@@ -68,7 +68,7 @@ export default function AccessControll({ employee }: AccessControllProps) {
         <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
           <div>
             <h4 className="text-lg font-semibold text-gray-800 dark:text-white/90 lg:mb-6">
-              Access Controll
+              Access Control
             </h4>
 
             <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 lg:gap-7 2xl:gap-x-32">
@@ -112,7 +112,7 @@ export default function AccessControll({ employee }: AccessControllProps) {
         <div className="relative w-full p-4 overflow-y-auto bg-white no-scrollbar rounded-3xl dark:bg-gray-900 lg:p-11">
           <div className="px-2 pr-14">
             <h4 className="mb-2 text-2xl font-semibold text-gray-800 dark:text-white/90">
-              Access Controll
+              Access Control
             </h4>
             <p className="mb-6 text-sm text-gray-500 dark:text-gray-400 lg:mb-7">
               Update employee access.

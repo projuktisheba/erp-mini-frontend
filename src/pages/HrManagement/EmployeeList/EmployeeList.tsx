@@ -11,7 +11,7 @@ import { Modal } from "../../../components/ui/modal";
 import Input from "../../../components/form/input/InputField";
 import Label from "../../../components/form/Label";
 import { useModal } from "../../../hooks/useModal";
-import axiosInstance from "../../../hooks/AxiosIntence/AxiosIntence";
+import axiosInstance from "../../../hooks/AxiosInstance/AxiosInstance";
 import { useNavigate } from "react-router";
 import { Search } from "lucide-react";
 import Swal from "sweetalert2";
@@ -53,6 +53,7 @@ export default function EmployeeList() {
     name: "",
     work_date: new Date().toISOString().split("T")[0],
     overtime: "",
+    advancePayment: "",
   });
 
   const [searchQuery, setSearchQuery] = useState("");
@@ -76,7 +77,7 @@ export default function EmployeeList() {
 
   useEffect(() => {
     fetchEmployees();
-  }, []);
+  }, [branchId]);
 
   useEffect(() => {
     const query = searchQuery.toLowerCase();
@@ -94,6 +95,7 @@ export default function EmployeeList() {
       name: employee.name,
       work_date: new Date().toISOString().split("T")[0],
       overtime: "",
+      advancePayment: "",
     });
     openModal();
   };
@@ -106,6 +108,9 @@ export default function EmployeeList() {
         employee_id: selectedEmployee.id,
         work_date: formData.work_date,
         overtime_hours: formData.overtime ? parseFloat(formData.overtime) : 0,
+        advance_payment: formData.advancePayment
+          ? parseFloat(formData.advancePayment)
+          : 0,
       };
       const response = await axiosInstance.post(
         "/hr/attendance/present/single",
@@ -154,10 +159,10 @@ export default function EmployeeList() {
       {/* Header */}
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
-          Employee Management
+          Worker Management
         </h1>
         <p className="text-gray-600 dark:text-gray-400">
-          Manage employees and record attendance
+          Manage workers and record attendance
         </p>
       </div>
 
@@ -192,7 +197,10 @@ export default function EmployeeList() {
             <TableBody className="divide-y divide-gray-200 dark:divide-gray-600">
               {filteredData.length === 0 ? (
                 <TableRow>
-                  <TableCell className="text-center py-8 text-gray-500 dark:text-gray-400">
+                  <TableCell
+                    colSpan={7}
+                    className="text-center py-8 text-gray-500 dark:text-gray-400"
+                  >
                     {searchQuery
                       ? "No employees match your search."
                       : "No employees found."}
@@ -277,6 +285,20 @@ export default function EmployeeList() {
                 value={formData.overtime}
                 onChange={(e) =>
                   setFormData((prev) => ({ ...prev, overtime: e.target.value }))
+                }
+              />
+            </div>
+            <div>
+              <Label>Advance Payment</Label>
+              <Input
+                type="number"
+                placeholder="Enter advance payment amount"
+                value={formData.advancePayment}
+                onChange={(e) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    advancePayment: e.target.value,
+                  }))
                 }
               />
             </div>

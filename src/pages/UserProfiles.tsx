@@ -4,8 +4,8 @@ import PageMeta from "../components/common/PageMeta";
 import UserMetaCard from "../components/UserProfile/UserMetaCard";
 import UserInfoCard from "../components/UserProfile/UserInfoCard";
 import UserAddressCard from "../components/UserProfile/UserAddressCard";
-import AccessControll from "../components/UserProfile/AccessControll/AccessControll";
-import axiosInstance from "../hooks/AxiosIntence/AxiosIntence";
+import AccessControl from "../components/UserProfile/AccessControl/AccessControl";
+import axiosInstance from "../hooks/AxiosInstance/AxiosInstance";
 import { AppContext } from "../context/AppContext";
 
 // type Tab = "profile" | "calendar" | "ledger";
@@ -30,7 +30,6 @@ export default function UserProfiles() {
         const localUserData = localStorage.getItem("userData");
 
         const parsedUserData = localUserData ? JSON.parse(localUserData) : null;
-
         const res = await axiosInstance.get(`/hr/employee?id=${id}`, {
           headers: {
             "X-Branch-ID": branchId,
@@ -63,16 +62,6 @@ export default function UserProfiles() {
         title={`Profile | ${employee.first_name} ${employee.last_name}`}
         description="User profile page"
       />
-      {/* <PageBreadcrumb
-        pageTitle={
-          activeTab === "profile"
-            ? "Profile"
-            : activeTab === "calendar"
-            ? "Calendar"
-            : "Ledger"
-        }
-      /> */}
-
       <div className="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03] lg:p-6">
         {/* Tabs (Title as first button) */}
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-5 gap-4"></div>
@@ -81,12 +70,12 @@ export default function UserProfiles() {
         <div className="space-y-6">
           <UserMetaCard
             id={employee.id}
-            image={`https://api.erp.pssoft.xyz/api/v1${employee.avatar_link}`}
+            image={employee.avatar_link == "" ? "image/user/user.png" : `https://api.erp.pssoft.xyz/api/v1${employee.avatar_link}` }
             name={`${employee.name}`}
           />
           <UserInfoCard employee={employee} />
           <UserAddressCard employee={employee} />
-          <AccessControll employee={employee} />
+          <AccessControl employee={employee} />
         </div>
       </div>
     </>

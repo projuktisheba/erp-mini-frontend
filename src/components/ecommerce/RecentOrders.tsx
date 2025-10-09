@@ -6,9 +6,10 @@ import {
   TableRow,
 } from "../ui/table";
 import Badge from "../ui/badge/Badge";
-import { useEffect, useState } from "react";
-import axiosInstance from "../../hooks/AxiosIntence/AxiosIntence";
+import { useContext, useEffect, useState } from "react";
+import axiosInstance from "../../hooks/AxiosInstance/AxiosInstance";
 import { Link } from "react-router";
+import { AppContext } from "../../context/AppContext";
 
 interface Order {
   id: number;
@@ -20,9 +21,9 @@ interface Order {
 }
 
 export default function RecentOrders() {
-  const userDataStr = localStorage.getItem("userData");
-  const userData = userDataStr ? JSON.parse(userDataStr) : null;
-  const branch_id = userData.branch_id;
+  const context = useContext(AppContext);
+  if (!context) throw new Error("AppContext not provided");
+  const { branchId } = context;
 
   const [recentOrders, setRecentOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(false);
@@ -34,10 +35,11 @@ export default function RecentOrders() {
         "/orders/list/paginated?pageNo=1&sort_by_date=desc",
         {
           headers: {
-            "X-Branch-ID": branch_id,
+            "X-Branch-ID": branchId,
           },
         }
       );
+      
       setRecentOrders(res.data.orders || []);
     } catch (error) {
       console.error("Failed to fetch recent orders:", error);
@@ -49,7 +51,7 @@ export default function RecentOrders() {
 
   useEffect(() => {
     fetchRecentOrders();
-  }, [branch_id]);
+  }, [branchId]);
 
   return (
     <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white px-4 pb-3 pt-4 dark:border-gray-800 dark:bg-white/[0.03] sm:px-6">
@@ -111,7 +113,10 @@ export default function RecentOrders() {
             <TableBody className="divide-y divide-gray-100 dark:divide-gray-800">
               {recentOrders.length === 0 ? (
                 <TableRow>
-                  <TableCell className="text-center py-6 text-gray-500 dark:text-gray-400">
+                  <TableCell
+                    colSpan={5}
+                    className="text-center py-6 text-gray-500 dark:text-gray-400"
+                  >
                     No recent orders found.
                   </TableCell>
                 </TableRow>
@@ -134,14 +139,18 @@ export default function RecentOrders() {
                       <Badge
                         size="sm"
                         color={
-                          order.status === "Delivered"
-                            ? "success"
-                            : order.status === "Pending"
-                            ? "warning"
-                            : "error"
+                          (
+                            order.status === "pending"
+                              ? "warning"
+                              : order.status === "checkout"
+                              ? "info"
+                              : order.status === "delivery"
+                              ? "success"
+                              : "error" // cancelled
+                          ) as any
                         }
                       >
-                        {order.status}
+                        {order?.status}
                       </Badge>
                     </TableCell>
                   </TableRow>

@@ -7,7 +7,7 @@ import {
   TableRow,
 } from "../../components/ui/table";
 import Button from "../../components/ui/button/Button";
-import axiosInstance from "../../hooks/AxiosIntence/AxiosIntence";
+import axiosInstance from "../../hooks/AxiosInstance/AxiosInstance";
 import { useNavigate } from "react-router";
 import { Search } from "lucide-react";
 import { AppContext } from "../../context/AppContext";
@@ -64,7 +64,7 @@ export default function CustomerList() {
 
   useEffect(() => {
     fetchCustomers();
-  }, []);
+  }, [branchId]);
 
   // Filter customers by name or mobile
   const filteredData = tableData.filter(
@@ -126,18 +126,9 @@ export default function CustomerList() {
                   Mobile
                 </TableCell>
                 <TableCell className="font-semibold text-gray-900 dark:text-white">
-                  Address
-                </TableCell>
-                <TableCell className="font-semibold text-gray-900 dark:text-white">
-                  Tax ID
-                </TableCell>
-                <TableCell className="font-semibold text-gray-900 dark:text-white">
                   Due Amount
                 </TableCell>
-                {/* <TableCell className="font-semibold text-gray-900 dark:text-white">
-                  Status
-                </TableCell> */}
-                <TableCell className="font-semibold text-gray-900 dark:text-white">
+                <TableCell>
                   Measurements
                 </TableCell>
                 <TableCell className="font-semibold text-gray-900 dark:text-white">
@@ -149,7 +140,7 @@ export default function CustomerList() {
             <TableBody className="divide-y divide-gray-200 dark:divide-gray-600">
               {filteredData.length === 0 ? (
                 <TableRow>
-                  <TableCell className="text-center py-8">
+                  <TableCell colSpan={6} className="text-center py-8">
                     <div className="text-gray-500 dark:text-gray-400">
                       {searchTerm
                         ? "No customers match your search."
@@ -165,21 +156,8 @@ export default function CustomerList() {
                   >
                     <TableCell className="px-5 py-4">{customer.id}</TableCell>
                     <TableCell className="px-5 py-4">{customer.name}</TableCell>
-                    <TableCell className="px-5 py-4">
-                      {customer.mobile}
-                    </TableCell>
-                    <TableCell className="px-5 py-4">
-                      {customer.address}
-                    </TableCell>
-                    <TableCell className="px-5 py-4">
-                      {customer.tax_id || "-"}
-                    </TableCell>
-                    <TableCell className="px-5 py-4">
-                      {customer.due_amount ?? 0}
-                    </TableCell>
-                    {/* <TableCell className="px-5 py-4">
-                      {customer.status || "N/A"}
-                    </TableCell> */}
+                    <TableCell className="px-5 py-4">{customer.mobile}</TableCell>
+                    <TableCell className="px-5 py-4">{customer.due_amount ?? 0}</TableCell>
                     <TableCell className="px-5 py-4 text-sm text-gray-700 dark:text-gray-300">
                       {customer.measurement ? (
                         <div className="space-y-1">

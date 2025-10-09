@@ -1,5 +1,5 @@
 import { useContext, useEffect, useState } from "react";
-import axiosInstance from "../../hooks/AxiosIntence/AxiosIntence";
+import axiosInstance from "../../hooks/AxiosInstance/AxiosInstance";
 import {
   Table,
   TableBody,
@@ -16,13 +16,17 @@ import {
   User,
   CircleX,
   ArrowRightFromLine,
+  Loader2,
 } from "lucide-react";
 import { AppContext } from "../../context/AppContext";
+import { formatDate } from "../../utils/dateFormatter";
+import Badge from "../../components/ui/badge/Badge";
 
 interface OrderItem {
   id: number;
   order_id: number;
   product_id: number;
+  product_name: string;
   quantity: number;
   total_price: number;
 }
@@ -31,7 +35,11 @@ interface Order {
   id: number;
   memo_no: string;
   order_date: string;
+  delivery_date: string;
+  exit_date: string;
   salesperson_id: number;
+  salesperson_name: string;
+  salesperson_mobile: string;
   customer_id: number;
   customer_name: string;
   customer_mobile: string;
@@ -59,6 +67,13 @@ const statusFlow: OrderStatus[] = [
   "delivery",
   "cancelled",
 ];
+const getNoOrdersMessage = (status: string) => {
+  if (status === "all") {
+    return `No orders found`;
+  }
+  const statusCapitalized = status.charAt(0).toUpperCase() + status.slice(1);
+  return `No ${statusCapitalized} orders found.`;
+};
 
 type ConfirmationAction =
   | { type: "cancel"; order: Order }
@@ -79,6 +94,14 @@ export default function Orders() {
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const [alert, setAlert] = useState<{
+    variant: "success" | "error" | "warning" | "info";
+    title: string;
+    message: string;
+  } | null>(null);
+
   const [confirmationAction, setConfirmationAction] =
     useState<ConfirmationAction>(null);
   const [deliveryFormData, setDeliveryFormData] = useState({
@@ -98,7 +121,7 @@ export default function Orders() {
 
       setOrders(res.data.orders);
     } catch (err) {
-      console.log(err);
+      console.error(err);
     } finally {
       setLoading(false);
     }
@@ -116,7 +139,19 @@ export default function Orders() {
   useEffect(() => {
     fetchOrders();
     fetchAccounts();
-  }, []);
+  }, [branchId]);
+
+  // automatically hide alert after 2 second
+  useEffect(() => {
+    if (alert) {
+      const timeout = setTimeout(() => {
+        setAlert(null); // Hide alert
+        fetchOrders(); // Reload orders after alert disappears
+      }, 4000); // 4 seconds
+
+      return () => clearTimeout(timeout);
+    }
+  }, [alert]);
 
   const filteredOrders = orders.filter((order) => {
     const matchesSearch =
@@ -211,7 +246,7 @@ export default function Orders() {
     if (!confirmationAction) return;
 
     const { type, order } = confirmationAction;
-
+    setIsSubmitting(true);
     if (type === "cancel") {
       try {
         const { data } = await axiosInstance.delete(
@@ -222,12 +257,22 @@ export default function Orders() {
             },
           }
         );
-        fetchOrders();
+        // fetchOrders();
         closeModal();
-        alert(data.message || "Order cancelled successfully");
+        // After
+        setAlert({
+          variant: "success",
+          title: "Success",
+          message: data.message || "Order cancelled successfully",
+        });
       } catch (err) {
         console.error(err);
-        alert("Failed to cancel order");
+        // After
+        setAlert({
+          variant: "error",
+          title: "Error",
+          message: "failed to cancel order",
+        });
       }
     } else if (type === "nextStatus") {
       const { nextStatus } = confirmationAction;
@@ -238,7 +283,7 @@ export default function Orders() {
           !deliveryFormData.payment_account_id ||
           !deliveryFormData.exit_date
         ) {
-          alert("Please fill all delivery information");
+          // alert("Please fill all delivery information");
           return;
         }
 
@@ -257,34 +302,47 @@ export default function Orders() {
               },
             }
           );
-          fetchOrders();
+          // fetchOrders();
           closeModal();
-          alert(data.message || "Order marked as delivered");
+          // After
+          setAlert({
+            variant: "success",
+            title: "Success",
+            message: data.message || "Order marked as delivered",
+          });
         } catch (err) {
           console.error(err);
-          alert("Failed to deliver order");
+          // alert("Failed to deliver order");
         }
       } else {
         try {
+          console.log("printing branch id: ", branchId);
           const { data } = await axiosInstance.patch(
-            `/orders/${nextStatus}?order_id=${order.id}`,
+            `/orders/checkout?order_id=${order.id}&branch_id=${branchId}`,
             {
               headers: {
                 "X-Branch-ID": branchId,
               },
             }
           );
-          fetchOrders();
+          // fetchOrders();
           closeModal();
-          alert(data.message || `Order moved to ${nextStatus}`);
+          // After
+          setAlert({
+            variant: "success",
+            title: "Success",
+            message: data.message || `Order moved to ${nextStatus}`,
+          });
         } catch (err) {
+          console.log(err);
           console.error(err);
-          alert("Failed to update order status");
+          // alert("Failed to update order status");
         }
       }
     }
+    setIsSubmitting(false);
   };
-
+  
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-96">
@@ -300,6 +358,23 @@ export default function Orders() {
 
   return (
     <div className="container mx-auto py-6">
+      {alert && (
+        <div
+          className={`mb-4 p-2 rounded-lg ${
+            alert.variant === "success"
+              ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300"
+              : alert.variant === "error"
+              ? "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300"
+              : alert.variant === "warning"
+              ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300"
+              : "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300"
+          }`}
+        >
+          <strong className="block font-medium">{alert.title}</strong>
+          <span>{alert.message}</span>
+        </div>
+      )}
+
       {/* Header */}
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
@@ -331,7 +406,7 @@ export default function Orders() {
               onChange={(e) => setStatusFilter(e.target.value)}
               className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
             >
-              <option value="all">All Status</option>
+              <option value="all">All</option>
               <option value="pending">Pending</option>
               <option value="checkout">Checkout</option>
               <option value="delivery">Delivery</option>
@@ -349,7 +424,7 @@ export default function Orders() {
               <TableRow>
                 <TableCell>Order Info</TableCell>
                 <TableCell>Purchase Date</TableCell>
-                <TableCell>Customer ID</TableCell>
+                <TableCell>Customer</TableCell>
                 <TableCell>Transactions</TableCell>
                 <TableCell>Status</TableCell>
                 <TableCell>Actions</TableCell>
@@ -358,11 +433,9 @@ export default function Orders() {
             <TableBody className="divide-y divide-gray-200 dark:divide-gray-600">
               {filteredOrders.length === 0 ? (
                 <TableRow>
-                  <TableCell className="text-center py-8">
+                  <TableCell colSpan={6} className="text-center py-8">
                     <div className="text-gray-500 dark:text-gray-400">
-                      {searchTerm || statusFilter !== "all"
-                        ? "No orders match your filters."
-                        : "No orders found."}
+                      {getNoOrdersMessage(statusFilter) || "No order found"}
                     </div>
                   </TableCell>
                 </TableRow>
@@ -375,10 +448,7 @@ export default function Orders() {
                     <TableCell>
                       <div className="p-2">
                         <div className="font-medium text-gray-900 dark:text-white">
-                          #{order.memo_no}
-                        </div>
-                        <div className="text-sm text-gray-500 dark:text-gray-400">
-                          Salesman: {order.salesperson_id}
+                          {order.memo_no}
                         </div>
                       </div>
                     </TableCell>
@@ -424,18 +494,24 @@ export default function Orders() {
                     </TableCell>
 
                     <TableCell>
-                      <span
-                        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(
-                          order.status
-                        )}`}
+                      <Badge
+                        size="sm"
+                        color={
+                          (order.status === "pending"
+                            ? "warning"
+                            : order.status === "checkout"
+                            ? "info"
+                            : order.status === "delivery"
+                            ? "success"
+                            : "error") as any // cancelled
+                        }
                       >
-                        {order.status.charAt(0).toUpperCase() +
-                          order.status.slice(1)}
-                      </span>
+                        {order?.status}
+                      </Badge>
                     </TableCell>
 
                     <TableCell>
-                      <div className="flex items-center gap-2">
+                      <div className="flex p-2 items-center gap-2">
                         <Button
                           onClick={() => openModal(order)}
                           size="sm"
@@ -579,32 +655,83 @@ export default function Orders() {
               ) : (
                 // Order details
                 <div>
-                  <div className="grid grid-cols-2 gap-4 text-sm">
-                    <div>
-                      <strong>Customer ID:</strong> {selectedOrder?.customer_id}
-                    </div>
-                    <div>
-                      <strong>Salesman ID:</strong>{" "}
-                      {selectedOrder?.salesperson_id}
-                    </div>
-                    <div>
-                      <strong>Order Date:</strong>{" "}
-                      {selectedOrder &&
-                        new Date(selectedOrder.order_date).toLocaleDateString()}
-                    </div>
-                    <div>
-                      <strong>Status:</strong>{" "}
-                      <span
-                        className={`inline-block px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(
-                          selectedOrder?.status || ""
-                        )}`}
-                      >
-                        {selectedOrder?.status}
-                      </span>
-                    </div>
+                  {/* Customer & Salesperson Table */}
+                  <div className="overflow-x-auto mb-4">
+                    <table className="min-w-full text-sm border border-gray-200 dark:border-gray-700 rounded-lg">
+                      <thead className="bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300">
+                        <tr>
+                          <th className="px-4 py-2 text-left">Customer Info</th>
+                          <th className="px-4 py-2 text-left">
+                            Salesperson Info
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr className="border-t dark:border-gray-700">
+                          <td className="px-4 py-2">
+                            <strong>Name:</strong>{" "}
+                            {selectedOrder?.customer_name || "-"} <br />
+                            <strong>Mobile:</strong>{" "}
+                            {selectedOrder?.customer_mobile || "-"}
+                          </td>
+                          <td className="px-4 py-2">
+                            <strong>Name:</strong>{" "}
+                            {selectedOrder?.salesperson_name || "-"} <br />
+                            <strong>ID:</strong> #
+                            {selectedOrder?.salesperson_id || "-"} <br />
+                            <strong>Mobile:</strong>{" "}
+                            {selectedOrder?.salesperson_mobile || "-"}
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
                   </div>
-                  <div className="mt-4">
-                    <strong>Notes:</strong> {selectedOrder?.notes || "—"}
+
+                  {/* Order Dates & Status Table */}
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full text-sm border border-gray-200 dark:border-gray-700 rounded-lg">
+                      <thead className="bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300">
+                        <tr>
+                          <th className="px-4 py-2 text-left">Order ID</th>
+                          <th className="px-4 py-2 text-left"></th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr className="border-t dark:border-gray-700">
+                          <td className="px-4 py-2">
+                            <strong>Memo: {selectedOrder?.memo_no}</strong>{" "}
+                            <br />
+                            <strong>Status: </strong>{" "}
+                            <span
+                              className={`inline-block px-2 py-1 text-xs rounded-sm ${getStatusColor(
+                                selectedOrder?.status || ""
+                              )}`}
+                            >
+                              {selectedOrder?.status || "-"}
+                            </span>{" "}
+                            <br />
+                            <strong>Notes: </strong>{" "}
+                            {selectedOrder?.notes || "-"}
+                          </td>
+                          <td className="px-4 py-2">
+                            <strong>Order Date:</strong>{" "}
+                            {selectedOrder?.order_date
+                              ? formatDate(selectedOrder.order_date)
+                              : "-"}{" "}
+                            <br />
+                            <strong>Delivery Date:</strong>{" "}
+                            {selectedOrder?.delivery_date
+                              ? formatDate(selectedOrder.delivery_date)
+                              : "-"}{" "}
+                            <br />
+                            <strong>Exit Date:</strong>{" "}
+                            {selectedOrder?.exit_date
+                              ? formatDate(selectedOrder.exit_date)
+                              : "-"}
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
                   </div>
                   <div className="mt-4">
                     <strong>Products:</strong>
@@ -612,7 +739,9 @@ export default function Orders() {
                       <table className="min-w-full text-sm">
                         <thead className="bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300">
                           <tr>
-                            <th className="px-4 py-2 text-left">Product ID</th>
+                            <th className="px-4 py-2 text-left">
+                              Product Name
+                            </th>
                             <th className="px-4 py-2 text-left">Quantity</th>
                             <th className="px-4 py-2 text-left">Total</th>
                           </tr>
@@ -623,7 +752,7 @@ export default function Orders() {
                               key={item.id}
                               className="border-t dark:border-gray-700"
                             >
-                              <td className="px-4 py-2">{item.product_id}</td>
+                              <td className="px-4 py-2">{item.product_name}</td>
                               <td className="px-4 py-2">{item.quantity}</td>
                               <td className="px-4 py-2 font-medium">
                                 {formatCurrency(item.total_price)}
@@ -639,27 +768,33 @@ export default function Orders() {
             </div>
 
             {/* Footer */}
-            <div className="flex justify-end gap-3 mt-6">
+            <div className="flex justify-start gap-3 mt-6">
               {confirmationAction ? (
                 <button
                   onClick={handleConfirmAction}
                   className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white"
                 >
-                  Confirm
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 className="animate-spin w-4 h-4 mr-2" />
+                    </>
+                  ) : (
+                    "Confirm"
+                  )}
                 </button>
-              ) : (
-                <button
-                  onClick={() => handleEdit(selectedOrder!)}
-                  className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white"
-                >
-                  Edit Order
-                </button>
+              ) : ( ""
+                // <button
+                //   onClick={() => handleEdit(selectedOrder!)}
+                //   className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white"
+                // >
+                //   Edit Order
+                // </button>
               )}
               <button
                 onClick={closeModal}
                 className="px-4 py-2 rounded-lg bg-gray-300 dark:bg-gray-700 hover:bg-gray-400 dark:hover:bg-gray-600"
               >
-                Cancel
+                Close
               </button>
             </div>
           </div>

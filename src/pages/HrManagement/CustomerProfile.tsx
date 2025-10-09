@@ -2,11 +2,11 @@ import { useContext, useEffect, useState } from "react";
 import { useParams } from "react-router";
 import PageBreadcrumb from "../../components/common/PageBreadCrumb";
 import PageMeta from "../../components/common/PageMeta";
-import axiosInstance from "../../hooks/AxiosIntence/AxiosIntence";
+import axiosInstance from "../../hooks/AxiosInstance/AxiosInstance";
 import Swal from "sweetalert2";
 import { AppContext } from "../../context/AppContext";
 
-type Tab = "profile" | "ledger";
+type Tab = "profile";
 
 interface Measurement {
   length?: number;
@@ -115,16 +115,6 @@ export default function CustomerProfile() {
               }`}
             >
               Profile
-            </button>
-            <button
-              onClick={() => setActiveTab("ledger")}
-              className={`px-4 py-2 rounded-full font-medium ${
-                activeTab === "ledger"
-                  ? "bg-blue-600 text-white"
-                  : "bg-gray-100 dark:bg-gray-700 dark:text-gray-300 text-gray-700 hover:bg-gray-200"
-              }`}
-            >
-              Ledger
             </button>
           </div>
         </div>
@@ -244,14 +234,6 @@ export default function CustomerProfile() {
                   </button>
                 </div>
               )}
-            </div>
-          )}
-
-          {activeTab === "ledger" && (
-            <div>
-              {/* Replace with your ledger component */}
-              <h2 className="text-lg font-semibold">Ledger Section</h2>
-              <p>Ledger details will go here...</p>
             </div>
           )}
         </div>

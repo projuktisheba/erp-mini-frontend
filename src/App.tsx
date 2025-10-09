@@ -17,6 +17,9 @@ import SalespersonList from "./pages/HrManagement/SalespersonList";
 import BranchReports from "./pages/Reports/BranchReports";
 import EmployeeProgress from "./pages/Reports/EmployeeProgress";
 import WorkerProgress from "./pages/Reports/WorkerProgress";
+import MaterialsPurchase from "./pages/Expenses/MaterialsPurchase";
+import Unauthorized from "./pages/OtherPage/unauthorized";
+import EmployeeSalary from "./pages/Expenses/EmployeeSalary";
 
 export default function App() {
   return (
@@ -32,6 +35,8 @@ export default function App() {
               </ProtectedRoute>
             }
           >
+            <Route index path="/unauthorized" element={<Unauthorized />} />
+
             <Route index path="/" element={<Home />} />
 
             {/* Others Page */}
@@ -69,7 +74,7 @@ export default function App() {
             <Route
               path="/add-employee"
               element={
-                <ProtectedRoute allowedRoles={["chairman", "manager"]}>
+                <ProtectedRoute allowedRoles={["chairman"]}>
                   <AddEmployee />
                 </ProtectedRoute>
               }
@@ -88,6 +93,14 @@ export default function App() {
 
             {/* Orders */}
             <Route
+              path="/add-order"
+              element={
+                <ProtectedRoute allowedRoles={["chairman", "manager"]}>
+                  <AddOrder />
+                </ProtectedRoute>
+              }
+            />
+            <Route
               path="/orders"
               element={
                 <ProtectedRoute allowedRoles={["chairman", "manager"]}>
@@ -95,12 +108,19 @@ export default function App() {
                 </ProtectedRoute>
               }
             />
-
             <Route
-              path="/add-order"
+              path="/materials-purchase"
               element={
-                <ProtectedRoute allowedRoles={["chairman", "manager"]}>
-                  <AddOrder />
+                <ProtectedRoute allowedRoles={["chairman"]}>
+                  <MaterialsPurchase />
+                </ProtectedRoute>
+              }
+            />
+<Route
+              path="/employee-salary"
+              element={
+                <ProtectedRoute allowedRoles={["chairman"]}>
+                  <EmployeeSalary />
                 </ProtectedRoute>
               }
             />
