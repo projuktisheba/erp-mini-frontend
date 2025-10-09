@@ -35,12 +35,10 @@ const EmployeeSalary: React.FC = () => {
 
   const employeeRef = useRef<HTMLDivElement>(null);
 
-  const [month, setMonth] = useState(() => {
+  // Initialize with current date
+  const [salaryDate, setSalaryDate] = useState(() => {
     const now = new Date();
-    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(
-      2,
-      "0"
-    )}`;
+    return now.toISOString().split("T")[0]; // "YYYY-MM-DD"
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -94,8 +92,8 @@ const EmployeeSalary: React.FC = () => {
       Swal.fire("Error", "Please select an employee", "error");
       return;
     }
-    if (!month) {
-      Swal.fire("Error", "Please select a month", "error");
+    if (!salaryDate) {
+      Swal.fire("Error", "Please select a date", "error");
       return;
     }
     if (!salaryAmount || isNaN(Number(salaryAmount))) {
@@ -105,14 +103,12 @@ const EmployeeSalary: React.FC = () => {
 
     setIsSubmitting(true);
     try {
-      // Convert month (YYYY-MM) to first day of month as SalaryDate
-      const [year, monthNum] = month.split("-");
-      const salaryDate = new Date(Number(year), Number(monthNum) - 1, 1);
+      const salaryDateObj = new Date(salaryDate);
 
       const payload = {
         employee_id: selectedEmployee.id,
         salary_amount: Number(salaryAmount),
-        salary_date: salaryDate.toISOString(), // Send ISO string for backend
+        salary_date: salaryDateObj.toISOString(), // full date
       };
 
       const res = await axiosInstance.post(
@@ -120,9 +116,6 @@ const EmployeeSalary: React.FC = () => {
         payload,
         { headers: { "X-Branch-ID": branchId } }
       );
-
-      console.log(res);
-      
 
       if (!res.data.error) {
         Swal.fire("Success", "Salary submitted successfully", "success");
@@ -147,13 +140,13 @@ const EmployeeSalary: React.FC = () => {
           onSubmit={handleSubmit}
           className="grid grid-cols-1 md:grid-cols-2 gap-4"
         >
-          {/* Month Selector */}
+          {/* Date Selector */}
           <div>
-            <label>Select Month *</label>
+            <label>Select Date *</label>
             <input
-              type="month"
-              value={month}
-              onChange={(e) => setMonth(e.target.value)}
+              type="date"
+              value={salaryDate}
+              onChange={(e) => setSalaryDate(e.target.value)}
               className="w-full p-2 border rounded-lg"
             />
           </div>
