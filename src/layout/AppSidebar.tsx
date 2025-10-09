@@ -41,14 +41,6 @@ const navItems: NavItem[] = [
       { name: "Worker List", path: "/worker-list" },
       { name: "Salesperson List", path: "/salesperson-list" },
       { name: "Add Employee ", path: "/add-employee", roles: ["chairman"] },
-      {
-        name: "Customer List",
-        path: "/customer-list",
-      },
-      {
-        name: "Add Customer",
-        path: "/add-customer",
-      },
     ],
   },
   {
@@ -56,7 +48,16 @@ const navItems: NavItem[] = [
     icon: <ListIcon />,
     subItems: [
       { name: "New Order", path: "/add-order" },
-      { name: "Order List", path: "/orders" },   
+      { name: "Order List", path: "/orders" },
+      {
+        name: "Add Customer",
+        path: "/add-customer",
+      },
+      {
+        name: "Customer List",
+        path: "/customer-list",
+      },
+         
     ],
   },
   {
