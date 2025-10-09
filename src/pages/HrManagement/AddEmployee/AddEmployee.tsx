@@ -4,7 +4,6 @@ import Swal from "sweetalert2";
 import { AppContext } from "../../../context/AppContext";
 import { Loader2 } from "lucide-react";
 import { API_URL } from "../../../hooks/AxiosInstance/AxiosInstance";
-// import { useNavigate } from "react-router";
 
 const AddEmployee: React.FC = () => {
   const context = useContext(AppContext);
