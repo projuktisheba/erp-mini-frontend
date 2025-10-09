@@ -123,7 +123,7 @@ export default function EmployeeList() {
         }
       );
 
-      if (response.data.status === "success") {
+      if (response.data.error == false) {
         Swal.fire("Success", "Attendance recorded successfully!", "success");
         closeModal();
       } else {

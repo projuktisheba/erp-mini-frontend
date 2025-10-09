@@ -13,13 +13,16 @@ import AddOrder from "./pages/Order/AddOrder";
 import CustomerList from "./pages/HrManagement/CustomerList";
 import CustomerProfile from "./pages/HrManagement/CustomerProfile";
 import AddCustomer from "./pages/HrManagement/AddCustomer";
-import SalespersonList from "./pages/HrManagement/SalespersonList";
 import BranchReports from "./pages/Reports/BranchReports";
 import EmployeeProgress from "./pages/Reports/EmployeeProgress";
 import WorkerProgress from "./pages/Reports/WorkerProgress";
 import MaterialsPurchase from "./pages/Expenses/MaterialsPurchase";
 import Unauthorized from "./pages/OtherPage/unauthorized";
 import EmployeeSalary from "./pages/Expenses/EmployeeSalary";
+import SalespersonList from "./pages/HrManagement/EmployeeList/SalespersonList";
+import AddSupplier from "./pages/Expenses/AddSupplier";
+import SupplierList from "./pages/Expenses/SupplierList";
+import PurchaseReport from "./pages/Reports/PurchaseReport";
 
 export default function App() {
   return (
@@ -81,6 +84,22 @@ export default function App() {
             />
 
             <Route
+              path="/add-supplier"
+              element={
+                <ProtectedRoute allowedRoles={["chairman"]}>
+                  <AddSupplier />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/list-supplier"
+              element={
+                <ProtectedRoute allowedRoles={["chairman"]}>
+                  <SupplierList />
+                </ProtectedRoute>
+              }
+            />
+            <Route
               path="/add-customer"
               element={
                 <ProtectedRoute allowedRoles={["chairman", "manager"]}>
@@ -131,6 +150,14 @@ export default function App() {
               element={
                 <ProtectedRoute allowedRoles={["chairman", "manager"]}>
                   <BranchReports />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/purchase-report"
+              element={
+                <ProtectedRoute allowedRoles={["chairman", "manager"]}>
+                  <PurchaseReport />
                 </ProtectedRoute>
               }
             />

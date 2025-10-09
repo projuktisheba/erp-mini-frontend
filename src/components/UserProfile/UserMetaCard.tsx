@@ -5,6 +5,7 @@ import Button from "../ui/button/Button";
 import axiosInstance from "../../hooks/AxiosInstance/AxiosInstance";
 import { useUser } from "../UserContext/UserContext";
 import { AppContext } from "../../context/AppContext";
+import { API_URL } from "../../hooks/AxiosInstance/AxiosInstance";
 
 type UserMetaCardProps = {
   id: number;
@@ -61,7 +62,7 @@ export default function UserMetaCard({ id, image, name }: UserMetaCardProps) {
       );
 
       if (res.data?.avatar_link) {
-        const newUrl = `https://api.erp.pssoft.xyz/api/v1${res.data.avatar_link}`;
+        const newUrl = `${API_URL}${res.data.avatar_link}`;
         setPreview(newUrl);
         setAvatar(newUrl);
       }

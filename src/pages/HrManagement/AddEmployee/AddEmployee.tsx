@@ -3,9 +3,8 @@ import axios from "axios";
 import Swal from "sweetalert2";
 import { AppContext } from "../../../context/AppContext";
 import { Loader2 } from "lucide-react";
+import { API_URL } from "../../../hooks/AxiosInstance/AxiosInstance";
 // import { useNavigate } from "react-router";
-
-const API_BASE = "https://api.erp.pssoft.xyz/api/v1";
 
 const AddEmployee: React.FC = () => {
   const context = useContext(AppContext);
@@ -48,7 +47,7 @@ const AddEmployee: React.FC = () => {
       };
 
       const response = await axios.post(
-        `${API_BASE}/hr/employee`,
+        `${API_URL}/hr/employee`,
         JSON.stringify(payload),
         {
           headers: {

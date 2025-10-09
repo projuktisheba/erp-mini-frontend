@@ -5,12 +5,12 @@ import {
   TableCell,
   TableHeader,
   TableRow,
-} from "../../components/ui/table";
-import Button from "../../components/ui/button/Button";
-import axiosInstance from "../../hooks/AxiosInstance/AxiosInstance";
+} from "../../../components/ui/table";
+import Button from "../../../components/ui/button/Button";
+import axiosInstance from "../../../hooks/AxiosInstance/AxiosInstance";
 import { useNavigate } from "react-router";
 import { Search } from "lucide-react";
-import { AppContext } from "../../context/AppContext";
+import { AppContext } from "../../../context/AppContext";
 
 interface Employee {
   id: number;

@@ -677,8 +677,6 @@ export default function Orders() {
                           <td className="px-4 py-2">
                             <strong>Name:</strong>{" "}
                             {selectedOrder?.salesperson_name || "-"} <br />
-                            <strong>ID:</strong> #
-                            {selectedOrder?.salesperson_id || "-"} <br />
                             <strong>Mobile:</strong>{" "}
                             {selectedOrder?.salesperson_mobile || "-"}
                           </td>

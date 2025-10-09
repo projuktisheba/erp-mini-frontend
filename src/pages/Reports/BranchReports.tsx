@@ -63,7 +63,7 @@ const BranchReports: React.FC = () => {
     try {
       const res = await axiosInstance.get(`/reports/branch`, {
         headers: {
-          "x-branch-id": branchId?.toString() || "",
+          "X-Branch-ID": branchId?.toString() || "",
         },
         params: {
           start_date: startDate,
@@ -117,18 +117,17 @@ const BranchReports: React.FC = () => {
     }
   );
 
-  // Print handler with report metadata
   // --- Print handler for branch reports ---
-const handlePrint = () => {
-  if (data.length === 0) {
-    alert("No report data to print!");
-    return;
-  }
+  const handlePrint = () => {
+    if (data.length === 0) {
+      alert("No report data to print!");
+      return;
+    }
 
-  // Generate table rows
-  const rows = data
-    .map(
-      (item) => `
+    // Generate table rows
+    const rows = data
+      .map(
+        (item) => `
       <tr>
         <td>${item.date.slice(0, 10)}</td>
         <td>${item.total_amount}</td>
@@ -140,11 +139,11 @@ const handlePrint = () => {
         <td>${item.checkout}</td>
         <td>${item.delivery}</td>
       </tr>`
-    )
-    .join("");
+      )
+      .join("");
 
-  // Totals row
-  const totalsRow = `
+    // Totals row
+    const totalsRow = `
     <tr style="font-weight:bold; background:#f3f3f3;">
       <td>Total</td>
       <td>${totals.order_count}</td>
@@ -158,8 +157,8 @@ const handlePrint = () => {
     </tr>
   `;
 
-  // Full HTML
-  const html = `
+    // Full HTML
+    const html = `
     <html>
       <head>
         <title>Branch Report - ${reportType.toUpperCase()}</title>
@@ -180,7 +179,9 @@ const handlePrint = () => {
           <div class="meta">
             <strong>Branch:</strong> ${branchList[branchId]?.name || "N/A"}<br/>
             <strong>Date Range:</strong> ${startDate} to ${endDate}<br/>
-            <strong>Report Type:</strong> ${reportType.charAt(0).toUpperCase() + reportType.slice(1)}
+            <strong>Report Type:</strong> ${
+              reportType.charAt(0).toUpperCase() + reportType.slice(1)
+            }
           </div>
         </div>
 
@@ -209,28 +210,27 @@ const handlePrint = () => {
     </html>
   `;
 
-  // Open in new window and print
-  const iframe = document.createElement("iframe");
-  iframe.style.position = "fixed";
-  iframe.style.width = "0";
-  iframe.style.height = "0";
-  iframe.style.border = "none";
-  iframe.style.visibility = "hidden";
-  document.body.appendChild(iframe);
+    // Open in new window and print
+    const iframe = document.createElement("iframe");
+    iframe.style.position = "fixed";
+    iframe.style.width = "0";
+    iframe.style.height = "0";
+    iframe.style.border = "none";
+    iframe.style.visibility = "hidden";
+    document.body.appendChild(iframe);
 
-  const doc = iframe.contentDocument || iframe.contentWindow?.document;
-  if (!doc) return;
+    const doc = iframe.contentDocument || iframe.contentWindow?.document;
+    if (!doc) return;
 
-  doc.open();
-  doc.write(html);
-  doc.close();
+    doc.open();
+    doc.write(html);
+    doc.close();
 
-  iframe.contentWindow?.focus();
-  iframe.contentWindow?.print();
+    iframe.contentWindow?.focus();
+    iframe.contentWindow?.print();
 
-  setTimeout(() => document.body.removeChild(iframe), 1000);
-};
-
+    setTimeout(() => document.body.removeChild(iframe), 1000);
+  };
 
   return (
     <div className="container mx-auto p-4">
@@ -240,66 +240,65 @@ const handlePrint = () => {
 
       {/* Filters */}
       <div className="mb-6 flex flex-col md:flex-row gap-3 items-end print:hidden">
-  {/* Report Type */}
-  <div className="flex flex-col">
-    <label className="mb-1 font-semibold text-gray-700 dark:text-gray-200">
-      Report Type
-    </label>
-    <select
-      value={reportType}
-      onChange={(e) => setReportType(e.target.value as any)}
-      className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
-    >
-      <option value="daily">Daily</option>
-      <option value="weekly">Weekly</option>
-      <option value="monthly">Monthly</option>
-    </select>
-  </div>
+        {/* Report Type */}
+        <div className="flex flex-col">
+          <label className="mb-1 font-semibold text-gray-700 dark:text-gray-200">
+            Report Type
+          </label>
+          <select
+            value={reportType}
+            onChange={(e) => setReportType(e.target.value as any)}
+            className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+          >
+            <option value="daily">Daily</option>
+            <option value="weekly">Weekly</option>
+            <option value="monthly">Monthly</option>
+          </select>
+        </div>
 
-  {/* Start Date */}
-  <div className="flex flex-col">
-    <label className="mb-1 font-semibold text-gray-700 dark:text-gray-200">
-      Start Date
-    </label>
-    <input
-      type="date"
-      value={startDate}
-      onChange={(e) => setStartDate(e.target.value)}
-      className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
-    />
-  </div>
+        {/* Start Date */}
+        <div className="flex flex-col">
+          <label className="mb-1 font-semibold text-gray-700 dark:text-gray-200">
+            Start Date
+          </label>
+          <input
+            type="date"
+            value={startDate}
+            onChange={(e) => setStartDate(e.target.value)}
+            className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+          />
+        </div>
 
-  {/* End Date */}
-  <div className="flex flex-col">
-    <label className="mb-1 font-semibold text-gray-700 dark:text-gray-200">
-      End Date
-    </label>
-    <input
-      type="date"
-      value={endDate}
-      onChange={(e) => setEndDate(e.target.value)}
-      className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
-    />
-  </div>
+        {/* End Date */}
+        <div className="flex flex-col">
+          <label className="mb-1 font-semibold text-gray-700 dark:text-gray-200">
+            End Date
+          </label>
+          <input
+            type="date"
+            value={endDate}
+            onChange={(e) => setEndDate(e.target.value)}
+            className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+          />
+        </div>
 
-  {/* Buttons */}
-  <div className="flex gap-2">
-    <button
-      onClick={fetchReports}
-      className="px-4 py-2 text-sm font-medium text-blue-800 border border-blue-400 rounded-lg hover:bg-blue-100 hover:text-blue-800 transition-all duration-200 shadow-sm flex items-center justify-center"
-    >
-      Fetch Report
-    </button>
+        {/* Buttons */}
+        <div className="flex gap-2">
+          <button
+            onClick={fetchReports}
+            className="px-4 py-2 text-sm font-medium text-blue-800 border border-blue-400 rounded-lg hover:bg-blue-100 hover:text-blue-800 transition-all duration-200 shadow-sm flex items-center justify-center"
+          >
+            Fetch Report
+          </button>
 
-    <button
-      onClick={handlePrint}
-      className="px-4 py-2 text-sm font-medium text-green-800 border border-green-400 rounded-lg hover:bg-green-100 hover:text-green-800 transition-all duration-200 shadow-sm flex items-center justify-center"
-    >
-      Print Report
-    </button>
-  </div>
-</div>
-
+          <button
+            onClick={handlePrint}
+            className="px-4 py-2 text-sm font-medium text-green-800 border border-green-400 rounded-lg hover:bg-green-100 hover:text-green-800 transition-all duration-200 shadow-sm flex items-center justify-center"
+          >
+            Print Report
+          </button>
+        </div>
+      </div>
 
       {loading ? (
         <div className="text-center py-10 text-gray-500 dark:text-gray-400">
