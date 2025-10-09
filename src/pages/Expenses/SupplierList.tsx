@@ -34,8 +34,6 @@ export default function SupplierList() {
   const [editingSupplier, setEditingSupplier] = useState<Supplier | null>(null);
   const [saving, setSaving] = useState(false);
 
-  const navigate = useNavigate();
-
   // Fetch suppliers
   const fetchSuppliers = async () => {
     try {

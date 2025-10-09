@@ -24,8 +24,6 @@ const AddEmployee: React.FC = () => {
     joining_date: new Date().toISOString().split("T")[0], // default today
   });
 
-  // const navigate = useNavigate();
-
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) => {
@@ -73,7 +71,6 @@ const AddEmployee: React.FC = () => {
           joining_date: new Date().toISOString().split("T")[0],
         });
 
-        // navigate("/employee-list");
       }
     } catch (error: any) {
       console.error("Error adding employee:", error);
