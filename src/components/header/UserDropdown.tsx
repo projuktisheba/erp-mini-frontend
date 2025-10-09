@@ -72,9 +72,6 @@ export default function UserDropdown() {
     e.stopPropagation(); // Prevent triggering outside click
     setIsOpen(!isOpen);
   };
-
-  const closeDropdown = () => setIsOpen(false);
-
   // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -90,11 +87,6 @@ export default function UserDropdown() {
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
-
-  const handleProfile = () => {
-    if (userData?.id) navigate(`/profile/${userData.id}`);
-    closeDropdown();
-  };
 
   const handleSignOut = () => {
     localStorage.clear();
@@ -161,12 +153,6 @@ export default function UserDropdown() {
                 {displayEmail}
               </span>
             </div>
-            <button
-              onClick={handleProfile}
-              className="text-blue-600 dark:text-blue-400 font-medium text-sm px-3 py-1 rounded-full border border-blue-300 dark:border-blue-600 transition-all duration-200 hover:bg-blue-100 dark:hover:bg-blue-900 hover:text-blue-800 dark:hover:text-blue-200"
-            >
-              Edit
-            </button>
           </div>
 
           {/* Branch selector */}
