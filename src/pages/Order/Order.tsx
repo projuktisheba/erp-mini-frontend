@@ -217,9 +217,9 @@ export default function Orders() {
     });
   };
 
-  const handleEdit = (order: Order) => {
-    console.log("Edit", order.id);
-  };
+  // const handleEdit = (order: Order) => {
+  //   console.log("Edit", order.id);
+  // };
 
   const handleCancelClick = (order: Order) => {
     setConfirmationAction({ type: "cancel", order });
