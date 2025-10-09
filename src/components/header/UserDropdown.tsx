@@ -1,5 +1,4 @@
 import { useState, useEffect, useContext, useRef } from "react";
-import { useNavigate } from "react-router";
 import { Store } from "lucide-react";
 import { AppContext } from "../../context/AppContext";
 import { API_URL } from "../../hooks/AxiosInstance/AxiosInstance";
@@ -18,7 +17,6 @@ const branchList = [
 ];
 
 export default function UserDropdown() {
-  const navigate = useNavigate();
   const context = useContext(AppContext);
   if (!context)
     throw new Error("AppContext must be used within AppContextProvider");
