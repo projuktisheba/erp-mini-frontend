@@ -14,7 +14,11 @@ interface EmployeeProgressItem {
   base_salary: number;
   employee_id: number;
 }
-
+const branchList = [
+  { id: 1, name: "AL FANAR ABAYAT" },
+  { id: 2, name: "DIVA ABAYAT" },
+  { id: 3, name: "EID AL ABAYAT" },
+];
 const EmployeeProgress: React.FC = () => {
   const context = useContext(AppContext);
   if (!context) throw new Error("AppContext not provided");
@@ -191,7 +195,7 @@ const EmployeeProgress: React.FC = () => {
         <div class="header">
           <h1>Employee Progress Report</h1>
           <div class="branch-info">
-            <strong>Branch:</strong> Main Factory, Rajshahi<br/>
+            <strong>Branch:</strong> ${branchList[branchId]?.name || "N/A"}<br/>
             <strong>Date Range:</strong> ${startDate} To ${endDate}<br/>
             <strong>Report Type:</strong> ${reportType
               .charAt(0)
