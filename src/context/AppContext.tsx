@@ -4,7 +4,7 @@ import { createContext, useState, useEffect } from "react";
 type AppContextType = {
   branchId: number;
   setBranchId: React.Dispatch<React.SetStateAction<number>>;
-  userRole: string; // e.g., "chairman", "manager", "employee"
+  userRole: string; // e.g., "chairman", "manager"
   setUserRole: React.Dispatch<React.SetStateAction<string>>;
 };
 
@@ -16,11 +16,11 @@ const AppContextProvider: React.FC<React.PropsWithChildren<{}>> = ({ children })
   // Initialize from localStorage if available
   const [branchId, setBranchId] = useState<number>(() => {
     const saved = localStorage.getItem("branchId");
-    return saved ? Number(saved) : 1;
+    return saved ? Number(saved) : 0;
   });
 
   const [userRole, setUserRole] = useState<string>(() => {
-    return localStorage.getItem("userRole") || "manager";
+    return localStorage.getItem("userRole") || "";
   });
 
   // Sync branchId to localStorage
