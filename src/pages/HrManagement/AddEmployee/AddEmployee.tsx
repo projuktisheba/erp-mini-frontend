@@ -2,7 +2,7 @@ import React, { useContext, useState } from "react";
 import Swal from "sweetalert2";
 import { AppContext } from "../../../context/AppContext";
 import { Loader2 } from "lucide-react";
-import axiosInstance, { API_URL } from "../../../hooks/AxiosInstance/AxiosInstance";
+import axiosInstance from "../../../hooks/AxiosInstance/AxiosInstance";
 
 const AddEmployee: React.FC = () => {
   const context = useContext(AppContext);

@@ -40,7 +40,6 @@ export default function SalesHistory() {
     {}
   );
   const [loading, setLoading] = useState(true);
-  const [modalLoading, setModalLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
@@ -297,11 +296,7 @@ export default function SalesHistory() {
 
       {/* Details Modal */}
       <Modal isOpen={isOpen} onClose={closeModal} className="max-w-[700px] m-4">
-        {modalLoading ? (
-          <div className="flex items-center justify-center min-h-[50vh]">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          </div>
-        ) : selectedSale ? (
+        {selectedSale ? (
           <div className="relative w-full bg-white rounded-3xl dark:bg-gray-900 flex flex-col max-h-[90vh]">
             {/* Header */}
             <div className="p-6 border-b border-gray-200 dark:border-gray-700">

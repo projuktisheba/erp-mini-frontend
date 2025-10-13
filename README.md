@@ -11,13 +11,3 @@ ERP Mini is a lightweight, user-friendly ERP (Enterprise Resource Planning) syst
 - Dark mode support for comfortable viewing in low-light environments.
 - Modular design to easily add new features in future updates.
 
-## Screenshots
-
-### Dashboard Overview
-![Dashboard Overview](https://i.postimg.cc/dVy7Ct7H/Screenshot-2025-09-28-004524.png)
-
-### Employee Management
-![Employee Management](https://i.postimg.cc/LsknyC3b/Screenshot-2025-09-28-004536.png)
-
-### Attendance Calendar
-![Attendance Calendar](https://i.postimg.cc/V6Y52q7S/Screenshot-2025-09-28-004551.png)

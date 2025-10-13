@@ -27,7 +27,6 @@ import RestockProducts from "./pages/Stock/RestockProducts";
 import SaleProducts from "./pages/Stock/SaleProducts";
 import StockReport from "./pages/Reports/StockReport";
 import SalesReport from "./pages/Reports/SalesReport";
-import SaleProductsWithEdit from "./pages/Stock/EditSoldProducts";
 import EditSoldProducts from "./pages/Stock/EditSoldProducts";
 
 export default function App() {
