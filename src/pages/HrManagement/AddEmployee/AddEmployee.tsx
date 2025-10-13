@@ -1,9 +1,8 @@
 import React, { useContext, useState } from "react";
-import axios from "axios";
 import Swal from "sweetalert2";
 import { AppContext } from "../../../context/AppContext";
 import { Loader2 } from "lucide-react";
-import { API_URL } from "../../../hooks/AxiosInstance/AxiosInstance";
+import axiosInstance, { API_URL } from "../../../hooks/AxiosInstance/AxiosInstance";
 
 const AddEmployee: React.FC = () => {
   const context = useContext(AppContext);
@@ -43,12 +42,10 @@ const AddEmployee: React.FC = () => {
         joining_date: new Date(formData.joining_date).toISOString(), // full ISO format
       };
 
-      const response = await axios.post(
-        `${API_URL}/hr/employee`,
-        JSON.stringify(payload),
+      const response = await axiosInstance.post('/hr/employee',
+        payload,
         {
           headers: {
-            "Content-Type": "application/json",
             "X-Branch-ID": branchId,
           },
         }

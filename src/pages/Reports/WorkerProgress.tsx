@@ -1,6 +1,7 @@
 import React, { useContext, useEffect, useRef, useState } from "react";
 import axiosInstance from "../../hooks/AxiosInstance/AxiosInstance";
 import { AppContext } from "../../context/AppContext";
+import { printHTML } from "../../utils/printHtml";
 
 interface WorkerProgressItem {
   worker_id: number;
@@ -146,30 +147,6 @@ const WorkerProgress: React.FC = () => {
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
-
-  // Utility function: write HTML to hidden iframe and print
-  const printHTML = (html: string) => {
-    const iframe = document.createElement("iframe");
-    iframe.style.position = "fixed";
-    iframe.style.width = "0";
-    iframe.style.height = "0";
-    iframe.style.border = "none";
-    iframe.style.visibility = "hidden";
-    document.body.appendChild(iframe);
-
-    const doc = iframe.contentDocument || iframe.contentWindow?.document;
-    if (!doc) return;
-
-    doc.open();
-    doc.write(html);
-    doc.close();
-
-    iframe.contentWindow?.focus();
-    iframe.contentWindow?.print();
-
-    setTimeout(() => document.body.removeChild(iframe), 1000);
-  };
-
   // --- Print single worker ---
   const handlePrint = (item: WorkerProgressItem) => {
     const html = `
@@ -193,7 +170,7 @@ const WorkerProgress: React.FC = () => {
         <div class="header">
           <h1>Worker Progress Report</h1>
           <div class="branch-info">
-            <strong>Branch:</strong>${branchList[branchId]?.name}<br/>
+            <strong>Branch:</strong>${branchList[branchId-1]?.name}<br/>
             <strong>Date Range:</strong> ${startDate} To ${endDate} <br/>
             <strong>Report Type:</strong> ${reportType
               .charAt(0)
@@ -281,7 +258,7 @@ const WorkerProgress: React.FC = () => {
         <div class="header">
           <h1>Worker Progress Report</h1>
           <div class="branch-info">
-            <strong>Branch:</strong>${branchList[branchId]?.name}<br/>
+            <strong>Branch:</strong>${branchList[branchId-1]?.name}<br/>
             <strong>Date Range:</strong> ${startDate} To ${endDate} <br/>
             <strong>Report Type:</strong> ${reportType
               .charAt(0)

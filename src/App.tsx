@@ -14,7 +14,6 @@ import CustomerList from "./pages/HrManagement/CustomerList";
 import CustomerProfile from "./pages/HrManagement/CustomerProfile";
 import AddCustomer from "./pages/HrManagement/AddCustomer";
 import BranchReports from "./pages/Reports/BranchReports";
-import EmployeeProgress from "./pages/Reports/EmployeeProgress";
 import WorkerProgress from "./pages/Reports/WorkerProgress";
 import MaterialsPurchase from "./pages/Expenses/MaterialsPurchase";
 import Unauthorized from "./pages/OtherPage/unauthorized";
@@ -23,6 +22,13 @@ import SalespersonList from "./pages/HrManagement/EmployeeList/SalespersonList";
 import AddSupplier from "./pages/Expenses/AddSupplier";
 import SupplierList from "./pages/Expenses/SupplierList";
 import PurchaseReport from "./pages/Reports/PurchaseReport";
+import SalesPersonProgress from "./pages/Reports/SalesPersonProgress";
+import RestockProducts from "./pages/Stock/RestockProducts";
+import SaleProducts from "./pages/Stock/SaleProducts";
+import StockReport from "./pages/Reports/StockReport";
+import SalesReport from "./pages/Reports/SalesReport";
+import SaleProductsWithEdit from "./pages/Stock/EditSoldProducts";
+import EditSoldProducts from "./pages/Stock/EditSoldProducts";
 
 export default function App() {
   return (
@@ -127,6 +133,32 @@ export default function App() {
                 </ProtectedRoute>
               }
             />
+            {/* Restock and Sales */}
+            <Route
+              path="/restock"
+              element={
+                <ProtectedRoute allowedRoles={["chairman", "manager"]}>
+                  <RestockProducts />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/sale"
+              element={
+                <ProtectedRoute allowedRoles={["chairman", "manager"]}>
+                  <SaleProducts />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/sale/edit"
+              element={
+                <ProtectedRoute allowedRoles={["chairman", "manager"]}>
+                  <EditSoldProducts />
+                </ProtectedRoute>
+              }
+            />
+            
             <Route
               path="/materials-purchase"
               element={
@@ -135,7 +167,7 @@ export default function App() {
                 </ProtectedRoute>
               }
             />
-<Route
+            <Route
               path="/employee-salary"
               element={
                 <ProtectedRoute allowedRoles={["chairman"]}>
@@ -148,16 +180,32 @@ export default function App() {
             <Route
               path="/branch-report"
               element={
-                <ProtectedRoute allowedRoles={["chairman", "manager"]}>
+                <ProtectedRoute allowedRoles={["chairman"]}>
                   <BranchReports />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/stock-report"
+              element={
+                <ProtectedRoute allowedRoles={["chairman"]}>
+                  <StockReport />
                 </ProtectedRoute>
               }
             />
             <Route
               path="/purchase-report"
               element={
-                <ProtectedRoute allowedRoles={["chairman", "manager"]}>
+                <ProtectedRoute allowedRoles={["chairman"]}>
                   <PurchaseReport />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/sales-report"
+              element={
+                <ProtectedRoute allowedRoles={["chairman"]}>
+                  <SalesReport />
                 </ProtectedRoute>
               }
             />
@@ -166,7 +214,7 @@ export default function App() {
               path="/employee-progress"
               element={
                 <ProtectedRoute allowedRoles={["chairman", "manager"]}>
-                  <EmployeeProgress />
+                  <SalesPersonProgress />
                 </ProtectedRoute>
               }
             />
@@ -174,7 +222,7 @@ export default function App() {
             <Route
               path="/worker-progress"
               element={
-                <ProtectedRoute allowedRoles={["chairman", "manager"]}>
+                <ProtectedRoute allowedRoles={["chairman"]}>
                   <WorkerProgress />
                 </ProtectedRoute>
               }

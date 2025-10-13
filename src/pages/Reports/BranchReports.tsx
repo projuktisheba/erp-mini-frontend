@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useContext, useRef } from "react";
 import axiosInstance from "../../hooks/AxiosInstance/AxiosInstance";
 import { AppContext } from "../../context/AppContext";
+import { printHTML } from "../../utils/printHtml";
 
 interface BranchReportItem {
   balance: number;
@@ -177,7 +178,7 @@ const BranchReports: React.FC = () => {
         <div class="header">
           <h1>Branch Report</h1>
           <div class="meta">
-            <strong>Branch:</strong> ${branchList[branchId]?.name || "N/A"}<br/>
+            <strong>Branch:</strong> ${branchList[branchId-1]?.name || "N/A"}<br/>
             <strong>Date Range:</strong> ${startDate} to ${endDate}<br/>
             <strong>Report Type:</strong> ${
               reportType.charAt(0).toUpperCase() + reportType.slice(1)
@@ -210,26 +211,7 @@ const BranchReports: React.FC = () => {
     </html>
   `;
 
-    // Open in new window and print
-    const iframe = document.createElement("iframe");
-    iframe.style.position = "fixed";
-    iframe.style.width = "0";
-    iframe.style.height = "0";
-    iframe.style.border = "none";
-    iframe.style.visibility = "hidden";
-    document.body.appendChild(iframe);
-
-    const doc = iframe.contentDocument || iframe.contentWindow?.document;
-    if (!doc) return;
-
-    doc.open();
-    doc.write(html);
-    doc.close();
-
-    iframe.contentWindow?.focus();
-    iframe.contentWindow?.print();
-
-    setTimeout(() => document.body.removeChild(iframe), 1000);
+    printHTML(html)
   };
 
   return (

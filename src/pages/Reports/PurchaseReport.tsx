@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useContext, useRef } from "react";
 import axiosInstance from "../../hooks/AxiosInstance/AxiosInstance";
 import { AppContext } from "../../context/AppContext";
+import { printHTML } from "../../utils/printHtml";
 
 interface PurchaseReportItem {
   id: number;
@@ -135,7 +136,6 @@ const PurchaseReport: React.FC = () => {
         <td>${item.purchase_date.slice(0, 10)}</td>
         <td>${item.memo_no}</td>
         <td>${item.supplier_name}</td>
-        <td>${item.branch_name}</td>
         <td>${item.total_amount}</td>
         <td>${item.notes}</td>
       </tr>`
@@ -149,7 +149,7 @@ const PurchaseReport: React.FC = () => {
 
     const totalsRow = `
       <tr style="font-weight:bold; background:#f3f3f3;">
-        <td colspan="4">Total</td>
+        <td colspan="3" style="text-align:right">Total</td>
         <td>${totalAmount}</td>
         <td></td>
       </tr>
@@ -175,7 +175,7 @@ const PurchaseReport: React.FC = () => {
             <h1>Purchase Report</h1>
             <div class="meta">
               <strong>Branch:</strong> ${
-                branchList[branchId]?.name || "N/A"
+                branchList[branchId-1]?.name || "N/A"
               }<br/>
               <strong>Date Range:</strong> ${startDate} to ${endDate}<br/>
               <strong>Report Type:</strong> ${
@@ -190,7 +190,6 @@ const PurchaseReport: React.FC = () => {
                 <th>Date</th>
                 <th>Memo No</th>
                 <th>Supplier</th>
-                <th>Branch</th>
                 <th>Total Amount</th>
                 <th>Notes</th>
               </tr>
@@ -201,25 +200,7 @@ const PurchaseReport: React.FC = () => {
         </body>
       </html>
     `;
-
-    const iframe = document.createElement("iframe");
-    iframe.style.position = "fixed";
-    iframe.style.width = "0";
-    iframe.style.height = "0";
-    iframe.style.border = "none";
-    iframe.style.visibility = "hidden";
-    document.body.appendChild(iframe);
-
-    const doc = iframe.contentDocument || iframe.contentWindow?.document;
-    if (!doc) return;
-
-    doc.open();
-    doc.write(html);
-    doc.close();
-
-    iframe.contentWindow?.focus();
-    iframe.contentWindow?.print();
-    setTimeout(() => document.body.removeChild(iframe), 1000);
+    printHTML(html)
   };
 
   const totalAmount = filteredPurchases.reduce(
@@ -327,17 +308,17 @@ const PurchaseReport: React.FC = () => {
           <table className="min-w-full text-sm text-gray-700 dark:text-gray-200">
             <thead className="bg-gray-100 dark:bg-gray-800">
               <tr>
-                <th className="px-3 py-2 border-b border-gray-200 dark:border-gray-700 text-left">
+                <th className="px-3 py-2 border-b border-gray-200 dark:border-gray-700 text-center">
                   Date
                 </th>
-                <th className="px-3 py-2 border-b border-gray-200 dark:border-gray-700 text-left">
+                <th className="px-3 py-2 border-b border-gray-200 dark:border-gray-700 text-center">
                   Memo No
                 </th>
-                <th className="px-3 py-2 border-b border-gray-200 dark:border-gray-700 text-left">
+                <th className="px-3 py-2 border-b border-gray-200 dark:border-gray-700 text-center">
                   Supplier
                 </th>
                 <th className="px-3 py-2 border-b text-right">Total Amount</th>
-                <th className="px-3 py-2 border-b border-gray-200 dark:border-gray-700 text-left">
+                <th className="px-3 py-2 border-b border-gray-200 dark:border-gray-700 text-center">
                   Notes
                 </th>
               </tr>
@@ -346,7 +327,7 @@ const PurchaseReport: React.FC = () => {
               {filteredPurchases.length === 0 ? (
                 <tr>
                   <td
-                    colSpan={6}
+                    colSpan={5}
                     className="text-center py-4 text-gray-500 dark:text-gray-400"
                   >
                     No purchase found.
@@ -359,32 +340,32 @@ const PurchaseReport: React.FC = () => {
                       key={item.id}
                       className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
                     >
-                      <td className="px-3 py-2 border-b border-gray-200 dark:border-gray-700 text-left">
+                      <td className="px-3 py-2 border-b border-gray-200 dark:border-gray-700 text-center">
                         {item.purchase_date.slice(0, 10)}
                       </td>
-                      <td className="px-3 py-2 border-b border-gray-200 dark:border-gray-700 text-left">
+                      <td className="px-3 py-2 border-b border-gray-200 dark:border-gray-700 text-center">
                         {item.memo_no}
                       </td>
-                      <td className="px-3 py-2 border-b border-gray-200 dark:border-gray-700 text-left">
+                      <td className="px-3 py-2 border-b border-gray-200 dark:border-gray-700 text-center">
                         {item.supplier_name}
                       </td>
                       <td className="px-3 py-2 border-b text-right">
                         {item.total_amount}
                       </td>
-                      <td className="px-3 py-2 border-b border-gray-200 dark:border-gray-700 text-left">
+                      <td className="px-3 py-2 border-b border-gray-200 dark:border-gray-700 text-center">
                         {item.notes}
                       </td>
                     </tr>
                   ))}
 
                   <tr className="bg-gray-100 dark:bg-gray-700 font-semibold">
-                    <td className="px-3 py-2 border-b text-right" colSpan={4}>
+                    <td className="px-3 py-2 border-b text-right" colSpan={3}>
                       Totals:
                     </td>
                     <td className="px-3 py-2 border-b text-right">
                       {totalAmount}
                     </td>
-                    <td className="px-3 py-2 border-b border-gray-200 dark:border-gray-700 text-left"></td>
+                    <td className="px-3 py-2 border-b border-gray-200 dark:border-gray-700 text-center"></td>
                   </tr>
                 </>
               )}

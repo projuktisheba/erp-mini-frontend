@@ -74,8 +74,7 @@ export default function CustomerList() {
     const q = searchQuery.toLowerCase();
     setFilteredCustomers(
       customers.filter(
-        (s) =>
-          s.name.toLowerCase().includes(q) || s.mobile.includes(q)
+        (s) => s.name.toLowerCase().includes(q) || s.mobile.includes(q)
       )
     );
   }, [searchQuery, customers]);
@@ -168,6 +167,7 @@ export default function CustomerList() {
                 <TableCell className="py-2">ID</TableCell>
                 <TableCell>Name</TableCell>
                 <TableCell>Mobile</TableCell>
+                <TableCell>Due Amount</TableCell>
                 <TableCell>Address</TableCell>
                 <TableCell>Actions</TableCell>
               </TableRow>
@@ -177,7 +177,7 @@ export default function CustomerList() {
               {filteredCustomers.length === 0 ? (
                 <TableRow>
                   <TableCell
-                    colSpan={5}
+                    colSpan={6}
                     className="text-center py-8 text-gray-500 dark:text-gray-400"
                   >
                     {searchQuery
@@ -194,6 +194,7 @@ export default function CustomerList() {
                     <TableCell>{customer.id}</TableCell>
                     <TableCell>{customer.name}</TableCell>
                     <TableCell>{customer.mobile}</TableCell>
+                    <TableCell>{customer.due_amount}</TableCell>
                     <TableCell>{customer.address}</TableCell>
                     <TableCell>
                       <Button
@@ -215,103 +216,104 @@ export default function CustomerList() {
       </div>
 
       {/* Edit Modal */}
-{editingCustomer && (
-  <Modal
-    isOpen={!!editingCustomer}
-    onClose={() => setEditingCustomer(null)}
-    className="max-w-2xl m-4"
-  >
-    <div className="p-6 bg-white dark:bg-gray-900 rounded-2xl">
-      <h3 className="text-xl font-semibold mb-4 text-gray-800 dark:text-white">
-        Edit Customer
-      </h3>
+      {editingCustomer && (
+        <Modal
+          isOpen={!!editingCustomer}
+          onClose={() => setEditingCustomer(null)}
+          className="max-w-xl m-4"
+        >
+          <div className="p-6 bg-white dark:bg-gray-900 rounded-2xl">
+            <h3 className="text-xl font-semibold mb-4 text-gray-800 dark:text-white">
+              Edit Customer
+            </h3>
 
-      <div className="flex flex-col gap-4">
-        {/* Basic Info */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <Label>Name</Label>
-            <Input
-              type="text"
-              value={editingCustomer.name}
-              onChange={(e) => handleChange("name", e.target.value)}
-            />
-          </div>
-          <div>
-            <Label>Mobile</Label>
-            <Input
-              type="text"
-              value={editingCustomer.mobile}
-              onChange={(e) => handleChange("mobile", e.target.value)}
-            />
-          </div>
-          <div>
-            <Label>Address</Label>
-            <Input
-              type="text"
-              value={editingCustomer.address}
-              onChange={(e) => handleChange("address", e.target.value)}
-            />
-          </div>
-          <div>
-            <Label>Tax ID</Label>
-            <Input
-              type="text"
-              value={editingCustomer.tax_id || ""}
-              onChange={(e) => handleChange("tax_id", e.target.value)}
-            />
-          </div>
-        </div>
-
-        {/* Measurements */}
-        <div>
-          <h4 className="text-sm font-semibold mb-2 text-gray-700 dark:text-gray-300">
-            Measurements (Optional)
-          </h4>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {[
-              "length",
-              "shoulder",
-              "bust",
-              "waist",
-              "hip",
-              "arm_hole",
-              "sleeve_length",
-              "sleeve_width",
-              "round_width",
-            ].map((field) => (
-              <div key={field}>
-                <Label className="capitalize">{field.replace("_", " ")}</Label>
-                <Input
-                  type="number"
-                  value={(editingCustomer as any)[field] ?? ""}
-                  onChange={(e) =>
-                    handleChange(field, e.target.value || "0")
-                  }
-                />
+            <div className="flex flex-col gap-4">
+              {/* Basic Info */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label>Name</Label>
+                  <Input
+                    type="text"
+                    value={editingCustomer.name}
+                    onChange={(e) => handleChange("name", e.target.value)}
+                  />
+                </div>
+                <div>
+                  <Label>Mobile</Label>
+                  <Input
+                    type="text"
+                    value={editingCustomer.mobile}
+                    onChange={(e) => handleChange("mobile", e.target.value)}
+                  />
+                </div>
+                <div>
+                  <Label>Address</Label>
+                  <Input
+                    type="text"
+                    value={editingCustomer.address}
+                    onChange={(e) => handleChange("address", e.target.value)}
+                  />
+                </div>
+                <div>
+                  <Label>Tax ID</Label>
+                  <Input
+                    type="text"
+                    value={editingCustomer.tax_id || ""}
+                    onChange={(e) => handleChange("tax_id", e.target.value)}
+                  />
+                </div>
               </div>
-            ))}
+
+              {/* Measurements */}
+              <div>
+                <h4 className="text-sm font-semibold mb-2 text-gray-700 dark:text-gray-300">
+                  Measurements (Optional)
+                </h4>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {[
+                    "length",
+                    "shoulder",
+                    "bust",
+                    "waist",
+                    "hip",
+                    "arm_hole",
+                    "sleeve_length",
+                    "sleeve_width",
+                    "round_width",
+                  ].map((field) => (
+                    <div key={field}>
+                      <Label className="capitalize">
+                        {field.replace("_", " ")}
+                      </Label>
+                      <Input
+                        type="number"
+                        value={(editingCustomer as any)[field] ?? ""}
+                        onChange={(e) =>
+                          handleChange(field, e.target.value || "0")
+                        }
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Buttons */}
+              <div className="flex justify-end gap-2 mt-4">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setEditingCustomer(null)}
+                >
+                  Cancel
+                </Button>
+                <Button size="sm" onClick={handleSave} disabled={saving}>
+                  {saving ? "Saving..." : "Save Changes"}
+                </Button>
+              </div>
+            </div>
           </div>
-        </div>
-
-        {/* Buttons */}
-        <div className="flex justify-end gap-2 mt-4">
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => setEditingCustomer(null)}
-          >
-            Cancel
-          </Button>
-          <Button size="sm" onClick={handleSave} disabled={saving}>
-            {saving ? "Saving..." : "Save Changes"}
-          </Button>
-        </div>
-      </div>
-    </div>
-  </Modal>
-)}
-
+        </Modal>
+      )}
     </div>
   );
 }

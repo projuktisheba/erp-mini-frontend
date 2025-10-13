@@ -1,8 +1,9 @@
 import React, { useContext, useEffect, useState, useRef } from "react";
 import axiosInstance from "../../hooks/AxiosInstance/AxiosInstance";
 import { AppContext } from "../../context/AppContext";
+import { printHTML } from "../../utils/printHtml";
 
-interface EmployeeProgressItem {
+interface SalespersonProgressReport {
   date: string;
   order_count: number;
   item_count: number;
@@ -19,13 +20,13 @@ const branchList = [
   { id: 2, name: "DIVA ABAYAT" },
   { id: 3, name: "EID AL ABAYAT" },
 ];
-const EmployeeProgress: React.FC = () => {
+const SalesPersonProgress: React.FC = () => {
   const context = useContext(AppContext);
   if (!context) throw new Error("AppContext not provided");
 
   const { branchId } = context;
 
-  const [data, setData] = useState<EmployeeProgressItem[]>([]);
+  const [data, setData] = useState<SalespersonProgressReport[]>([]);
   const [loading, setLoading] = useState(false);
   const [reportType, setReportType] = useState<"daily" | "weekly" | "monthly">(
     "daily"
@@ -34,7 +35,7 @@ const EmployeeProgress: React.FC = () => {
   const [endDate, setEndDate] = useState("");
   const [employeeSearch, setEmployeeSearch] = useState("");
   const [filteredEmployees, setFilteredEmployees] = useState<
-    EmployeeProgressItem[]
+    SalespersonProgressReport[]
   >([]);
   const [showDropdown, setShowDropdown] = useState(false);
 
@@ -105,42 +106,19 @@ const EmployeeProgress: React.FC = () => {
       return;
     }
 
-    const filtered = data.filter((emp) =>
-      emp.mobile.toLowerCase().includes(value.toLowerCase())
+    const filtered = data.filter((entity) =>
+      entity.mobile.toLowerCase().includes(value.toLowerCase())
     );
     setFilteredEmployees(filtered);
     setShowDropdown(true);
   };
 
-  const handleEmployeeSelect = (emp: EmployeeProgressItem) => {
-    setEmployeeSearch(emp.sales_person_name); // or keep the name if you want
+  const handleEmployeeSelect = (entity: SalespersonProgressReport) => {
+    setEmployeeSearch(entity.sales_person_name); // or keep the name if you want
     // Keep all employees with the same mobile
-    const allMatching = data.filter((e) => e.mobile === emp.mobile);
+    const allMatching = data.filter((e) => e.mobile === entity.mobile);
     setFilteredEmployees(allMatching);
     setShowDropdown(false);
-  };
-
-  // Utility function: write HTML to hidden iframe and print
-  const printHTML = (html: string) => {
-    const iframe = document.createElement("iframe");
-    iframe.style.position = "fixed";
-    iframe.style.width = "0";
-    iframe.style.height = "0";
-    iframe.style.border = "none";
-    iframe.style.visibility = "hidden";
-    document.body.appendChild(iframe);
-
-    const doc = iframe.contentDocument || iframe.contentWindow?.document;
-    if (!doc) return;
-
-    doc.open();
-    doc.write(html);
-    doc.close();
-
-    iframe.contentWindow?.focus();
-    iframe.contentWindow?.print();
-
-    setTimeout(() => document.body.removeChild(iframe), 1000);
   };
 
   // --- Print all employees ---
@@ -195,7 +173,7 @@ const EmployeeProgress: React.FC = () => {
         <div class="header">
           <h1>Employee Progress Report</h1>
           <div class="branch-info">
-            <strong>Branch:</strong> ${branchList[branchId]?.name || "N/A"}<br/>
+            <strong>Branch:</strong> ${branchList[branchId-1]?.name || "N/A"}<br/>
             <strong>Date Range:</strong> ${startDate} To ${endDate}<br/>
             <strong>Report Type:</strong> ${reportType
               .charAt(0)
@@ -320,13 +298,13 @@ const EmployeeProgress: React.FC = () => {
         />
         {showDropdown && (
           <ul className="absolute z-10 bg-white border rounded-lg shadow-md mt-1 w-64 max-h-48 overflow-y-auto">
-            {filteredEmployees.map((emp) => (
+            {filteredEmployees.map((entity) => (
               <li
-                key={emp.employee_id}
-                onClick={() => handleEmployeeSelect(emp)}
+                key={entity.employee_id}
+                onClick={() => handleEmployeeSelect(entity)}
                 className="px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
               >
-                {emp.sales_person_name}-{emp.mobile}
+                {entity.sales_person_name}-{entity.mobile}
               </li>
             ))}
           </ul>
@@ -435,4 +413,4 @@ const EmployeeProgress: React.FC = () => {
   );
 };
 
-export default EmployeeProgress;
+export default SalesPersonProgress;

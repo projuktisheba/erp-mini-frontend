@@ -63,6 +63,14 @@ const navItems: NavItem[] = [
     ],
   },
   {
+    name: "Stock Management",
+    icon: <List />,
+    subItems: [
+      { name: "Restock Products", path: "/restock" },
+      { name: "Sale Products", path: "/sale" },
+    ],
+  },
+  {
     name: "Expenses",
     icon: <List />,
     roles: ["chairman"],
@@ -75,10 +83,12 @@ const navItems: NavItem[] = [
     name: "Reports",
     icon: <Table />,
     subItems: [
-      { name: "Branch Report", path: "/branch-report", pro: false },
-      { name: "Purchase Report", path: "/purchase-report", pro: false },
+      { name: "Branch Report", path: "/branch-report", pro: false , roles: ["chairman"] },
+      { name: "Purchase Report", path: "/purchase-report", pro: false , roles: ["chairman"] },
+      { name: "Sales Report", path: "/sales-report", pro: false , roles: ["chairman"] },
+      { name: "Stock Report", path: "/stock-report", pro: false , roles: ["chairman"] },
       { name: "Employee Progress", path: "/employee-progress", pro: false },
-      { name: "Worker Progress", path: "/worker-progress", pro: false },
+      { name: "Worker Progress", path: "/worker-progress", pro: false , roles: ["chairman"] },
     ],
   },
 ];
