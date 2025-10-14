@@ -94,21 +94,27 @@ export default function AccessControl({ employee }: AccessControlProps) {
 
             <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 lg:gap-7 2xl:gap-x-32">
               <div>
-                <p className="mb-2 text-xs text-gray-500 dark:text-gray-400">Email</p>
+                <p className="mb-2 text-xs text-gray-500 dark:text-gray-400">
+                  Email
+                </p>
                 <p className="text-sm font-medium text-gray-800 dark:text-white/90">
                   {formData.email || "-"}
                 </p>
               </div>
 
               <div>
-                <p className="mb-2 text-xs text-gray-500 dark:text-gray-400">Role</p>
+                <p className="mb-2 text-xs text-gray-500 dark:text-gray-400">
+                  Role
+                </p>
                 <p className="text-sm font-medium text-gray-800 dark:text-white/90">
                   {formData.role}
                 </p>
               </div>
 
               <div>
-                <p className="mb-2 text-xs text-gray-500 dark:text-gray-400">Status</p>
+                <p className="mb-2 text-xs text-gray-500 dark:text-gray-400">
+                  Status
+                </p>
                 <p
                   className={`text-sm font-medium ${
                     formData.status === "Active"
@@ -121,13 +127,13 @@ export default function AccessControl({ employee }: AccessControlProps) {
               </div>
             </div>
           </div>
-
-          <button
+          <Button
             onClick={openModal}
-            className="flex w-full items-center justify-center gap-2 rounded-full border border-gray-300 bg-white px-4 py-3 text-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50 hover:text-gray-800 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-white/[0.03] dark:hover:text-gray-200 lg:inline-flex lg:w-auto"
+            size="sm"
+            variant="outline"
           >
             Edit
-          </button>
+          </Button>
         </div>
       </div>
 

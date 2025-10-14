@@ -110,7 +110,7 @@ const AddCustomer: React.FC = () => {
               value={formData.name}
               onChange={handleChange}
               required
-              className="w-full p-2.5 border border-gray-300 rounded-md focus:ring-1 focus:ring-green-600 focus:outline-none bg-gray-50 dark:bg-gray-700 dark:border-gray-600 dark:focus:ring-green-500 text-sm"
+              className="w-full p-2.5 border border-gray-300 rounded-md focus:ring-1 focus:ring-gray-600 focus:outline-none bg-gray-50 dark:bg-gray-700 dark:border-gray-600 dark:focus:ring-green-500 text-sm"
               placeholder="John Doe"
             />
           </div>
@@ -126,7 +126,7 @@ const AddCustomer: React.FC = () => {
               value={formData.mobile}
               onChange={handleChange}
               required
-              className="w-full p-2.5 border border-gray-300 rounded-md focus:ring-1 focus:ring-green-600 bg-gray-50 dark:bg-gray-700 dark:border-gray-600 text-sm"
+              className="w-full p-2.5 border border-gray-300 rounded-md focus:ring-1 focus:ring-gray-600 focus:outline-none bg-gray-50 dark:bg-gray-700 dark:border-gray-600 dark:focus:ring-green-500 text-sm"
               placeholder="0123456789"
             />
           </div>
@@ -141,7 +141,7 @@ const AddCustomer: React.FC = () => {
               name="address"
               value={formData.address}
               onChange={handleChange}
-              className="w-full p-2.5 border border-gray-300 rounded-md focus:ring-1 focus:ring-green-600 bg-gray-50 dark:bg-gray-700 dark:border-gray-600 text-sm"
+              className="w-full p-2.5 border border-gray-300 rounded-md focus:ring-1 focus:ring-gray-600 focus:outline-none bg-gray-50 dark:bg-gray-700 dark:border-gray-600 dark:focus:ring-green-500 text-sm"
               placeholder="Customer Address"
             />
           </div>
@@ -156,7 +156,7 @@ const AddCustomer: React.FC = () => {
               name="tax_id"
               value={formData.tax_id}
               onChange={handleChange}
-              className="w-full p-2.5 border border-gray-300 rounded-md focus:ring-1 focus:ring-green-600 bg-gray-50 dark:bg-gray-700 dark:border-gray-600 text-sm"
+              className="w-full p-2.5 border border-gray-300 rounded-md focus:ring-1 focus:ring-gray-600 focus:outline-none bg-gray-50 dark:bg-gray-700 dark:border-gray-600 dark:focus:ring-green-500 text-sm"
               placeholder="Tax ID"
             />
           </div>
@@ -171,7 +171,7 @@ const AddCustomer: React.FC = () => {
               name="due_amount"
               value={formData.due_amount}
               onChange={handleChange}
-              className="w-full p-2.5 border border-gray-300 rounded-md focus:ring-1 focus:ring-green-600 bg-gray-50 dark:bg-gray-700 dark:border-gray-600 text-sm"
+              className="w-full p-2.5 border border-gray-300 rounded-md focus:ring-1 focus:ring-gray-600 focus:outline-none bg-gray-50 dark:bg-gray-700 dark:border-gray-600 dark:focus:ring-green-500 text-sm"
               placeholder="0"
             />
           </div>
@@ -202,7 +202,7 @@ const AddCustomer: React.FC = () => {
                     name={key}
                     value={(formData as any)[key]}
                     onChange={handleChange}
-                    className="w-full p-2.5 border border-gray-300 rounded-md focus:ring-1 focus:ring-green-600 bg-gray-50 dark:bg-gray-700 dark:border-gray-600 text-sm"
+                    className="w-full p-2.5 border border-gray-300 rounded-md focus:ring-1 focus:ring-gray-600 focus:outline-none bg-gray-50 dark:bg-gray-700 dark:border-gray-600 dark:focus:ring-green-500 text-sm"
                     placeholder="0"
                   />
                 </div>

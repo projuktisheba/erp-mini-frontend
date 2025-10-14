@@ -92,12 +92,9 @@ export default function UserMetaCard({ id, image, name }: UserMetaCardProps) {
           </h4>
         </div>
 
-        <button
-          onClick={openModal}
-          className="px-4 py-2 rounded-lg border border-gray-300 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700"
-        >
+        <Button onClick={openModal} size="sm" variant="outline">
           Edit
-        </button>
+        </Button>
       </div>
 
       <Modal isOpen={isOpen} onClose={closeModal} className="max-w-[400px] m-4">

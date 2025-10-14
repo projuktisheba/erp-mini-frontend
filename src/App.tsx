@@ -6,7 +6,7 @@ import AppLayout from "./layout/AppLayout";
 import { ScrollToTop } from "./components/common/ScrollToTop";
 import Home from "./pages/Dashboard/Home";
 import ProtectedRoute from "./components/ProtectedRoute/ProtectedRoute";
-import EmployeeList from "./pages/HrManagement/EmployeeList/EmployeeList";
+import EmployeeList from "./pages/HrManagement/EmployeeList/WorkerList";
 import AddEmployee from "./pages/HrManagement/AddEmployee/AddEmployee";
 import Order from "./pages/Order/Order";
 import AddOrder from "./pages/Order/AddOrder";

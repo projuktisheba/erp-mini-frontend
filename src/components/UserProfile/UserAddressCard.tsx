@@ -131,11 +131,7 @@ export default function UserAddressCard({ employee }: UserAddressCardProps) {
             </div>
           </div>
 
-          <Button
-            onClick={openModal}
-            variant="outline"
-            className="rounded-full"
-          >
+          <Button onClick={openModal} size="sm" variant="outline">
             Edit
           </Button>
         </div>

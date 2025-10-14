@@ -107,11 +107,7 @@ export default function UserInfoCard({ employee }: UserInfoCardProps) {
           ))}
         </div>
 
-        <Button
-          onClick={openModal}
-          variant="outline"
-          className="rounded-full"
-        >
+        <Button onClick={openModal} size="sm" variant="outline">
           Edit
         </Button>
       </div>
@@ -152,7 +148,10 @@ export default function UserInfoCard({ employee }: UserInfoCardProps) {
                         type="text"
                         value={value}
                         onChange={(e) =>
-                          handleChange(key as keyof typeof formData, e.target.value)
+                          handleChange(
+                            key as keyof typeof formData,
+                            e.target.value
+                          )
                         }
                         disabled={saving}
                       />
@@ -171,10 +170,7 @@ export default function UserInfoCard({ employee }: UserInfoCardProps) {
               >
                 Close
               </Button>
-              <Button
-                size="sm"
-                disabled={saving}
-              >
+              <Button size="sm" disabled={saving}>
                 {saving ? "Saving..." : "Save Changes"}
               </Button>
             </footer>

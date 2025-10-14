@@ -13,9 +13,9 @@ import Label from "../../../components/form/Label";
 import { useModal } from "../../../hooks/useModal";
 import axiosInstance from "../../../hooks/AxiosInstance/AxiosInstance";
 import { useNavigate } from "react-router";
-import { Search } from "lucide-react";
-import Swal from "sweetalert2";
+import { Loader2, Search } from "lucide-react";
 import { AppContext } from "../../../context/AppContext";
+import Alert from "../../../components/ui/alert/Alert";
 
 interface Employee {
   id: number;
@@ -34,9 +34,7 @@ const statusColors: Record<string, string> = {
 
 export default function EmployeeList() {
   const context = useContext(AppContext);
-  if (!context) {
-    throw new Error("Branch Id is not provided");
-  }
+  if (!context) throw new Error("Branch Id is not provided");
   const { branchId } = context;
 
   const [tableData, setTableData] = useState<Employee[]>([]);
@@ -52,24 +50,35 @@ export default function EmployeeList() {
   const [formData, setFormData] = useState({
     name: "",
     work_date: new Date().toISOString().split("T")[0],
-    overtime: "",
-    advancePayment: "",
+    overtime: 0,
+    advancePayment: 0,
+    productionUnits: 0,
   });
 
   const [searchQuery, setSearchQuery] = useState("");
+
+  // ✅ Updated Alert state format
+  const [alert, setAlert] = useState<{
+    variant: "success" | "error";
+    title: string;
+    message: string;
+  } | null>(null);
 
   const fetchEmployees = async () => {
     try {
       setLoading(true);
       const res = await axiosInstance.get("hr/employees?role=worker", {
-        headers: {
-          "X-Branch-ID": branchId,
-        },
+        headers: { "X-Branch-ID": branchId },
       });
       setTableData(res.data.employees);
       setFilteredData(res.data.employees);
     } catch (err) {
-      console.log(err);
+      console.error(err);
+      setAlert({
+        variant: "error",
+        title: "Load Failed",
+        message: "Unable to load employees.",
+      });
     } finally {
       setLoading(false);
     }
@@ -94,8 +103,9 @@ export default function EmployeeList() {
     setFormData({
       name: employee.name,
       work_date: new Date().toISOString().split("T")[0],
-      overtime: "",
-      advancePayment: "",
+      overtime: 0,
+      advancePayment: 0,
+      productionUnits: 0,
     });
     openModal();
   };
@@ -106,40 +116,49 @@ export default function EmployeeList() {
       setSaving(true);
       const payload = {
         employee_id: selectedEmployee.id,
-        work_date: formData.work_date,
-        overtime_hours: formData.overtime ? parseFloat(formData.overtime) : 0,
-        advance_payment: formData.advancePayment
-          ? parseFloat(formData.advancePayment)
-          : 0,
+        work_date: formData.work_date + "T00:00:00Z",
+        overtime_hours: Number(formData.overtime) || 0,
+        advance_payment: Number(formData.advancePayment) || 0,
+        production_units: Number(formData.productionUnits) || 0,
       };
-      const response = await axiosInstance.post(
-        "/hr/attendance/present/single",
-        payload,
-        {
-          headers: {
-            "Content-Type": "application/json",
-            "X-Branch-ID": branchId,
-          },
-        }
-      );
 
-      if (response.data.error == false) {
-        Swal.fire("Success", "Attendance recorded successfully!", "success");
+      const response = await axiosInstance.post("/hr/worker/progress", payload, {
+        headers: { "X-Branch-ID": branchId },
+      });
+
+      if (response.data.error === false) {
+        setAlert({
+          variant: "success",
+          title: "Success",
+          message: "Attendance recorded successfully!",
+        });
         closeModal();
       } else {
-        Swal.fire(
-          "Error",
-          response.data.message || "Failed to record attendance",
-          "error"
-        );
+        setAlert({
+          variant: "error",
+          title: "Error",
+          message: response.data.message || "Failed to record daily progress.",
+        });
       }
     } catch (err) {
       console.error("Error recording attendance:", err);
-      Swal.fire("Error", "Failed to record attendance", "error");
+      setAlert({
+        variant: "error",
+        title: "Error",
+        message: "Something went wrong while saving progress.",
+      });
     } finally {
       setSaving(false);
     }
   };
+
+  // Auto-hide alert after 3 seconds
+  useEffect(() => {
+    if (alert) {
+      const timer = setTimeout(() => setAlert(null), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [alert]);
 
   if (loading) {
     return (
@@ -162,9 +181,21 @@ export default function EmployeeList() {
           Worker Management
         </h1>
         <p className="text-gray-600 dark:text-gray-400">
-          Manage workers and record attendance
+          Manage workers and record daily progress
         </p>
       </div>
+
+      {/* Alert Message */}
+      {alert && (
+        <div className="mb-4">
+          <Alert
+              variant={alert.variant}
+              title={alert.title}
+              message={alert.message}
+              showLink={false}
+            />
+        </div>
+      )}
 
       {/* Search */}
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4 mb-6 flex items-center gap-2">
@@ -190,7 +221,7 @@ export default function EmployeeList() {
                 <TableCell>Email</TableCell>
                 <TableCell>Mobile</TableCell>
                 <TableCell>Profile</TableCell>
-                <TableCell>Attendance</TableCell>
+                <TableCell>Daily Record</TableCell>
               </TableRow>
             </TableHeader>
 
@@ -242,7 +273,7 @@ export default function EmployeeList() {
                         size="sm"
                         variant="outline"
                       >
-                        Check
+                        Record
                       </Button>
                     </TableCell>
                   </TableRow>
@@ -257,7 +288,7 @@ export default function EmployeeList() {
       <Modal isOpen={isOpen} onClose={closeModal} className="max-w-[500px] m-4">
         <div className="relative w-full p-6 bg-white rounded-3xl dark:bg-gray-900">
           <h4 className="mb-4 text-2xl font-semibold text-gray-800 dark:text-white/90">
-            Record Attendance
+            Record Daily Progress
           </h4>
           <div className="grid grid-cols-1 gap-4">
             <div>
@@ -270,10 +301,7 @@ export default function EmployeeList() {
                 type="date"
                 value={formData.work_date}
                 onChange={(e) =>
-                  setFormData((prev) => ({
-                    ...prev,
-                    work_date: e.target.value,
-                  }))
+                  setFormData((prev) => ({ ...prev, work_date: e.target.value }))
                 }
               />
             </div>
@@ -284,7 +312,10 @@ export default function EmployeeList() {
                 placeholder="Enter overtime hours"
                 value={formData.overtime}
                 onChange={(e) =>
-                  setFormData((prev) => ({ ...prev, overtime: e.target.value }))
+                  setFormData((prev) => ({
+                    ...prev,
+                    overtime: Number(e.target.value),
+                  }))
                 }
               />
             </div>
@@ -297,7 +328,21 @@ export default function EmployeeList() {
                 onChange={(e) =>
                   setFormData((prev) => ({
                     ...prev,
-                    advancePayment: e.target.value,
+                    advancePayment: Number(e.target.value),
+                  }))
+                }
+              />
+            </div>
+            <div>
+              <Label>Production Units</Label>
+              <Input
+                type="number"
+                placeholder="Enter number of units"
+                value={formData.productionUnits}
+                onChange={(e) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    productionUnits: Number(e.target.value),
                   }))
                 }
               />
@@ -309,7 +354,7 @@ export default function EmployeeList() {
               Close
             </Button>
             <Button size="sm" onClick={handleSubmit} disabled={saving}>
-              {saving ? "Submitting..." : "Submit"}
+              {saving ? <Loader2 className="w-5 h-5 animate-spin" /> : "Submit"}
             </Button>
           </div>
         </div>
