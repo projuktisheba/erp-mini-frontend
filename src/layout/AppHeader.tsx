@@ -1,21 +1,9 @@
-import { useContext, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useSidebar } from "../context/SidebarContext";
 import { ThemeToggleButton } from "../components/common/ThemeToggleButton";
 import UserDropdown from "../components/header/UserDropdown";
-import { AppContext } from "../context/AppContext";
-
-const branchList = [
-  { id: 1, name: "AL FANAR ABAYAT" },
-  { id: 2, name: "DIVA ABAYAT" },
-  { id: 3, name: "EID AL ABAYAT" },
-];
 
 const AppHeader: React.FC = () => {
-  const context = useContext(AppContext);
-  if (!context) {
-    throw new Error("Branch ID not provided");
-  }
-  const { branchId } = context;
   const [isApplicationMenuOpen, setApplicationMenuOpen] = useState(false);
 
   const { isMobileOpen, toggleSidebar, toggleMobileSidebar } = useSidebar();
