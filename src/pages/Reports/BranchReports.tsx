@@ -98,7 +98,7 @@ const BranchReports: React.FC = () => {
       acc.expense += item.expense;
       acc.cash += item.cash;
       acc.bank += item.bank;
-      acc.balance += item.balance;
+      acc.balance += item.total_amount-item.expense;
       acc.order_count += item.order_count;
       acc.delivery += item.delivery;
       acc.checkout += item.checkout;
@@ -135,7 +135,7 @@ const BranchReports: React.FC = () => {
         <td>${item.cash}</td>
         <td>${item.bank}</td>
         <td>${item.expense}</td>
-        <td>${item.balance}</td>
+        <td>${item.total_amount-item.expense}</td>
         <td>${item.order_count}</td>
         <td>${item.checkout}</td>
         <td>${item.delivery}</td>
@@ -349,7 +349,7 @@ const BranchReports: React.FC = () => {
                     <td className="px-3 py-2 border-b">{item.cash}</td>
                     <td className="px-3 py-2 border-b">{item.bank}</td>
                     <td className="px-3 py-2 border-b">{item.expense}</td>
-                    <td className="px-3 py-2 border-b">{item.balance}</td>
+                    <td className="px-3 py-2 border-b">{item.total_amount-item.expense}</td>
                   </tr>
                 ))
               )}

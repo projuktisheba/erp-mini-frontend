@@ -28,6 +28,7 @@ import SaleProducts from "./pages/Stock/SaleProducts";
 import StockReport from "./pages/Reports/StockReport";
 import SalesReport from "./pages/Reports/SalesReport";
 import EditSoldProducts from "./pages/Stock/EditSoldProducts";
+import SalaryReport from "./pages/Reports/SalaryReports";
 
 export default function App() {
   return (
@@ -210,7 +211,7 @@ export default function App() {
             />
 
             <Route
-              path="/employee-progress"
+              path="/salesperson-progress"
               element={
                 <ProtectedRoute allowedRoles={["chairman", "manager"]}>
                   <SalesPersonProgress />
@@ -223,6 +224,14 @@ export default function App() {
               element={
                 <ProtectedRoute allowedRoles={["chairman"]}>
                   <WorkerProgress />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/salary-report"
+              element={
+                <ProtectedRoute allowedRoles={["chairman"]}>
+                  <SalaryReport />
                 </ProtectedRoute>
               }
             />

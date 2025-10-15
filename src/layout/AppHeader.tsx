@@ -1,6 +1,4 @@
 import { useContext, useEffect, useRef, useState } from "react";
-
-import { Link } from "react-router";
 import { useSidebar } from "../context/SidebarContext";
 import { ThemeToggleButton } from "../components/common/ThemeToggleButton";
 import UserDropdown from "../components/header/UserDropdown";
@@ -106,10 +104,6 @@ const AppHeader: React.FC = () => {
             )}
             {/* Cross Icon */}
           </button>
-
-          <Link to="/" className="lg:hidden">
-            <h1>{branchName}</h1>
-          </Link>
 
           <button
             onClick={toggleApplicationMenu}

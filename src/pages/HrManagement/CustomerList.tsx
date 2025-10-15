@@ -12,7 +12,7 @@ import Label from "../../components/form/Label";
 import Button from "../../components/ui/button/Button";
 import { Modal } from "../../components/ui/modal";
 import axiosInstance from "../../hooks/AxiosInstance/AxiosInstance";
-import { Search, Edit } from "lucide-react";
+import { Search, Edit, HandCoins } from "lucide-react";
 
 interface Customer {
   id?: number;
@@ -47,6 +47,10 @@ export default function CustomerList() {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
+  const [editingDueCustomer, setEditingDueCustomer] = useState<Customer | null>(
+    null
+  );
+  const [receivedAmount, setReceivedAmount] = useState<number | string>("");
   const [saving, setSaving] = useState(false);
 
   // Fetch customers
@@ -83,6 +87,8 @@ export default function CustomerList() {
   const handleChange = (field: string, value: string) => {
     if (editingCustomer) {
       setEditingCustomer({ ...editingCustomer, [field]: value });
+    } else if (editingDueCustomer) {
+      setEditingDueCustomer({ ...editingDueCustomer, [field]: value });
     }
   };
 
@@ -114,6 +120,55 @@ export default function CustomerList() {
     } catch (err) {
       console.error(err);
       alert("Error updating customer");
+    } finally {
+      setSaving(false);
+    }
+  };
+  const handleReceiveAmount = async () => {
+    if (!editingDueCustomer) return;
+    if (!receivedAmount || Number(receivedAmount) <= 0)
+      return alert("Enter a valid amount");
+
+    setSaving(true);
+    try {
+      const updatedData = {
+        customer_id: editingDueCustomer.id,
+        amount: Number(receivedAmount),
+      };
+
+      const res = await axiosInstance.put(
+        `/mis/customer/due/deduct`,
+        updatedData,
+        { headers: { "X-Branch-ID": branchId } }
+      );
+
+      console.log("Response:", res.data); // 🔹 Add this to see if request responds
+
+      if (res.data.error === false) {
+        // Update local state
+        setCustomers((prev) =>
+          prev.map((c) =>
+            c.id === editingDueCustomer.id
+              ? { ...c, due_amount: c.due_amount - Number(receivedAmount) }
+              : c
+          )
+        );
+        setFilteredCustomers((prev) =>
+          prev.map((c) =>
+            c.id === editingDueCustomer.id
+              ? { ...c, due_amount: c.due_amount - Number(receivedAmount) }
+              : c
+          )
+        );
+
+        setEditingDueCustomer(null);
+        setReceivedAmount("");
+      } else {
+        alert("Failed to update due: " + res.data.message);
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Error updating due amount");
     } finally {
       setSaving(false);
     }
@@ -194,11 +249,25 @@ export default function CustomerList() {
                     <TableCell>{customer.id}</TableCell>
                     <TableCell>{customer.name}</TableCell>
                     <TableCell>{customer.mobile}</TableCell>
-                    <TableCell>{customer.due_amount}</TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-1">
+                        <span className="text-sm text-gray-700">
+                          {customer.due_amount}
+                        </span>
+                        <button
+                          onClick={() => setEditingDueCustomer(customer)}
+                          className="flex items-center gap-1 ml-2 px-1.5 py-0.5 text-xs text-blue-600 bg-white border border-blue-700 rounded-md hover:bg-blue-100 transition"
+                        >
+                          <HandCoins size={12} />
+                          Receive
+                        </button>
+                      </div>
+                    </TableCell>
+
                     <TableCell>{customer.address}</TableCell>
                     <TableCell>
                       <Button
-                        className="m-1 border border-blue-600"
+                        className="flex items-center gap-1 m-2 px-0.5 py-0.5 text-xs text-blue-600 bg-white border border-blue-700 rounded-md hover:bg-blue-100 transition"
                         size="sm"
                         variant="outline"
                         onClick={() => setEditingCustomer(customer)}
@@ -310,6 +379,73 @@ export default function CustomerList() {
                   {saving ? "Saving..." : "Save Changes"}
                 </Button>
               </div>
+            </div>
+          </div>
+        </Modal>
+      )}
+      {editingDueCustomer && (
+        <Modal
+          isOpen={!!editingDueCustomer}
+          onClose={() => setEditingDueCustomer(null)}
+          className="max-w-md m-4"
+        >
+          <div className="p-6 bg-white dark:bg-gray-900 rounded-2xl shadow-lg">
+            {/* Header */}
+            <div className="flex flex-col mb-6">
+              <h3 className="text-2xl font-bold text-gray-800 dark:text-white mb-1">
+                Receive Payment
+              </h3>
+              <p className="text-gray-600 dark:text-gray-300 text-sm">
+                Update the customer's due amount
+              </p>
+            </div>
+
+            {/* Customer Info */}
+            <div className="mb-6 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
+              <p>
+                <span className="font-semibold">Customer:</span>{" "}
+                {editingDueCustomer.name}
+              </p>
+              <p>
+                <span className="font-semibold">Current Due:</span>{" "}
+                {editingDueCustomer.due_amount}
+              </p>
+            </div>
+
+            {/* Input */}
+            <div className="mb-6">
+              <Label>Received Amount</Label>
+              <Input
+                type="number"
+                value={receivedAmount}
+                onChange={(e) => {
+                  let val = Number(e.target.value);
+                  if (val > editingDueCustomer.due_amount)
+                    val = editingDueCustomer.due_amount; // max limit
+                  if (val < 0) val = 0; // optional: prevent negative
+                  setReceivedAmount(val);
+                }}
+                placeholder="Enter amount received"
+                max={editingDueCustomer.due_amount.toString()} // HTML max attribute
+                min="0" // prevent negative
+              />
+              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                Maximum amount: {editingDueCustomer.due_amount}
+              </p>
+            </div>
+
+            {/* Buttons */}
+            <div className="flex justify-end gap-3">
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setEditingDueCustomer(null)}
+              >
+                Cancel
+              </Button>
+              <Button size="sm" onClick={handleReceiveAmount} disabled={saving}>
+                {saving ? "Processing..." : "Save"}
+              </Button>
             </div>
           </div>
         </Modal>

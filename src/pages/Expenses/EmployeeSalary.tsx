@@ -130,141 +130,171 @@ const EmployeeSalary: React.FC = () => {
   };
 
   return (
+    
     <div className="min-h-screen flex justify-center">
-      <div className="w-full p-6 rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
-        <h2 className="text-2xl font-bold mb-6 text-gray-800 dark:text-gray-100 text-center">
-          Employee Salary Input
-        </h2>
+  <div className="w-full p-6 rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
+    <h2 className="text-2xl font-bold mb-6 text-gray-800 dark:text-gray-100 text-center">
+      Employee Salary Input
+    </h2>
 
-        <form
-          onSubmit={handleSubmit}
-          className="grid grid-cols-1 md:grid-cols-2 gap-4"
-        >
-          {/* Date Selector */}
-          <div>
-            <label>Select Date *</label>
-            <input
-              type="date"
-              value={salaryDate}
-              onChange={(e) => setSalaryDate(e.target.value)}
-              className="w-full p-2 border rounded-lg"
-            />
-          </div>
-
-          {/* Employee Selector */}
-          <div className="relative" ref={employeeRef}>
-            <label>Employee *</label>
-            <input
-              type="text"
-              placeholder="Search employee"
-              value={employeeSearch}
-              onChange={(e) => {
-                setEmployeeSearch(e.target.value);
-                setShowDropdown(true);
-              }}
-              className="w-full p-2 border rounded-lg"
-            />
-            {showDropdown && (
-              <ul className="absolute bg-white border w-full max-h-40 overflow-y-auto z-10">
-                {filteredEmployees.length > 0 ? (
-                  filteredEmployees.map((emp) => (
-                    <li
-                      key={emp.id}
-                      className="p-2 hover:bg-gray-200 cursor-pointer"
-                      onClick={() => {
-                        setSelectedEmployee(emp);
-                        setEmployeeSearch(`${emp.name} ${emp.mobile}`);
-                        setShowDropdown(false);
-                      }}
-                    >
-                      {emp.name} - {emp.mobile}
-                    </li>
-                  ))
-                ) : (
-                  <li className="p-2 text-gray-500">No employee found</li>
-                )}
-              </ul>
-            )}
-          </div>
-
-          {/* Employee Info */}
-          {selectedEmployee && (
-            <div className="md:col-span-2 border rounded-lg p-4 bg-gray-50 dark:bg-gray-700">
-              <h3 className="text-lg font-semibold mb-2">Employee Info</h3>
-              <p>
-                <strong>Name:</strong> {selectedEmployee.name}
-              </p>
-              <p>
-                <strong>Role:</strong> {selectedEmployee.role}
-              </p>
-              <p>
-                <strong>Status:</strong> {selectedEmployee.status}
-              </p>
-              <p>
-                <strong>Mobile:</strong> {selectedEmployee.mobile}
-              </p>
-              {selectedEmployee.email && (
-                <p>
-                  <strong>Email:</strong> {selectedEmployee.email}
-                </p>
-              )}
-              {selectedEmployee.passport_no && (
-                <p>
-                  <strong>Passport No:</strong> {selectedEmployee.passport_no}
-                </p>
-              )}
-              <p>
-                <strong>Joining Date:</strong>{" "}
-                {new Date(selectedEmployee.joining_date).toLocaleDateString()}
-              </p>
-              {selectedEmployee.address && (
-                <p>
-                  <strong>Address:</strong> {selectedEmployee.address}
-                </p>
-              )}
-              <p>
-                <strong>Base Salary:</strong> $
-                {selectedEmployee.base_salary.toFixed(2)}
-              </p>
-              <p>
-                <strong>Overtime Rate:</strong> $
-                {selectedEmployee.overtime_rate.toFixed(2)}
-              </p>
-
-              {/* Salary Input */}
-              <div className="mt-4">
-                <label>Enter Salary Amount *</label>
-                <input
-                  type="number"
-                  value={salaryAmount}
-                  onChange={(e) => setSalaryAmount(e.target.value)}
-                  className="w-full p-2 border rounded-lg"
-                  placeholder="Enter salary"
-                />
-              </div>
-            </div>
-          )}
-
-          {/* Submit Button */}
-          {selectedEmployee && (
-            <div className="md:col-span-2 flex justify-end mt-4">
-              <button
-                type="submit"
-                disabled={isSubmitting}
-                className={`px-6 py-2 rounded-lg text-white flex items-center gap-2 justify-center ${
-                  isSubmitting
-                    ? "bg-blue-400 cursor-not-allowed"
-                    : "bg-blue-600 hover:bg-blue-700"
-                }`}
-              >
-                {isSubmitting && <Loader2 className="w-5 h-5 animate-spin" />}
-                {isSubmitting ? "Submitting..." : "Submit Salary"}
-              </button>
-            </div>
-          )}
-        </form>
+    <form onSubmit={handleSubmit} className="grid grid-cols-1 gap-4 w-full">
+      <div className="grid grid-cols-1 gap-4">
+        {/* Date Selector */}
+      <div>
+        <label>Select Date *</label>
+        <input
+          type="date"
+          value={salaryDate}
+          onChange={(e) => setSalaryDate(e.target.value)}
+          className="w-full p-2 border rounded-lg"
+        />
       </div>
-    </div>
+
+      {/* Employee Selector */}
+      <div className="relative" ref={employeeRef}>
+        <label>Employee *</label>
+        <input
+          type="text"
+          placeholder="Search employee"
+          value={employeeSearch}
+          onChange={(e) => {
+            setEmployeeSearch(e.target.value);
+            setShowDropdown(true);
+          }}
+          className="w-full p-2 border rounded-lg"
+        />
+        {showDropdown && (
+          <ul className="absolute bg-white border w-full max-h-40 overflow-y-auto z-10">
+            {filteredEmployees.length > 0 ? (
+              filteredEmployees.map((emp) => (
+                <li
+                  key={emp.id}
+                  className="p-2 hover:bg-gray-200 cursor-pointer"
+                  onClick={() => {
+                    setSelectedEmployee(emp);
+                    setEmployeeSearch(`${emp.name} ${emp.mobile}`);
+                    setShowDropdown(false);
+                  }}
+                >
+                  {emp.name} - {emp.mobile}
+                </li>
+              ))
+            ) : (
+              <li className="p-2 text-gray-500">No employee found</li>
+            )}
+          </ul>
+        )}
+      </div>
+
+      </div>
+      {/* Employee Info */}
+      {selectedEmployee && (
+        <div className="flex flex-col md:flex-row gap-4 w-full">
+          {/* Left Table: Basic Info */}
+          <div className="flex-1 border rounded-lg overflow-hidden bg-gray-50 dark:bg-gray-700">
+            <h3 className="text-lg font-semibold px-4 py-2 bg-gray-100 dark:bg-gray-800">
+              Basic Info
+            </h3>
+            <table className="w-full text-left divide-y divide-gray-200 dark:divide-gray-600">
+              <tbody>
+                <tr>
+                  <td className="px-4 py-2 font-medium">Name</td>
+                  <td className="px-4 py-2">{selectedEmployee.name}</td>
+                </tr>
+                <tr>
+                  <td className="px-4 py-2 font-medium">Role</td>
+                  <td className="px-4 py-2">{selectedEmployee.role}</td>
+                </tr>
+                <tr>
+                  <td className="px-4 py-2 font-medium">Status</td>
+                  <td className="px-4 py-2">{selectedEmployee.status}</td>
+                </tr>
+                <tr>
+                  <td className="px-4 py-2 font-medium">Mobile</td>
+                  <td className="px-4 py-2">{selectedEmployee.mobile}</td>
+                </tr>
+                {selectedEmployee.email && (
+                  <tr>
+                    <td className="px-4 py-2 font-medium">Email</td>
+                    <td className="px-4 py-2">{selectedEmployee.email}</td>
+                  </tr>
+                )}
+                {selectedEmployee.passport_no && (
+                  <tr>
+                    <td className="px-4 py-2 font-medium">Passport No</td>
+                    <td className="px-4 py-2">{selectedEmployee.passport_no}</td>
+                  </tr>
+                )}
+                <tr>
+                  <td className="px-4 py-2 font-medium">Joining Date</td>
+                  <td className="px-4 py-2">
+                    {new Date(selectedEmployee.joining_date).toLocaleDateString()}
+                  </td>
+                </tr>
+                {selectedEmployee.address && (
+                  <tr>
+                    <td className="px-4 py-2 font-medium">Address</td>
+                    <td className="px-4 py-2">{selectedEmployee.address}</td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Right Table: Salary Info */}
+          <div className="flex-1 border rounded-lg overflow-hidden bg-gray-50 dark:bg-gray-700">
+            <h3 className="text-lg font-semibold px-4 py-2 bg-gray-100 dark:bg-gray-800">
+              Salary Info
+            </h3>
+            <table className="w-full text-left divide-y divide-gray-200 dark:divide-gray-600">
+              <tbody>
+                <tr>
+                  <td className="px-4 py-2 font-medium">Base Salary</td>
+                  <td className="px-4 py-2">{selectedEmployee.base_salary.toFixed(2)}</td>
+                </tr>
+                <tr>
+                  <td className="px-4 py-2 font-medium">Overtime Rate</td>
+                  <td className="px-4 py-2">{selectedEmployee.overtime_rate.toFixed(2)}</td>
+                </tr>
+                <tr>
+                  <td className="px-4 py-2 font-medium">Enter Salary *</td>
+                  <td className="px-4 py-2">
+                    <input
+                      type="number"
+                      value={salaryAmount}
+                      onChange={(e) => setSalaryAmount(e.target.value)}
+                      className="w-full p-2 border bg-white border border-gray-300 rounded-lg hover:border-blue-300"
+                      placeholder="Enter salary"
+                    />
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* Submit Button */}
+      {selectedEmployee && (
+        <div className="flex justify-end mt-4">
+          <button
+            type="submit"
+            disabled={isSubmitting}
+            className={`px-6 py-2 rounded-lg text-white flex items-center gap-2 justify-center ${
+              isSubmitting
+                ? "bg-blue-400 cursor-not-allowed"
+                : "bg-blue-600 hover:bg-blue-700"
+            }`}
+          >
+            {isSubmitting && <Loader2 className="w-5 h-5 animate-spin" />}
+            {isSubmitting ? "Submitting..." : "Submit Salary"}
+          </button>
+        </div>
+      )}
+    </form>
+  </div>
+</div>
+
   );
 };
 

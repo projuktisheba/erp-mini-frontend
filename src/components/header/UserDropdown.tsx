@@ -49,6 +49,7 @@ export default function UserDropdown() {
   }, [setBranchId]);
 
   const displayName = userData?.name || "User";
+  const branchName = branchList[branchId-1] || ""
   const displayEmail = userData?.email || "user@example.com";
   const profileImage = userData?.avatar_link
     ? `${API_URL}${userData.avatar_link}`
@@ -114,7 +115,7 @@ export default function UserDropdown() {
           />
         </span>
         <span className="font-medium text-theme-sm text-gray-700 dark:text-gray-400">
-          {displayName}
+          {branchName.name}
         </span>
         <svg
           className={`ml-1 stroke-gray-500 dark:stroke-gray-400 transition-transform duration-200 ${

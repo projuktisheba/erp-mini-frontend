@@ -10,7 +10,6 @@ interface WorkerProgressItem {
   email: string;
   base_salary: number;
   date: string;
-  present_days: number;
   total_advance_payment: number;
   total_production_units: number;
   total_overtime_hours: number;
@@ -126,7 +125,6 @@ const WorkerProgress: React.FC = () => {
       acc.total_production_units += item.total_production_units;
       acc.total_overtime_hours += item.total_overtime_hours;
       acc.total_advance_payment += item.total_advance_payment;
-      acc.present_days += item.present_days;
       return acc;
     },
     {
@@ -194,7 +192,6 @@ const WorkerProgress: React.FC = () => {
           <tr><th>Advance Payment</th><td>${
             item.total_advance_payment
           }</td></tr>
-          <tr><th>Attendance (Days)</th><td>${item.present_days}</td></tr>
         </table>
       </body>
     </html>`;
@@ -218,7 +215,6 @@ const WorkerProgress: React.FC = () => {
           <td>${item.total_production_units}</td>
           <td>${item.total_overtime_hours}</td>
           <td>${item.total_advance_payment}</td>
-          <td>${item.present_days}</td>
         </tr>`
       )
       .join("");
@@ -228,7 +224,6 @@ const WorkerProgress: React.FC = () => {
         acc.total_production_units += item.total_production_units;
         acc.total_overtime_hours += item.total_overtime_hours;
         acc.total_advance_payment += item.total_advance_payment;
-        acc.present_days += item.present_days;
         return acc;
       },
       {
@@ -406,9 +401,6 @@ const WorkerProgress: React.FC = () => {
                 <th className="px-3 py-2 border-b border-gray-200 dark:border-gray-700 text-right">
                   Advance Payment
                 </th>
-                <th className="px-3 py-2 border-b border-gray-200 dark:border-gray-700 text-right">
-                  Attendance (Days)
-                </th>
                 <th className="px-3 py-2 border-b border-gray-200 dark:border-gray-700 text-center">
                   Actions
                 </th>
@@ -418,7 +410,7 @@ const WorkerProgress: React.FC = () => {
               {filteredWorkers.length === 0 ? (
                 <tr>
                   <td
-                    colSpan={7}
+                    colSpan={6}
                     className="text-center py-4 text-gray-500 dark:text-gray-400"
                   >
                     No worker found.
@@ -440,9 +432,6 @@ const WorkerProgress: React.FC = () => {
                     </td>
                     <td className="px-3 py-2 border-b text-right">
                       {item.total_advance_payment}
-                    </td>
-                    <td className="px-3 py-2 border-b text-right">
-                      {item.present_days}
                     </td>
                     <td className="px-3 py-2 border-b text-center">
                       <button
@@ -469,9 +458,6 @@ const WorkerProgress: React.FC = () => {
                 </td>
                 <td className="px-3 py-2 border-b text-right">
                   {totals.total_advance_payment}
-                </td>
-                <td className="px-3 py-2 border-b text-right">
-                  {totals.present_days}
                 </td>
                 <td className="px-3 py-2 border-b"></td>
               </tr>

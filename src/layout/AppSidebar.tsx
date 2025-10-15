@@ -87,8 +87,9 @@ const navItems: NavItem[] = [
       { name: "Purchase Report", path: "/purchase-report", pro: false , roles: ["chairman"] },
       { name: "Sales Report", path: "/sales-report", pro: false , roles: ["chairman"] },
       { name: "Stock Report", path: "/stock-report", pro: false , roles: ["chairman"] },
-      { name: "Employee Progress", path: "/employee-progress", pro: false },
+      { name: "Salesperson Progress", path: "/salesperson-progress", pro: false },
       { name: "Worker Progress", path: "/worker-progress", pro: false , roles: ["chairman"] },
+      { name: "Salary Reports", path: "/salary-report", pro: false , roles: ["chairman"] },
     ],
   },
 ];
