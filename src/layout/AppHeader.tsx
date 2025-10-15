@@ -16,8 +16,6 @@ const AppHeader: React.FC = () => {
     throw new Error("Branch ID not provided");
   }
   const { branchId } = context;
-
-  const [branchName, setBranchName] = useState("");
   const [isApplicationMenuOpen, setApplicationMenuOpen] = useState(false);
 
   const { isMobileOpen, toggleSidebar, toggleMobileSidebar } = useSidebar();
@@ -50,17 +48,6 @@ const AppHeader: React.FC = () => {
       document.removeEventListener("keydown", handleKeyDown);
     };
   }, []);
-
-  useEffect(() => {
-    const selectedBranch = branchList.find(
-      (branch) => branch.id === Number(branchId)
-    );
-    if (selectedBranch) {
-      setBranchName(selectedBranch.name);
-    } else {
-      setBranchName("Erp Mini");
-    }
-  }, [branchId]);
 
   return (
     <header className="sticky top-0 flex w-full bg-white border-gray-200 z-99999 dark:border-gray-800 dark:bg-gray-900 lg:border-b">
