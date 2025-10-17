@@ -59,11 +59,17 @@ interface Account {
   name: string;
 }
 
-type OrderStatus = "pending" | "checkout" | "delivery" | "cancelled";
+type OrderStatus =
+  | "pending"
+  | "checkout"
+  | "partial"
+  | "delivery"
+  | "cancelled";
 
 const statusFlow: OrderStatus[] = [
   "pending",
   "checkout",
+  "partial",
   "delivery",
   "cancelled",
 ];
@@ -90,6 +96,10 @@ export default function Orders() {
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isLoadingItems, setIsLoadingItems] = useState(false);
+  const [loadingButtons, setLoadingButtons] = useState<{
+    [key: string]: boolean;
+  }>({});
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
@@ -135,6 +145,30 @@ export default function Orders() {
     });
     setAccounts(res.data.accounts);
   };
+  const fetchOrderItems = async (order: Order) => {
+    const key = `${order.id}-view`;
+    setLoadingButtons((prev) => ({ ...prev, [key]: true }));
+    const res = await axiosInstance.get(
+      "/orders/items?memo_no=" + order.memo_no,
+      {
+        headers: {
+          "X-Branch-ID": branchId,
+        },
+      }
+    );
+    if (!res.data.error) {
+      order.items = res.data.items;
+      setSelectedOrder(order);
+      console.log(selectedOrder);
+    } else {
+      setAlert({
+        variant: "error",
+        title: "Error",
+        message: res.data.message || `Unable to fetch data`,
+      });
+    }
+    setLoadingButtons((prev) => ({ ...prev, [key]: false }));
+  };
 
   useEffect(() => {
     fetchOrders();
@@ -154,14 +188,11 @@ export default function Orders() {
   }, [alert]);
 
   const filteredOrders = orders.filter((order) => {
+    const query = searchTerm.toLowerCase();
     const matchesSearch =
-      order.memo_no.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      order.id.toString().includes(searchTerm) ||
-      order.customer_id.toString().includes(searchTerm) ||
-      (order.customer_mobile || "")
-        .toString()
-        .toLowerCase()
-        .includes(searchTerm.toLowerCase());
+      order.memo_no.toLowerCase().includes(query) ||
+      order.customer_name.toLowerCase().includes(query) ||
+      order.customer_mobile.includes(query);
 
     const matchesStatus =
       statusFilter === "all" || order.status === statusFilter;
@@ -176,6 +207,8 @@ export default function Orders() {
       checkout:
         "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300",
       cancelled: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300",
+      partial:
+        "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300",
       delivery: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300",
       returned:
         "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300",
@@ -202,8 +235,10 @@ export default function Orders() {
   };
 
   const openModal = (order: Order) => {
-    setSelectedOrder(order);
-    setIsModalOpen(true);
+    fetchOrderItems(order).then(() => {
+      setSelectedOrder(order);
+      setIsModalOpen(true);
+    });
   };
 
   const closeModal = () => {
@@ -342,7 +377,7 @@ export default function Orders() {
     }
     setIsSubmitting(false);
   };
-  
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-96">
@@ -409,6 +444,7 @@ export default function Orders() {
               <option value="all">All</option>
               <option value="pending">Pending</option>
               <option value="checkout">Checkout</option>
+              <option value="partial">Partial Delivery</option>
               <option value="delivery">Delivery</option>
               <option value="cancelled">Cancelled</option>
             </select>
@@ -512,40 +548,101 @@ export default function Orders() {
 
                     <TableCell>
                       <div className="flex p-2 items-center gap-2">
+                        {/* View Button */}
                         <Button
                           onClick={() => openModal(order)}
                           size="sm"
                           variant="outline"
                           className="flex items-center gap-2"
+                          disabled={loadingButtons[`${order.id}-view`]}
                         >
-                          <Eye className="h-4 w-4" />
+                          {loadingButtons[`${order.id}-view`] ? (
+                            <Loader2 className="animate-spin w-4 h-4" />
+                          ) : (
+                            <Eye className="h-4 w-4" />
+                          )}
                         </Button>
 
-                        <Button
-                          disabled={
-                            order.status === "delivery" ||
-                            order.status === "cancelled"
-                          }
-                          onClick={() => handleNextStateClick(order)}
-                          size="sm"
-                          variant="outline"
-                          className="flex items-center gap-2"
-                        >
-                          <ArrowRightFromLine className="h-4 w-4" />
-                        </Button>
+                        {/* Conditional action buttons */}
+                        {order.status === "pending" && (
+                          <>
+                            {/* Checkout */}
+                            <Button
+                              onClick={() => handleNextStateClick(order)}
+                              size="sm"
+                              variant="outline"
+                              className="flex items-center gap-2"
+                              disabled={loadingButtons[`${order.id}-next`]}
+                            >
+                              {loadingButtons[`${order.id}-next`] ? (
+                                <Loader2 className="animate-spin w-4 h-4" />
+                              ) : (
+                                <>
+                                  <ArrowRightFromLine className="h-4 w-4" />
+                                  Checkout
+                                </>
+                              )}
+                            </Button>
 
-                        <Button
-                          disabled={
-                            order.status === "cancelled" ||
-                            order.status === "delivery"
-                          }
-                          onClick={() => handleCancelClick(order)}
-                          size="sm"
-                          variant="outline"
-                          className="flex items-center gap-2"
-                        >
-                          <CircleX className="h-4 w-4" />
-                        </Button>
+                            {/* Cancel */}
+                            <Button
+                              onClick={() => handleCancelClick(order)}
+                              size="sm"
+                              variant="outline"
+                              className="flex items-center gap-2"
+                              disabled={loadingButtons[`${order.id}-cancel`]}
+                            >
+                              {loadingButtons[`${order.id}-cancel`] ? (
+                                <Loader2 className="animate-spin w-4 h-4" />
+                              ) : (
+                                <>
+                                  <CircleX className="h-4 w-4" />
+                                  Cancel
+                                </>
+                              )}
+                            </Button>
+                          </>
+                        )}
+
+                        {order.status === "checkout" && (
+                          <>
+                            {/* Delivery */}
+                            <Button
+                              onClick={() => handleNextStateClick(order)}
+                              size="sm"
+                              variant="outline"
+                              className="flex items-center gap-2"
+                              disabled={loadingButtons[`${order.id}-next`]}
+                            >
+                              {loadingButtons[`${order.id}-next`] ? (
+                                <Loader2 className="animate-spin w-4 h-4" />
+                              ) : (
+                                <>
+                                  <ArrowRightFromLine className="h-4 w-4" />
+                                  Delivery
+                                </>
+                              )}
+                            </Button>
+
+                            {/* Cancel */}
+                            <Button
+                              onClick={() => handleCancelClick(order)}
+                              size="sm"
+                              variant="outline"
+                              className="flex items-center gap-2"
+                              disabled={loadingButtons[`${order.id}-cancel`]}
+                            >
+                              {loadingButtons[`${order.id}-cancel`] ? (
+                                <Loader2 className="animate-spin w-4 h-4" />
+                              ) : (
+                                <>
+                                  <CircleX className="h-4 w-4" />
+                                  Cancel
+                                </>
+                              )}
+                            </Button>
+                          </>
+                        )}
                       </div>
                     </TableCell>
                   </TableRow>
@@ -780,7 +877,8 @@ export default function Orders() {
                     "Confirm"
                   )}
                 </button>
-              ) : ( ""
+              ) : (
+                ""
                 // <button
                 //   onClick={() => handleEdit(selectedOrder!)}
                 //   className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white"
