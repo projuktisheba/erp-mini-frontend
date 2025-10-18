@@ -213,7 +213,7 @@ export default function App() {
             <Route
               path="/salesperson-progress"
               element={
-                <ProtectedRoute allowedRoles={["chairman", "manager"]}>
+                <ProtectedRoute allowedRoles={["chairman"]}>
                   <SalesPersonProgress />
                 </ProtectedRoute>
               }
@@ -222,7 +222,7 @@ export default function App() {
             <Route
               path="/worker-progress"
               element={
-                <ProtectedRoute allowedRoles={["chairman"]}>
+                <ProtectedRoute allowedRoles={["chairman", "manager"]}>
                   <WorkerProgress />
                 </ProtectedRoute>
               }

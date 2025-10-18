@@ -35,6 +35,7 @@ const StockReport: React.FC = () => {
   const [searchMemo, setSearchMemo] = useState("");
   const [showDropdown, setShowDropdown] = useState(false);
   const printRef = useRef<HTMLDivElement>(null);
+  const searchRef = useRef<HTMLDivElement>(null);
 
   // Format date to YYYY-MM-DD
   const formatDate = (date: Date) => date.toISOString().slice(0, 10);
@@ -129,6 +130,21 @@ const StockReport: React.FC = () => {
     setFilteredStocks(filtered);
     setShowDropdown(true);
   };
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        searchRef.current &&
+        !searchRef.current.contains(event.target as Node)
+      ) {
+        setShowDropdown(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
 
   const handleSelect = (stock: StockReportItem) => {
     setSearchMemo(stock.product_name);
@@ -390,17 +406,18 @@ const StockReport: React.FC = () => {
         </div>
 
         {/* Search */}
-        <div className="flex flex-col">
+        <div ref={searchRef} className="relative w-64">
           <input
             type="text"
             placeholder="Search product or memo..."
             value={searchMemo}
             onChange={handleSearchChange}
             onFocus={() => setShowDropdown(true)}
-            className="px-3 py-2 border rounded-lg w-64 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+            className="px-3 py-2 border rounded-lg w-full bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
           />
+
           {showDropdown && (
-            <ul className="absolute z-10 bg-white border rounded-lg shadow-md mt-1 w-64 max-h-48 overflow-y-auto">
+            <ul className="absolute top-full left-0 w-full z-10 bg-white border rounded-lg shadow-md max-h-48 overflow-y-auto mt-1">
               {filteredStocks.map((s) => (
                 <li
                   key={s.id}

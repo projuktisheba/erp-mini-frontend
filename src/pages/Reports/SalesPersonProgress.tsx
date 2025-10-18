@@ -6,8 +6,6 @@ import { printHTML } from "../../utils/printHtml";
 interface SalespersonProgressReport {
   date: string;
   order_count: number;
-  item_count: number;
-  product_name: string;
   sale: number;
   sale_return: number;
   sales_person_name: string;
@@ -134,9 +132,7 @@ const SalesPersonProgress: React.FC = () => {
         <tr>
           <td>${item.date}</td>
           <td>${item.sales_person_name}</td>
-          <td>${item.product_name}</td>
           <td>${item.order_count}</td>
-          <td>${item.item_count}</td>
           <td>${item.sale.toFixed(2)}</td>
           <td>${item.sale_return.toFixed(2)}</td>
         </tr>`
@@ -146,7 +142,6 @@ const SalesPersonProgress: React.FC = () => {
     const totals = filteredEmployees.reduce(
       (acc, item) => {
         acc.order_count += item.order_count;
-        acc.item_count += item.item_count;
         acc.sale += item.sale;
         acc.sale_return += item.sale_return;
         return acc;
@@ -186,8 +181,6 @@ const SalesPersonProgress: React.FC = () => {
             <tr>
               <th>Date</th>
               <th>Employee Name</th>
-              <th>Product Name</th>
-              <th>Order Count</th>
               <th>Item Count</th>
               <th>Sale</th>
               <th>Sale Return</th>
@@ -198,7 +191,6 @@ const SalesPersonProgress: React.FC = () => {
             <tr>
               <td colspan="3">Totals</td>
               <td>${totals.order_count}</td>
-              <td>${totals.item_count}</td>
               <td>${totals.sale.toFixed(2)}</td>
               <td>${totals.sale_return.toFixed(2)}</td>
             </tr>
@@ -215,7 +207,6 @@ const SalesPersonProgress: React.FC = () => {
   const totals = filteredEmployees.reduce(
     (acc, item) => {
       acc.order_count += item.order_count;
-      acc.item_count += item.item_count;
       acc.sale += item.sale;
       acc.sale_return += item.sale_return;
       return acc;
@@ -330,12 +321,6 @@ const SalesPersonProgress: React.FC = () => {
                 <th className="px-3 py-2 border-b border-gray-200 dark:border-gray-700 text-left">
                   Employee Name
                 </th>
-                <th className="px-3 py-2 border-b border-gray-200 dark:border-gray-700 text-left">
-                  Product Name
-                </th>
-                <th className="px-3 py-2 border-b border-gray-200 dark:border-gray-700 text-right">
-                  Order Count
-                </th>
                 <th className="px-3 py-2 border-b border-gray-200 dark:border-gray-700 text-right">
                   Item Count
                 </th>
@@ -368,14 +353,8 @@ const SalesPersonProgress: React.FC = () => {
                       <td className="px-3 py-2 border-b">
                         {item.sales_person_name}
                       </td>
-                      <td className="px-3 py-2 border-b">
-                        {item.product_name}
-                      </td>
                       <td className="px-3 py-2 border-b text-right">
                         {item.order_count}
-                      </td>
-                      <td className="px-3 py-2 border-b text-right">
-                        {item.item_count}
                       </td>
                       <td className="px-3 py-2 border-b text-right">
                         {item.sale.toFixed(2)}
@@ -387,14 +366,11 @@ const SalesPersonProgress: React.FC = () => {
                   ))}
 
                   <tr className="bg-gray-100 dark:bg-gray-700 font-semibold">
-                    <td className="px-3 py-2 border-b text-right" colSpan={3}>
+                    <td className="px-3 py-2 border-b text-right" colSpan={2}>
                       Totals:
                     </td>
                     <td className="px-3 py-2 border-b text-right">
                       {totals.order_count}
-                    </td>
-                    <td className="px-3 py-2 border-b text-right">
-                      {totals.item_count}
                     </td>
                     <td className="px-3 py-2 border-b text-right">
                       {totals.sale.toFixed(2)}

@@ -131,7 +131,6 @@ const WorkerProgress: React.FC = () => {
       total_production_units: 0,
       total_overtime_hours: 0,
       total_advance_payment: 0,
-      present_days: 0,
     }
   );
 
@@ -230,7 +229,6 @@ const WorkerProgress: React.FC = () => {
         total_production_units: 0,
         total_overtime_hours: 0,
         total_advance_payment: 0,
-        present_days: 0,
       }
     );
 
@@ -269,7 +267,6 @@ const WorkerProgress: React.FC = () => {
               <th>Production Units</th>
               <th>Overtime Hours</th>
               <th>Advance Payment</th>
-              <th>Attendance (Days)</th>
             </tr>
           </thead>
           <tbody>${rows}</tbody>
@@ -279,7 +276,6 @@ const WorkerProgress: React.FC = () => {
               <td>${totals.total_production_units}</td>
               <td>${totals.total_overtime_hours}</td>
               <td>${totals.total_advance_payment}</td>
-              <td>${totals.present_days}</td>
             </tr>
           </tfoot>
         </table>

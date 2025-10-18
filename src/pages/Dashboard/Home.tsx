@@ -18,7 +18,7 @@ const branchList = [
 export default function Home() {
   const context = useContext(AppContext);
   if (!context) throw new Error("AppContext not provided");
-  const { branchId } = context;
+  const { branchId, userRole } = context;
   const [products, setProducts] = useState<ProductItem[]>([]);
   const [orderOverview, setOrderOverview] = useState({
     total_orders: 0,
@@ -130,19 +130,20 @@ export default function Home() {
     printHTML(html);
   };
   return (
-    <>
+    
+    <>{userRole==="manager" && <><h1>Welcome</h1></>}
+    
+    {userRole==="chairman" &&
+      <>
       <PageMeta title="ERP Management" description="ERP Management System" />
       <div className="flex flex-col gap-10">
         <EcommerceMetrics
           overview={{
             total_orders: orderOverview.total_orders,
-            total_orders_amount: orderOverview.total_orders_amount,
             pending_orders: orderOverview.pending_orders,
-            pending_orders_amount: orderOverview.pending_orders_amount,
             checkout_orders: orderOverview.checkout_orders,
-            checkout_orders_amount: orderOverview.checkout_orders_amount,
             cancelled_orders: orderOverview.cancelled_orders,
-            cancelled_orders_amount: orderOverview.cancelled_orders_amount,
+            completed_orders: orderOverview.total_orders
           }}
         />
         <div
@@ -203,7 +204,11 @@ export default function Home() {
         <RecentOrders />
         
       </div>
+      </>
+      } 
+
     </>
+    
 
     
   );

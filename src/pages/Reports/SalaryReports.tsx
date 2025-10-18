@@ -300,7 +300,7 @@ const SalaryReport: React.FC = () => {
                 <th className="px-3 py-2 border-b text-left">Name</th>
                 <th className="px-3 py-2 border-b text-left">Role</th>
                 <th className="px-3 py-2 border-b text-right">Base Salary</th>
-                <th className="px-3 py-2 border-b text-right">Overtime</th>
+                <th className="px-3 py-2 border-b text-right">Overtime (Hours)</th>
                 <th className="px-3 py-2 border-b text-right">Total Salary</th>
                 <th className="px-3 py-2 border-b text-center">Actions</th>
               </tr>

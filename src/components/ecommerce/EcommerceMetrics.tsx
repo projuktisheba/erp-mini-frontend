@@ -1,15 +1,11 @@
 import { BoxIconLine } from "../../icons";
-import Badge from "../ui/badge/Badge";
 
 type EcommerceMetricsPropsType = {
   total_orders: number;
-  total_orders_amount: number;
   pending_orders: number;
-  pending_orders_amount: number;
   checkout_orders: number;
-  checkout_orders_amount: number;
+  completed_orders: number;
   cancelled_orders: number;
-  cancelled_orders_amount: number;
 };
 
 export default function EcommerceMetrics({
@@ -31,10 +27,9 @@ export default function EcommerceMetrics({
               Total Orders
             </span>
             <h4 className="mt-2 font-bold text-gray-800 text-title-sm dark:text-white/90">
-              {overview.total_orders_amount}
+              {overview.total_orders}
             </h4>
           </div>
-          <Badge color="success">{overview.total_orders}</Badge>
         </div>
       </div>
       {/* <!-- Metric Item End --> */}
@@ -50,11 +45,9 @@ export default function EcommerceMetrics({
               Pending Orders
             </span>
             <h4 className="mt-2 font-bold text-gray-800 text-title-sm dark:text-white/90">
-              {overview.pending_orders_amount}
+              {overview.pending_orders}
             </h4>
           </div>
-
-          <Badge color="success">{overview.pending_orders}</Badge>
         </div>
       </div>
       {/* <!-- Metric Item End --> */}
@@ -70,11 +63,9 @@ export default function EcommerceMetrics({
               Checkout Orders
             </span>
             <h4 className="mt-2 font-bold text-gray-800 text-title-sm dark:text-white/90">
-              {overview.checkout_orders_amount}
+              {overview.checkout_orders}
             </h4>
           </div>
-
-          <Badge color="success">{overview.checkout_orders}</Badge>
         </div>
       </div>
       {/* <!-- Metric Item End --> */}
@@ -90,11 +81,9 @@ export default function EcommerceMetrics({
               Cancelled Orders
             </span>
             <h4 className="mt-2 font-bold text-gray-800 text-title-sm dark:text-white/90">
-              {overview.cancelled_orders_amount}
+              {overview.cancelled_orders}
             </h4>
           </div>
-
-          <Badge color="error">{overview.cancelled_orders}</Badge>
         </div>
       </div>
       {/* <!-- Metric Item End --> */}

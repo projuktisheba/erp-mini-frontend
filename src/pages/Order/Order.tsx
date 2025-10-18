@@ -15,8 +15,9 @@ import {
   Calendar,
   User,
   CircleX,
-  ArrowRightFromLine,
   Loader2,
+  Package,
+  ShoppingCart,
 } from "lucide-react";
 import { AppContext } from "../../context/AppContext";
 import { formatDate } from "../../utils/dateFormatter";
@@ -46,6 +47,8 @@ interface Order {
   total_payable_amount: number;
   advance_payment_amount: number;
   due_amount: number;
+  total_items: number;
+  items_delivered: number;
   payment_account_id: number;
   status: string;
   notes: string;
@@ -59,17 +62,11 @@ interface Account {
   name: string;
 }
 
-type OrderStatus =
-  | "pending"
-  | "checkout"
-  | "partial"
-  | "delivery"
-  | "cancelled";
+type OrderStatus = "pending" | "checkout" | "delivery" | "cancelled";
 
 const statusFlow: OrderStatus[] = [
   "pending",
   "checkout",
-  "partial",
   "delivery",
   "cancelled",
 ];
@@ -96,7 +93,6 @@ export default function Orders() {
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
-  const [isLoadingItems, setIsLoadingItems] = useState(false);
   const [loadingButtons, setLoadingButtons] = useState<{
     [key: string]: boolean;
   }>({});
@@ -115,7 +111,8 @@ export default function Orders() {
   const [confirmationAction, setConfirmationAction] =
     useState<ConfirmationAction>(null);
   const [deliveryFormData, setDeliveryFormData] = useState({
-    paid_amount: "",
+    paid_amount: 0,
+    total_items_delivered: 0,
     payment_account_id: "",
     exit_date: "",
   });
@@ -187,15 +184,27 @@ export default function Orders() {
     }
   }, [alert]);
 
+
   const filteredOrders = orders.filter((order) => {
     const query = searchTerm.toLowerCase();
+
+    // Check if search term matches
     const matchesSearch =
       order.memo_no.toLowerCase().includes(query) ||
       order.customer_name.toLowerCase().includes(query) ||
       order.customer_mobile.includes(query);
 
-    const matchesStatus =
-      statusFilter === "all" || order.status === statusFilter;
+    // Check status filter
+    let matchesStatus = false;
+    if (statusFilter === "all") {
+      matchesStatus = true;
+    } else if (statusFilter === "partial") {
+      // Partially delivered: some items delivered but not all
+      matchesStatus =
+        order.items_delivered > 0 && order.items_delivered < order.total_items;
+    } else {
+      matchesStatus = order.status === statusFilter;
+    }
 
     return matchesSearch && matchesStatus;
   });
@@ -219,12 +228,6 @@ export default function Orders() {
     );
   };
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: "USD",
-    }).format(amount);
-  };
 
   const getNextStatus = (current: OrderStatus): OrderStatus | null => {
     const index = statusFlow.indexOf(current);
@@ -246,7 +249,8 @@ export default function Orders() {
     setConfirmationAction(null);
     setIsModalOpen(false);
     setDeliveryFormData({
-      paid_amount: "",
+      paid_amount: 0,
+      total_items_delivered: 0,
       payment_account_id: "",
       exit_date: "",
     });
@@ -261,120 +265,134 @@ export default function Orders() {
     setIsModalOpen(true);
   };
 
-  const handleNextStateClick = (order: Order) => {
-    const nextStatus = getNextStatus(order.status as OrderStatus);
+  const handleNextStateClick = async (order: Order) => {
+    let nextStatus = getNextStatus(order.status as OrderStatus);
     if (!nextStatus) return;
-    setConfirmationAction({ type: "nextStatus", order, nextStatus });
-    if (nextStatus === "delivery") {
-      // Set default exit date to today
+
+    if (nextStatus === "delivery" || (nextStatus === "cancelled" && (order.total_items > order.items_delivered))) {
+      //set the nextStatus
+      nextStatus = "delivery"
+      // Prepare delivery form and open modal
       const today = new Date().toISOString().split("T")[0];
+      // const remainingItems = order.items.reduce(
+      //   (sum, item) => sum + item.quantity,
+      //   0
+      // ) - order.items_delivered;
+
       setDeliveryFormData({
-        paid_amount: "",
+        paid_amount: order.total_payable_amount - order.advance_payment_amount,
+        total_items_delivered: order.total_items - order.items_delivered,
         payment_account_id: "",
         exit_date: today,
       });
+
+      setConfirmationAction({ type: "nextStatus", order, nextStatus });
+      setIsModalOpen(true);
+    } else if (nextStatus === "checkout") {
+      // Directly update status without modal
+      setIsSubmitting(true);
+      try {
+        const { data } = await axiosInstance.patch(
+          `/orders/checkout?order_id=${order.id}&branch_id=${branchId}`,
+          {},
+          {
+            headers: { "X-Branch-ID": branchId },
+          }
+        );
+        setAlert({
+          variant: "success",
+          title: "Success",
+          message: data.message || `Order moved to ${nextStatus}`,
+        });
+        fetchOrders();
+      } catch (err) {
+        console.error(err);
+        setAlert({
+          variant: "error",
+          title: "Error",
+          message: "Failed to move order to checkout",
+        });
+      } finally {
+        setIsSubmitting(false);
+      }
     }
-    setIsModalOpen(true);
   };
 
   const handleConfirmAction = async () => {
     if (!confirmationAction) return;
-
     const { type, order } = confirmationAction;
+    setIsModalOpen(false)
     setIsSubmitting(true);
+
     if (type === "cancel") {
       try {
         const { data } = await axiosInstance.delete(
           `/orders?order_id=${order.id}`,
           {
-            headers: {
-              "X-Branch-ID": branchId,
-            },
+            headers: { "X-Branch-ID": branchId },
           }
         );
-        // fetchOrders();
         closeModal();
-        // After
         setAlert({
           variant: "success",
           title: "Success",
           message: data.message || "Order cancelled successfully",
         });
+        fetchOrders();
       } catch (err) {
         console.error(err);
-        // After
         setAlert({
           variant: "error",
           title: "Error",
-          message: "failed to cancel order",
+          message: "Failed to cancel order",
         });
       }
-    } else if (type === "nextStatus") {
-      const { nextStatus } = confirmationAction;
+    } else if (
+      type === "nextStatus" &&
+      confirmationAction.nextStatus === "delivery"
+    ) {
+      const { paid_amount, payment_account_id, exit_date, total_items_delivered } =
+        deliveryFormData;
+      if (!payment_account_id || !exit_date) {
+        setAlert({
+          variant: "warning",
+          title: "Incomplete",
+          message: "Please fill all delivery information",
+        });
+        setIsSubmitting(false);
+        return;
+      }
 
-      if (nextStatus === "delivery") {
-        if (
-          !deliveryFormData.paid_amount ||
-          !deliveryFormData.payment_account_id ||
-          !deliveryFormData.exit_date
-        ) {
-          // alert("Please fill all delivery information");
-          return;
-        }
-
-        try {
-          const { data } = await axiosInstance.patch(
-            `/orders/delivery`,
-            {
-              order_id: order.id,
-              exit_date: deliveryFormData.exit_date,
-              paid_amount: Number(deliveryFormData.paid_amount),
-              payment_account_id: Number(deliveryFormData.payment_account_id),
-            },
-            {
-              headers: {
-                "X-Branch-ID": branchId,
-              },
-            }
-          );
-          // fetchOrders();
-          closeModal();
-          // After
-          setAlert({
-            variant: "success",
-            title: "Success",
-            message: data.message || "Order marked as delivered",
-          });
-        } catch (err) {
-          console.error(err);
-          // alert("Failed to deliver order");
-        }
-      } else {
-        try {
-          console.log("printing branch id: ", branchId);
-          const { data } = await axiosInstance.patch(
-            `/orders/checkout?order_id=${order.id}&branch_id=${branchId}`,
-            {
-              headers: {
-                "X-Branch-ID": branchId,
-              },
-            }
-          );
-          // fetchOrders();
-          closeModal();
-          // After
-          setAlert({
-            variant: "success",
-            title: "Success",
-            message: data.message || `Order moved to ${nextStatus}`,
-          });
-        } catch (err) {
-          console.log(err);
-          console.error(err);
-          // alert("Failed to update order status");
-        }
+      try {
+        const { data } = await axiosInstance.patch(
+          `/orders/delivery`,
+          {
+            order_id: order.id,
+            exit_date,
+            paid_amount: Number(paid_amount),
+            total_items_delivered: total_items_delivered,
+            payment_account_id: Number(payment_account_id),
+            
+          },
+          { headers: { "X-Branch-ID": branchId } }
+        );
+        closeModal();
+        setAlert({
+          variant: "success",
+          title: "Success",
+          message: data.message || "Order marked as delivered",
+        });
+        fetchOrders();
+      } catch (err) {
+        console.error(err);
+        setAlert({
+          variant: "error",
+          title: "Error",
+          message: "Failed to mark order as delivered",
+        });
       }
     }
+
     setIsSubmitting(false);
   };
 
@@ -511,19 +529,19 @@ export default function Orders() {
                       <div className="space-y-1">
                         <div className="flex items-center gap-2">
                           <span className="font-semibold text-sm text-gray-900 dark:text-white">
-                            Payable:{" "}
-                            {formatCurrency(order.total_payable_amount)}
+                            Payable:{" QR "}
+                            {order.total_payable_amount}
                           </span>
                         </div>
                         {order.advance_payment_amount > 0 && (
                           <div className="text-xs font-medium text-green-600 dark:text-green-400">
-                            Advance:{" "}
-                            {formatCurrency(order.advance_payment_amount)}
+                            Advance:{" QR "}
+                            {order.advance_payment_amount}
                           </div>
                         )}
                         {order.due_amount > 0 && (
                           <div className="text-xs text-red-600 dark:text-red-400">
-                            Due: {formatCurrency(order.due_amount)}
+                            Due:{" QR "}{order.due_amount}
                           </div>
                         )}
                       </div>
@@ -535,7 +553,8 @@ export default function Orders() {
                         color={
                           (order.status === "pending"
                             ? "warning"
-                            : order.status === "checkout"
+                            : order.status === "checkout" ||
+                              order.total_items > order.items_delivered
                             ? "info"
                             : order.status === "delivery"
                             ? "success"
@@ -570,7 +589,7 @@ export default function Orders() {
                             <Button
                               onClick={() => handleNextStateClick(order)}
                               size="sm"
-                              variant="outline"
+                              variant="info"
                               className="flex items-center gap-2"
                               disabled={loadingButtons[`${order.id}-next`]}
                             >
@@ -578,39 +597,21 @@ export default function Orders() {
                                 <Loader2 className="animate-spin w-4 h-4" />
                               ) : (
                                 <>
-                                  <ArrowRightFromLine className="h-4 w-4" />
+                                  <ShoppingCart className="h-4 w-4" />
                                   Checkout
-                                </>
-                              )}
-                            </Button>
-
-                            {/* Cancel */}
-                            <Button
-                              onClick={() => handleCancelClick(order)}
-                              size="sm"
-                              variant="outline"
-                              className="flex items-center gap-2"
-                              disabled={loadingButtons[`${order.id}-cancel`]}
-                            >
-                              {loadingButtons[`${order.id}-cancel`] ? (
-                                <Loader2 className="animate-spin w-4 h-4" />
-                              ) : (
-                                <>
-                                  <CircleX className="h-4 w-4" />
-                                  Cancel
                                 </>
                               )}
                             </Button>
                           </>
                         )}
 
-                        {order.status === "checkout" && (
+                        {(order.status === "checkout" || (order.total_items > order.items_delivered)) && (
                           <>
                             {/* Delivery */}
                             <Button
                               onClick={() => handleNextStateClick(order)}
                               size="sm"
-                              variant="outline"
+                              variant="primary"
                               className="flex items-center gap-2"
                               disabled={loadingButtons[`${order.id}-next`]}
                             >
@@ -618,17 +619,22 @@ export default function Orders() {
                                 <Loader2 className="animate-spin w-4 h-4" />
                               ) : (
                                 <>
-                                  <ArrowRightFromLine className="h-4 w-4" />
-                                  Delivery
+                                  <Package className="h-4 w-4" />
+                                  Delivery &nbsp;
                                 </>
                               )}
                             </Button>
+                          </>
+                        )}
 
+                        {(order.status === "pending" ||
+                          order.status === "checkout") && (
+                          <>
                             {/* Cancel */}
                             <Button
                               onClick={() => handleCancelClick(order)}
                               size="sm"
-                              variant="outline"
+                              variant="warning"
                               className="flex items-center gap-2"
                               disabled={loadingButtons[`${order.id}-cancel`]}
                             >
@@ -683,24 +689,6 @@ export default function Orders() {
                     <div className="space-y-4">
                       <div>
                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                          Paid Amount
-                        </label>
-                        <input
-                          type="number"
-                          placeholder="Enter paid amount"
-                          value={deliveryFormData.paid_amount}
-                          onChange={(e) =>
-                            setDeliveryFormData((prev) => ({
-                              ...prev,
-                              paid_amount: e.target.value,
-                            }))
-                          }
-                          className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
-                        />
-                      </div>
-
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                           Payment Account
                         </label>
                         <select
@@ -719,9 +707,45 @@ export default function Orders() {
                               {account.name}
                             </option>
                           ))}
+                          
                         </select>
                       </div>
-
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                          Paid Amount
+                        </label>
+                        <input
+                          type="number"
+                          min={0}
+                          placeholder="Enter paid amount"
+                          value={deliveryFormData.paid_amount}
+                          onChange={(e) =>
+                            setDeliveryFormData((prev) => ({
+                              ...prev,
+                              paid_amount: Number(e.target.value || 0),
+                            }))
+                          }
+                          className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                          Total Items
+                        </label>
+                        <input
+                          type="number"
+                          min={0}
+                          placeholder="Enter delivered items"
+                          value={deliveryFormData.total_items_delivered}
+                          onChange={(e) =>
+                            setDeliveryFormData((prev) => ({
+                              ...prev,
+                              total_items_delivered: Number(e.target.value || 0),
+                            }))
+                          }
+                          className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+                        />
+                      </div>
                       <div>
                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                           Exit Date
@@ -805,8 +829,8 @@ export default function Orders() {
                               {selectedOrder?.status || "-"}
                             </span>{" "}
                             <br />
-                            <strong>Notes: </strong>{" "}
-                            {selectedOrder?.notes || "-"}
+                            <strong>Paid Amount: </strong>{" "}
+                            {selectedOrder?.advance_payment_amount}
                           </td>
                           <td className="px-4 py-2">
                             <strong>Order Date:</strong>{" "}
@@ -837,10 +861,11 @@ export default function Orders() {
                             <th className="px-4 py-2 text-left">
                               Product Name
                             </th>
-                            <th className="px-4 py-2 text-left">Quantity</th>
-                            <th className="px-4 py-2 text-left">Total</th>
+                            <th className="px-4 py-2 text-right">Quantity</th>
+                            <th className="px-4 py-2 text-right">Total</th>
                           </tr>
                         </thead>
+
                         <tbody>
                           {selectedOrder?.items.map((item) => (
                             <tr
@@ -848,13 +873,29 @@ export default function Orders() {
                               className="border-t dark:border-gray-700"
                             >
                               <td className="px-4 py-2">{item.product_name}</td>
-                              <td className="px-4 py-2">{item.quantity}</td>
-                              <td className="px-4 py-2 font-medium">
-                                {formatCurrency(item.total_price)}
+                              <td className="px-4 py-2 text-right ">
+                                {item.quantity}
+                              </td>
+                              <td className="px-4 py-2 font-medium text-right ">
+                                {" QR "+(item.total_price)}
                               </td>
                             </tr>
                           ))}
                         </tbody>
+
+                        <tfoot>
+                          <tr className="border-t dark:border-gray-700 bg-gray-50 dark:bg-gray-800">
+                            <td
+                              className="px-4 py-2 text-left text-gray-700 dark:text-gray-300"
+                              colSpan={2}
+                            >
+                              <strong>Partial Delivery Items:</strong>
+                            </td>
+                            <td className="px-4 py-2 text-right text-gray-800 dark:text-gray-200 font-semibold">
+                              {selectedOrder?.items_delivered || 0}
+                            </td>
+                          </tr>
+                        </tfoot>
                       </table>
                     </div>
                   </div>
