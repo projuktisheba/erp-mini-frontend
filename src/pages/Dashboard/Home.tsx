@@ -18,7 +18,7 @@ const branchList = [
 export default function Home() {
   const context = useContext(AppContext);
   if (!context) throw new Error("AppContext not provided");
-  const { branchId, userRole } = context;
+  const { branchId } = context;
   const [products, setProducts] = useState<ProductItem[]>([]);
   const [orderOverview, setOrderOverview] = useState({
     total_orders: 0,
@@ -131,9 +131,6 @@ export default function Home() {
   };
   return (
     
-    <>{userRole==="manager" && <><h1>Welcome</h1></>}
-    
-    {userRole==="chairman" &&
       <>
       <PageMeta title="ERP Management" description="ERP Management System" />
       <div className="flex flex-col gap-10">
@@ -205,11 +202,6 @@ export default function Home() {
         
       </div>
       </>
-      } 
-
-    </>
-    
-
-    
+  
   );
 }

@@ -71,7 +71,7 @@ const TransactionReport: React.FC = () => {
     setLoading(true);
     try {
       // Adjust endpoint to your backend route for transactions
-      const res = await axiosInstance.get(`/transactions`, {
+      const res = await axiosInstance.get(`/transactions/list`, {
         headers: { "X-Branch-ID": branchId },
         params: {
           start_date: startDate,
