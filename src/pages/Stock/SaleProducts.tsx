@@ -41,6 +41,7 @@ const SaleProducts: React.FC = () => {
     paid_amount: 0,
     due_amount: 0,
     payment_account_id: 0,
+    memo_no: "",
     notes: "",
     items: [] as ProductItem[],
   });
@@ -258,6 +259,13 @@ const SaleProducts: React.FC = () => {
         title: "",
         message: "Payment required",
       });
+    } 
+    if (!formData.memo_no) {
+      return setAlert({
+        variant: "error",
+        title: "",
+        message: "Memo number required",
+      });
     }
     if (formData.items.length === 0)
       return setAlert({
@@ -304,6 +312,7 @@ const SaleProducts: React.FC = () => {
     const html = `
       <h1>Sale Memo</h1>
       <p>Date: ${formData.sale_date}</p>
+      <p>Memo: ${formData.memo_no}</p>
       <table border="1" cellspacing="0" cellpadding="5">
         <thead><tr><th>Product</th><th>Quantity</th><th>Total</th></tr></thead>
         <tbody>
@@ -341,7 +350,7 @@ const SaleProducts: React.FC = () => {
           className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"
         >
           <div>
-            <label>Sale Date</label>
+            <label>Sale Date * </label>
             <input
               type="date"
               name="sale_date"
@@ -353,7 +362,7 @@ const SaleProducts: React.FC = () => {
 
           {/* Salesperson search */}
           <div className="relative" ref={salespersonRef}>
-            <label>Salesperson</label>
+            <label>Salesperson * </label>
             <input
               type="text"
               placeholder="Search by ID or Name"
@@ -394,7 +403,7 @@ const SaleProducts: React.FC = () => {
 
           {/* Customer search */}
           <div className="relative" ref={customerRef}>
-            <label>Customer</label>
+            <label>Customer * </label>
             <input
               type="text"
               placeholder="Search by Name or Mobile"
@@ -440,7 +449,7 @@ const SaleProducts: React.FC = () => {
           </div>
 
           <div>
-            <label>Paid Payment</label>
+            <label>Paid Payment * </label>
             <input
               type="number"
               name="paid_amount"
@@ -463,7 +472,7 @@ const SaleProducts: React.FC = () => {
 
           {/* Payment Account Field */}
           <div>
-            <label>Payment Account</label>
+            <label>Payment Account * </label>
             <select
               name="payment_account_id"
               value={formData.payment_account_id}
@@ -483,7 +492,17 @@ const SaleProducts: React.FC = () => {
             </select>
           </div>
 
-          <div className="sm:col-span-2 md:col-span-2 lg:col-span-2">
+          <div>
+            <label>Memo No. * </label>
+            <input
+              name="memo_no"
+              value={formData.memo_no}
+              onChange={handleChange}
+              className="w-full p-2 border rounded-lg"
+            />
+          </div>
+
+           <div>
             <label>Notes</label>
             <textarea
               name="notes"

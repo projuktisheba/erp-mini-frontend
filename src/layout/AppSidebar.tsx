@@ -90,6 +90,7 @@ const navItems: NavItem[] = [
       { name: "Salesperson Progress", path: "/salesperson-progress", pro: false, roles: ["chairman"] },
       { name: "Worker Progress", path: "/worker-progress", pro: false , roles: ["chairman","manager"] },
       { name: "Salary Reports", path: "/salary-report", pro: false , roles: ["chairman"] },
+      { name: "Transaction Reports", path: "/transaction-report", pro: false , roles: ["chairman"] },
     ],
   },
 ];

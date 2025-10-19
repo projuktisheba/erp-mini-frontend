@@ -30,6 +30,7 @@ const AddOrder: React.FC = () => {
   const [formData, setFormData] = useState({
     order_date: getCurrentDate(),
     delivery_date: getCurrentDate(),
+    memo_no:"",
     salesperson_id: 0,
     customer_id: 0,
     total_payable_amount: 0,
@@ -218,6 +219,10 @@ const AddOrder: React.FC = () => {
       Swal.fire("Error", "Please select salesman and customer", "error");
       return;
     }
+    if (!formData.memo_no) {
+      Swal.fire("Error", "Please select enter memo no.", "error");
+      return;
+    }
     if (!formData.payment_account_id) {
       Swal.fire("Error", "Please select the payment method", "error");
       return;
@@ -249,6 +254,8 @@ const AddOrder: React.FC = () => {
       if (!res.data.error) {
         Swal.fire("Success", "Order created successfully", "success");
         navigate("/orders");
+      } else if (res.data.message.includes('orders_memo_no_branch_id_key')){
+        Swal.fire("Error", "Duplicate memo is not allowed. Please enter unique memo number")
       }
     } catch (error: any) {
       console.error("Order creation error:", error);
@@ -274,7 +281,7 @@ const AddOrder: React.FC = () => {
           className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
         >
           <div>
-            <label>Order Date</label>
+            <label>Order Date * </label>
             <input
               type="date"
               name="order_date"
@@ -284,20 +291,9 @@ const AddOrder: React.FC = () => {
             />
           </div>
 
-          <div>
-            <label>Delivery Date</label>
-            <input
-              type="date"
-              name="delivery_date"
-              value={formData.delivery_date}
-              onChange={handleChange}
-              className="w-full p-2 border rounded-lg"
-            />
-          </div>
-
           {/* Salesman search */}
           <div className="relative" ref={salesmanRef}>
-            <label>Salesman</label>
+            <label>Salesman * </label>
             <input
               type="text"
               placeholder="Search by ID or Name"
@@ -336,7 +332,7 @@ const AddOrder: React.FC = () => {
 
           {/* Customer search */}
           <div className="relative" ref={customerRef}>
-            <label>Customer</label>
+            <label>Customer * </label>
             <input
               type="text"
               placeholder="Search by Name or Mobile"
@@ -363,39 +359,23 @@ const AddOrder: React.FC = () => {
                       {c.name} {c.mobile ? `(${c.mobile})` : ""}
                     </li>
                   ))
-                ) : (
-                  <li
-                    className="p-2 bg-green-100 hover:bg-green-200 cursor-pointer"
-                    onClick={async () => {
-                      try {
-                        const { data } = await axiosInstance.post(
-                          `/mis/customer`,
-                          { name: customerSearch },
-                          { headers: { "X-Branch-ID": branchId } }
-                        );
-
-                        setCustomers((prev) => [...prev, data.customer]);
-                        setFormData((prev) => ({
-                          ...prev,
-                          customer_id: data.customer.id,
-                        }));
-                        setCustomerSearch(data.customer.name);
-                        setShowCustomerDropdown(false);
-                        Swal.fire("Success", "Customer added", "success");
-                      } catch {
-                        Swal.fire(
-                          "Error",
-                          "Failed to create customer",
-                          "error"
-                        );
-                      }
-                    }}
-                  >
-                    ➕ Add new customer "{customerSearch}"
+                ) : (<li>
+                    No customer found
                   </li>
                 )}
               </ul>
             )}
+          </div>
+
+          <div>
+            <label>Delivery Date * </label>
+            <input
+              type="date"
+              name="delivery_date"
+              value={formData.delivery_date}
+              onChange={handleChange}
+              className="w-full p-2 border rounded-lg"
+            />
           </div>
 
           {/* Amounts */}
@@ -410,7 +390,7 @@ const AddOrder: React.FC = () => {
           </div>
 
           <div>
-            <label>Advance Payment</label>
+            <label>Advance Payment * </label>
             <input
               type="number"
               name="advance_payment_amount"
@@ -430,9 +410,9 @@ const AddOrder: React.FC = () => {
             />
           </div>
 
-          {/* ✅ Dynamic Payment Account Field */}
+          {/* Payment Account Field */}
           <div>
-            <label>Payment Account</label>
+            <label>Payment Account * </label>
             <select
               name="payment_account_id"
               value={formData.payment_account_id}
@@ -452,13 +432,23 @@ const AddOrder: React.FC = () => {
             </select>
           </div>
 
+          <div>
+            <label>Memo No * </label>
+            <input
+              name="memo_no"
+              value={formData.memo_no}
+              onChange={handleChange}
+              className="w-full p-2 border rounded-lg"
+            />
+          </div>
+
           <div className="md:col-span-3">
             <label>Notes</label>
             <textarea
               name="notes"
               value={formData.notes}
               onChange={handleChange}
-              rows={3}
+              rows={2}
               className="w-full p-2 border rounded-lg"
             />
           </div>

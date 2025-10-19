@@ -29,6 +29,7 @@ import StockReport from "./pages/Reports/StockReport";
 import SalesReport from "./pages/Reports/SalesReport";
 import EditSoldProducts from "./pages/Stock/EditSoldProducts";
 import SalaryReport from "./pages/Reports/SalaryReports";
+import TransactionReport from "./pages/Reports/TransactionReport";
 
 export default function App() {
   return (
@@ -232,6 +233,13 @@ export default function App() {
               element={
                 <ProtectedRoute allowedRoles={["chairman"]}>
                   <SalaryReport />
+                </ProtectedRoute>
+              }
+            /><Route
+              path="/transaction-report"
+              element={
+                <ProtectedRoute allowedRoles={["chairman"]}>
+                  <TransactionReport />
                 </ProtectedRoute>
               }
             />
