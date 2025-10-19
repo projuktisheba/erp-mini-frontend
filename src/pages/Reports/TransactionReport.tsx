@@ -41,7 +41,7 @@ const TransactionReport: React.FC = () => {
   const [filteredTransactions, setFilteredTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(false);
 
-  const [searchMemo, setSearchMemo] = useState("");
+  const [searchTransaction, setSearchTransaction] = useState("");
   const [showDropdown, setShowDropdown] = useState(false);
   const printRef = useRef<HTMLDivElement>(null);
   const searchRef = useRef<HTMLDivElement>(null);
@@ -109,7 +109,7 @@ const TransactionReport: React.FC = () => {
   // --- Search handlers ---
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
-    setSearchMemo(value);
+    setSearchTransaction(value);
 
     if (value === "") {
       setFilteredTransactions(transactions);
@@ -147,7 +147,7 @@ const TransactionReport: React.FC = () => {
   }, []);
 
   const handleSelect = (tx: Transaction) => {
-    setSearchMemo(tx.memo_no);
+    setSearchTransaction(tx.memo_no);
     const allMatching = transactions.filter((t) => t.memo_no === tx.memo_no);
     setFilteredTransactions(allMatching);
     setShowDropdown(false);
@@ -167,8 +167,8 @@ const TransactionReport: React.FC = () => {
         <td>${(t.created_at || "").slice(0, 10)}</td>
         <td>${t.memo_no}</td>
         <td>${t.transaction_id || ""}</td>
-        <td>${t.from_account_name} (${t.from_type})</td>
-        <td>${t.to_account_name} (${t.to_type})</td>
+        <td>${t.from_account_name} (${t.from_type.slice(0, -1)})</td>
+        <td>${t.to_account_name} (${t.to_type.slice(0, -1)})</td>
         <td>${t.transaction_type}</td>
         <td style="text-align:right">${Number(t.amount || 0).toFixed(2)}</td>
         <td>${t.notes || ""}</td>
@@ -215,7 +215,7 @@ const TransactionReport: React.FC = () => {
               <tr>
                 <th>Date</th>
                 <th>Memo No</th>
-                <th>Transaction ID</th>
+                <th>Tx ID</th>
                 <th>From</th>
                 <th>To</th>
                 <th>Type</th>
@@ -231,7 +231,7 @@ const TransactionReport: React.FC = () => {
     `;
     printHTML(html);
   };
-  // Print main stock table
+  // Print main transaction table
   const handlePrintTable = () => {
     if (filteredTransactions.length === 0) {
       alert("No transaction data to print!");
@@ -245,8 +245,8 @@ const TransactionReport: React.FC = () => {
         <td>${(t.created_at || "").slice(0, 10)}</td>
         <td>${t.memo_no}</td>
         <td>${t.transaction_id || ""}</td>
-        <td>${t.from_account_name} (${t.from_type})</td>
-        <td>${t.to_account_name} (${t.to_type})</td>
+        <td>${t.from_account_name} (${t.from_type.slice(0, -1)})</td>
+        <td>${t.to_account_name} (${t.to_type.slice(0, -1)})</td>
         <td>${t.transaction_type}</td>
         <td style="text-align:right">${Number(t.amount || 0).toFixed(2)}</td>
         <td>${t.notes || ""}</td>
@@ -290,12 +290,12 @@ const TransactionReport: React.FC = () => {
               <tr>
                 <th>Date</th>
                 <th>Memo No</th>
-                <th>Transaction ID</th>
+                <th>Tx ID</th>
                 <th>From</th>
                 <th>To</th>
                 <th>Type</th>
                 <th>Amount</th>
-                <th>Notes</th>
+                <th colspan=2>Notes</th>
               </tr>
             </thead>
             <tbody>${rows}</tbody>
@@ -312,7 +312,7 @@ const TransactionReport: React.FC = () => {
   return (
     <div className="container mx-auto p-4">
       <h1 className="text-2xl font-bold mb-4 text-gray-900 dark:text-white">
-        Stock Reports
+        Transaction Reports
       </h1>
 
       {/* Filters */}
@@ -360,8 +360,8 @@ const TransactionReport: React.FC = () => {
         <div ref={searchRef} className="relative w-64">
           <input
             type="text"
-            placeholder="Search product or memo..."
-            value={searchMemo}
+            placeholder="Search transaction..."
+            value={searchTransaction}
             onChange={handleSearchChange}
             onFocus={() => setShowDropdown(true)}
             className="px-3 py-2 border rounded-lg w-full bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
@@ -400,7 +400,7 @@ const TransactionReport: React.FC = () => {
       {/* Table */}
       {loading ? (
         <div className="text-center py-10 text-gray-500 dark:text-gray-400">
-          Loading stock reports...
+          Loading transaction reports...
         </div>
       ) : (
         <div
@@ -423,14 +423,14 @@ const TransactionReport: React.FC = () => {
           <table className="min-w-full text-sm text-gray-700 dark:text-gray-200">
             <thead className="bg-gray-100 dark:bg-gray-800">
               <tr>
-                <th className="px-3 py-2 border-b text-center">Date</th>
-                <th className="px-3 py-2 border-b text-center">Memo No</th>
-                <th className="px-3 py-2 border-b text-center">Transaction ID</th>
-                <th className="px-3 py-2 border-b text-center">From</th>
-                <th className="px-3 py-2 border-b text-center">To</th>
-                <th className="px-3 py-2 border-b text-center">Type</th>
-                <th className="px-3 py-2 border-b text-center">Amount</th>
-                <th className="px-3 py-2 border-b text-center">Notes</th>
+                <th className="px-3 py-2 border-b text-left">Date</th>
+                <th className="px-3 py-2 border-b text-left">Memo No</th>
+                <th className="px-3 py-2 border-b text-left">Transaction ID</th>
+                <th className="px-3 py-2 border-b text-left">From</th>
+                <th className="px-3 py-2 border-b text-left">To</th>
+                <th className="px-3 py-2 border-b text-left">Type</th>
+                <th className="px-3 py-2 border-b text-right">Amount</th>
+                <th className="px-3 py-2 border-b text-left">Notes</th>
               </tr>
             </thead>
             <tbody>
@@ -449,14 +449,14 @@ const TransactionReport: React.FC = () => {
                     key={t.id}
                     className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
                   >
-                    <td className="px-3 py-2 border-b text-center">{(t.created_at || "").slice(0, 10)}</td>
-                    <td className="px-3 py-2 border-b text-center">{t.memo_no}</td>
-                    <td className="px-3 py-2 border-b text-center">{t.transaction_id || ""}</td>
-                    <td className="px-3 py-2 border-b text-center">{t.from_account_name} ({t.from_type})</td>
-                    <td className="px-3 py-2 border-b text-center">{t.to_account_name} ({t.to_type})</td>
-                    <td className="px-3 py-2 border-b text-center">{t.transaction_type}</td>
-                    <td className="px-3 py-2 border-b text-center">{Number(t.amount || 0).toFixed(2)}</td>
-                    <td className="px-3 py-2 border-b text-center">{t.notes || ""}</td>
+                    <td className="px-3 py-2 border-b text-left">{(t.created_at || "").slice(0, 10)}</td>
+                    <td className="px-3 py-2 border-b text-left">{t.memo_no}</td>
+                    <td className="px-3 py-2 border-b text-left">{t.transaction_id || ""}</td>
+                    <td className="px-3 py-2 border-b text-left">{t.from_account_name} ({t.from_type.slice(0, -1)})</td>
+                    <td className="px-3 py-2 border-b text-left">{t.to_account_name} ({t.to_type.slice(0, -1)})</td>
+                    <td className="px-3 py-2 border-b text-left">{t.transaction_type}</td>
+                    <td className="px-3 py-2 border-b text-right">{Number(t.amount || 0).toFixed(2)}</td>
+                    <td className="px-3 py-2 border-b text-left">{t.notes || ""}</td>
                   </tr>
                 ))
               )}
@@ -465,8 +465,8 @@ const TransactionReport: React.FC = () => {
               {filteredTransactions.length > 0 && (
                 <tr className="bg-gray-100 dark:bg-gray-700 font-semibold">
                   <td colSpan={6} className="px-3 py-2 border-b text-right">Total Amount</td>
-                  <td className="px-3 py-2 border-b text-center">{totals.total_amount.toFixed(2)}</td>
-                  <td className="px-3 py-2 border-b text-center"></td>
+                  <td className="px-3 py-2 border-b text-right">{totals.total_amount.toFixed(2)}</td>
+                  <td className="px-3 py-2 border-b text-right"></td>
                 </tr>
               )}
             </tfoot>
