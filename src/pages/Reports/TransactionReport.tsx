@@ -3,13 +3,22 @@ import axiosInstance from "../../hooks/AxiosInstance/AxiosInstance";
 import { AppContext } from "../../context/AppContext";
 import { printHTML } from "../../utils/printHtml";
 
+// Match backend model
 interface Transaction {
   id: number;
+  transaction_id?: string; // optional unique identifier if provided
   memo_no: string;
-  stock_date: string;
-  branch_name: string;
-  product_name: string;
-  quantity: number;
+  branch_id: number;
+  from_id: number;
+  from_account_name: string;
+  from_type: string; // customers, employees, accounts, etc.
+  to_id: number;
+  to_account_name: string;
+  to_type: string; // customers, employees, accounts, etc.
+  amount: number;
+  transaction_type: string; // payment, refund, adjustment, salary
+  created_at: string; // ISO string
+  notes?: string;
 }
 
 const branchList = [
@@ -28,8 +37,8 @@ const TransactionReport: React.FC = () => {
   );
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
-  const [data, setData] = useState<Transaction[]>([]);
-  const [filteredStocks, setFilteredStocks] = useState<Transaction[]>([]);
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [filteredTransactions, setFilteredTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(false);
 
   const [searchMemo, setSearchMemo] = useState("");
@@ -57,58 +66,44 @@ const TransactionReport: React.FC = () => {
     setEndDate(formatDate(today));
   };
 
-  const fetchStockReports = async () => {
+  const fetchTransactions = async () => {
     if (!startDate || !endDate) return;
     setLoading(true);
     try {
-      const res = await axiosInstance.get(`/products/stocks`, {
+      // Adjust endpoint to your backend route for transactions
+      const res = await axiosInstance.get(`/transactions`, {
         headers: { "X-Branch-ID": branchId },
         params: {
           start_date: startDate,
           end_date: endDate,
         },
       });
-      setData(res.data.report || []);
-      setFilteredStocks(res.data.report || []);
+      const list: Transaction[] = res.data.report || res.data.transactions || [];
+      setTransactions(list);
+      setFilteredTransactions(list);
     } catch (err) {
-      console.error("Failed to fetch stock reports:", err);
-      setData([]);
-      setFilteredStocks([]);
+      console.error("Failed to fetch transactions:", err);
+      setTransactions([]);
+      setFilteredTransactions([]);
     } finally {
       setLoading(false);
     }
   };
-  // Compute totals dynamically from filteredWorkers
-  const totals = filteredStocks.reduce(
-    (acc, item) => {
-      acc.total_quantity += item.quantity || 0;
+  // Compute totals from filtered transactions
+  const totals = filteredTransactions.reduce(
+    (acc, t) => {
+      acc.total_amount += Number(t.amount || 0);
       return acc;
     },
-    { total_quantity: 0 }
+    { total_amount: 0 }
   );
-
-  // Compute summary: total quantity per product
-  const productSummary = filteredStocks.reduce<
-    Record<string, { product_name: string; total_quantity: number }>
-  >((acc, item) => {
-    if (!acc[item.product_name]) {
-      acc[item.product_name] = {
-        product_name: item.product_name,
-        total_quantity: 0,
-      };
-    }
-    acc[item.product_name].total_quantity += item.quantity;
-    return acc;
-  }, {});
-
-  const summaryArray = Object.values(productSummary);
 
   useEffect(() => {
     updateDates(reportType);
   }, [reportType]);
 
   useEffect(() => {
-    if (startDate && endDate) fetchStockReports();
+    if (startDate && endDate) fetchTransactions();
   }, [branchId, startDate, endDate, reportType]);
 
   // --- Search handlers ---
@@ -117,17 +112,22 @@ const TransactionReport: React.FC = () => {
     setSearchMemo(value);
 
     if (value === "") {
-      setFilteredStocks(data);
+      setFilteredTransactions(transactions);
       setShowDropdown(false);
       return;
     }
 
-    const filtered = data.filter(
-      (s) =>
-        s.product_name.toLowerCase().includes(value.toLowerCase()) ||
-        s.memo_no.toLowerCase().includes(value.toLowerCase())
-    );
-    setFilteredStocks(filtered);
+    const filtered = transactions.filter((t) => {
+      const v = value.toLowerCase();
+      return (
+        (t.memo_no && t.memo_no.toLowerCase().includes(v)) ||
+        (t.transaction_id && t.transaction_id.toLowerCase().includes(v)) ||
+        (t.from_account_name && t.from_account_name.toLowerCase().includes(v)) ||
+        (t.to_account_name && t.to_account_name.toLowerCase().includes(v)) ||
+        (t.transaction_type && t.transaction_type.toLowerCase().includes(v))
+      );
+    });
+    setFilteredTransactions(filtered);
     setShowDropdown(true);
   };
   useEffect(() => {
@@ -146,44 +146,46 @@ const TransactionReport: React.FC = () => {
     };
   }, []);
 
-  const handleSelect = (stock: Transaction) => {
-    setSearchMemo(stock.product_name);
-    const allMatching = data.filter(
-      (s) => s.product_name === stock.product_name
-    );
-    setFilteredStocks(allMatching);
+  const handleSelect = (tx: Transaction) => {
+    setSearchMemo(tx.memo_no);
+    const allMatching = transactions.filter((t) => t.memo_no === tx.memo_no);
+    setFilteredTransactions(allMatching);
     setShowDropdown(false);
   };
 
   // --- Print handler ---
   const handlePrintFullReport = () => {
-    if (filteredStocks.length === 0) {
+    if (filteredTransactions.length === 0) {
       alert("No report data to print!");
       return;
     }
 
-    const rows = filteredStocks
+    const rows = filteredTransactions
       .map(
-        (item) => `
+        (t) => `
       <tr>
-        <td>${item.stock_date.slice(0, 10)}</td>
-        <td>${item.memo_no}</td>
-        <td>${item.branch_name}</td>
-        <td>${item.product_name}</td>
-        <td>${item.quantity}</td>
+        <td>${(t.created_at || "").slice(0, 10)}</td>
+        <td>${t.memo_no}</td>
+        <td>${t.transaction_id || ""}</td>
+        <td>${t.from_account_name} (${t.from_type})</td>
+        <td>${t.to_account_name} (${t.to_type})</td>
+        <td>${t.transaction_type}</td>
+        <td style="text-align:right">${Number(t.amount || 0).toFixed(2)}</td>
+        <td>${t.notes || ""}</td>
       </tr>`
       )
       .join("");
     const totalsRow = `
         <tr style="font-weight:bold; background:#f3f3f3;">
-            <td colspan="4" style="text-align:right">Total</td>
-            <td>${totals.total_quantity}</td>
+            <td colspan="6" style="text-align:right">Total Amount</td>
+            <td style="text-align:right">${Number(totals.total_amount).toFixed(2)}</td>
+            <td></td>
         </tr>
         `;
     const html = `
       <html>
         <head>
-          <title>Stock Report - ${reportType.toUpperCase()}</title>
+          <title>Transaction Report - ${reportType.toUpperCase()}</title>
           <style>
             body { font-family: Arial, sans-serif; padding: 20px; color: #222; }
             .header { text-align: center; margin-bottom: 20px; }
@@ -196,7 +198,7 @@ const TransactionReport: React.FC = () => {
         </head>
         <body>
           <div class="header">
-            <h1>Product Stock Report</h1>
+            <h1>Transaction Report</h1>
             <div class="meta">
               <strong>Branch:</strong> ${
                 branchList[branchId - 1]?.name || "N/A"
@@ -213,8 +215,11 @@ const TransactionReport: React.FC = () => {
               <tr>
                 <th>Date</th>
                 <th>Memo No</th>
-                <th>Branch</th>
-                <th>Product</th>
+                <th>Transaction ID</th>
+                <th>From</th>
+                <th>To</th>
+                <th>Type</th>
+                <th>Amount</th>
                 <th>Notes</th>
               </tr>
             </thead>
@@ -227,36 +232,40 @@ const TransactionReport: React.FC = () => {
     printHTML(html);
   };
   // Print main stock table
-  const handlePrintStockTable = () => {
-    if (filteredStocks.length === 0) {
-      alert("No stock report data to print!");
+  const handlePrintTable = () => {
+    if (filteredTransactions.length === 0) {
+      alert("No transaction data to print!");
       return;
     }
 
-    const rows = filteredStocks
+    const rows = filteredTransactions
       .map(
-        (item) => `
+        (t) => `
       <tr>
-        <td>${item.stock_date.slice(0, 10)}</td>
-        <td>${item.memo_no}</td>
-        <td>${item.branch_name}</td>
-        <td>${item.product_name}</td>
-        <td>${item.quantity}</td>
+        <td>${(t.created_at || "").slice(0, 10)}</td>
+        <td>${t.memo_no}</td>
+        <td>${t.transaction_id || ""}</td>
+        <td>${t.from_account_name} (${t.from_type})</td>
+        <td>${t.to_account_name} (${t.to_type})</td>
+        <td>${t.transaction_type}</td>
+        <td style="text-align:right">${Number(t.amount || 0).toFixed(2)}</td>
+        <td>${t.notes || ""}</td>
       </tr>`
       )
       .join("");
 
     const totalsRow = `
-        <tr style="font-weight:bold; background:#f3f3f3;">
-            <td colspan="4" style="text-align:right">Total</td>
-            <td>${totals.total_quantity}</td>
+        <tr style=\"font-weight:bold; background:#f3f3f3;\">
+            <td colspan=\"6\" style=\"text-align:right\">Total Amount</td>
+            <td style=\"text-align:right\">${Number(totals.total_amount).toFixed(2)}</td>
+            <td></td>
         </tr>
         `;
 
     const html = `
       <html>
         <head>
-          <title>Stock Report - ${reportType.toUpperCase()}</title>
+          <title>Transaction Report - ${reportType.toUpperCase()}</title>
           <style>
             body { font-family: Arial, sans-serif; padding: 20px; color: #222; }
             .header { text-align: center; margin-bottom: 20px; }
@@ -268,16 +277,12 @@ const TransactionReport: React.FC = () => {
           </style>
         </head>
         <body>
-          <div class="header">
-            <h1>Product Stock Report</h1>
-            <div class="meta">
-              <strong>Branch:</strong> ${
-                branchList[branchId - 1]?.name || "N/A"
-              }<br/>
+          <div class=\"header\">
+            <h1>Transaction Report</h1>
+            <div class=\"meta\">
+              <strong>Branch:</strong> ${branchList[branchId - 1]?.name || "N/A"}<br/>
               <strong>Date Range:</strong> ${startDate} to ${endDate}<br/>
-              <strong>Report Type:</strong> ${
-                reportType.charAt(0).toUpperCase() + reportType.slice(1)
-              }
+              <strong>Report Type:</strong> ${reportType.charAt(0).toUpperCase() + reportType.slice(1)}
             </div>
           </div>
           <table>
@@ -285,9 +290,12 @@ const TransactionReport: React.FC = () => {
               <tr>
                 <th>Date</th>
                 <th>Memo No</th>
-                <th>Branch</th>
-                <th>Product</th>
-                <th>Quantity</th>
+                <th>Transaction ID</th>
+                <th>From</th>
+                <th>To</th>
+                <th>Type</th>
+                <th>Amount</th>
+                <th>Notes</th>
               </tr>
             </thead>
             <tbody>${rows}</tbody>
@@ -300,63 +308,6 @@ const TransactionReport: React.FC = () => {
   };
 
   // Print summary table
-  const handlePrintSummaryTable = () => {
-    if (summaryArray.length === 0) {
-      alert("No summary data to print!");
-      return;
-    }
-
-    const summaryRows = summaryArray
-      .map(
-        (item) => `
-      <tr>
-        <td>${item.product_name}</td>
-        <td>${item.total_quantity}</td>
-      </tr>`
-      )
-      .join("");
-
-    const html = `
-      <html>
-        <head>
-          <title>Stock Report - ${reportType.toUpperCase()}</title>
-          <style>
-            body { font-family: Arial, sans-serif; padding: 20px; color: #222; }
-            .header { text-align: center; margin-bottom: 20px; }
-            .header h1 { margin: 0; font-size: 22px; }
-            .header .meta { margin-top: 5px; font-size: 14px; }
-            table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-            th, td { border: 1px solid #ccc; padding: 8px; text-align: center; }
-            th { background: #f3f3f3; text-transform: uppercase; }
-          </style>
-        </head>
-        <body>
-          <div class="header">
-            <h1>Product Stock Summary</h1>
-            <div class="meta">
-              <strong>Branch:</strong> ${
-                branchList[branchId - 1]?.name || "N/A"
-              }<br/>
-              <strong>Date Range:</strong> ${startDate} to ${endDate}<br/>
-              <strong>Report Type:</strong> ${
-                reportType.charAt(0).toUpperCase() + reportType.slice(1)
-              }
-            </div>
-          </div>
-          <table>
-            <thead>
-              <tr>
-                <th>Product</th>
-                <th>Total Quantity</th>
-              </tr>
-            </thead>
-            <tbody>${summaryRows}</tbody>
-          </table>
-        </body>
-      </html>
-  `;
-    printHTML(html);
-  };
 
   return (
     <div className="container mx-auto p-4">
@@ -418,13 +369,13 @@ const TransactionReport: React.FC = () => {
 
           {showDropdown && (
             <ul className="absolute top-full left-0 w-full z-10 bg-white border rounded-lg shadow-md max-h-48 overflow-y-auto mt-1">
-              {filteredStocks.map((s) => (
+              {filteredTransactions.map((s) => (
                 <li
                   key={s.id}
                   onClick={() => handleSelect(s)}
                   className="px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
                 >
-                  {s.product_name} {s.memo_no ? "-" + s.memo_no : ""}
+                  {s.memo_no} {s.transaction_type ? "-" + s.transaction_type : ""}
                 </li>
               ))}
             </ul>
@@ -432,7 +383,7 @@ const TransactionReport: React.FC = () => {
         </div>
 
         <button
-          onClick={fetchStockReports}
+          onClick={fetchTransactions}
           className="px-4 py-2 text-sm font-medium text-blue-800 border border-blue-400 rounded-lg hover:bg-blue-100 hover:text-blue-800 transition-all duration-200 shadow-sm"
         >
           Fetch Report
@@ -458,14 +409,14 @@ const TransactionReport: React.FC = () => {
         >
           <div className="grid grid-cols-2 gap-4">
             <div className="flex justify-start mb-2">
-              <strong>Restock History</strong>
+              <strong>Transaction History</strong>
             </div>
             <div className="flex justify-end mb-2">
               <button
-                onClick={handlePrintStockTable}
+                onClick={handlePrintTable}
                 className="px-4 py-2 text-sm font-medium text-blue-800 border border-blue-400 rounded-lg hover:bg-blue-100 hover:text-blue-800 transition-all duration-200 shadow-sm"
               >
-                Print Stock
+                Print Table
               </button>
             </div>
           </div>
@@ -474,51 +425,48 @@ const TransactionReport: React.FC = () => {
               <tr>
                 <th className="px-3 py-2 border-b text-center">Date</th>
                 <th className="px-3 py-2 border-b text-center">Memo No</th>
-                <th className="px-3 py-2 border-b text-center">Product</th>
-                <th className="px-3 py-2 border-b text-center">Quantity</th>
+                <th className="px-3 py-2 border-b text-center">Transaction ID</th>
+                <th className="px-3 py-2 border-b text-center">From</th>
+                <th className="px-3 py-2 border-b text-center">To</th>
+                <th className="px-3 py-2 border-b text-center">Type</th>
+                <th className="px-3 py-2 border-b text-center">Amount</th>
+                <th className="px-3 py-2 border-b text-center">Notes</th>
               </tr>
             </thead>
             <tbody>
-              {filteredStocks.length === 0 ? (
+              {filteredTransactions.length === 0 ? (
                 <tr>
                   <td
-                    colSpan={4}
+                    colSpan={8}
                     className="text-center py-4 text-gray-500 dark:text-gray-400"
                   >
-                    No stock record found.
+                    No transactions found.
                   </td>
                 </tr>
               ) : (
-                filteredStocks.map((item) => (
+                filteredTransactions.map((t) => (
                   <tr
-                    key={item.id}
+                    key={t.id}
                     className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
                   >
-                    <td className="px-3 py-2 border-b text-center">
-                      {item.stock_date.slice(0, 10)}
-                    </td>
-                    <td className="px-3 py-2 border-b text-center">
-                      {item.memo_no}
-                    </td>
-                    <td className="px-3 py-2 border-b text-center">
-                      {item.product_name}
-                    </td>
-                    <td className="px-3 py-2 border-b text-center">
-                      {item.quantity}
-                    </td>
+                    <td className="px-3 py-2 border-b text-center">{(t.created_at || "").slice(0, 10)}</td>
+                    <td className="px-3 py-2 border-b text-center">{t.memo_no}</td>
+                    <td className="px-3 py-2 border-b text-center">{t.transaction_id || ""}</td>
+                    <td className="px-3 py-2 border-b text-center">{t.from_account_name} ({t.from_type})</td>
+                    <td className="px-3 py-2 border-b text-center">{t.to_account_name} ({t.to_type})</td>
+                    <td className="px-3 py-2 border-b text-center">{t.transaction_type}</td>
+                    <td className="px-3 py-2 border-b text-center">{Number(t.amount || 0).toFixed(2)}</td>
+                    <td className="px-3 py-2 border-b text-center">{t.notes || ""}</td>
                   </tr>
                 ))
               )}
             </tbody>
             <tfoot>
-              {filteredStocks.length > 0 && (
+              {filteredTransactions.length > 0 && (
                 <tr className="bg-gray-100 dark:bg-gray-700 font-semibold">
-                  <td colSpan={3} className="px-3 py-2 border-b text-right">
-                    Total
-                  </td>
-                  <td className="px-3 py-2 border-b text-center">
-                    {totals.total_quantity}
-                  </td>
+                  <td colSpan={6} className="px-3 py-2 border-b text-right">Total Amount</td>
+                  <td className="px-3 py-2 border-b text-center">{totals.total_amount.toFixed(2)}</td>
+                  <td className="px-3 py-2 border-b text-center"></td>
                 </tr>
               )}
             </tfoot>
@@ -526,48 +474,6 @@ const TransactionReport: React.FC = () => {
         </div>
       )}
 
-      {summaryArray.length > 0 && (
-        <div className="overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm mt-4 p-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div className="flex justify-start mb-2">
-              <strong>Product Summary</strong>
-            </div>
-            <div className="flex justify-end mb-2">
-              <button
-                onClick={handlePrintSummaryTable}
-                className="px-4 py-2 text-sm font-medium text-blue-800 border border-blue-400 rounded-lg hover:bg-blue-100 hover:text-blue-800 transition-all duration-200 shadow-sm"
-              >
-                Print Summary
-              </button>
-            </div>
-          </div>
-          <table className="min-w-full text-sm text-gray-700 dark:text-gray-200">
-            <thead className="bg-gray-100 dark:bg-gray-800">
-              <tr>
-                <th className="px-3 py-2 border-b text-center">Product</th>
-                <th className="px-3 py-2 border-b text-center">
-                  Total Quantity
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {summaryArray.map((item) => (
-                <tr
-                  key={item.product_name}
-                  className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-                >
-                  <td className="px-3 py-2 border-b text-center">
-                    {item.product_name}
-                  </td>
-                  <td className="px-3 py-2 border-b text-center">
-                    {item.total_quantity}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
     </div>
   );
 };
