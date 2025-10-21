@@ -2,13 +2,16 @@ import React, { useState, useEffect, useContext, useRef } from "react";
 import axiosInstance from "../../hooks/AxiosInstance/AxiosInstance";
 import { AppContext } from "../../context/AppContext";
 import { printHTML } from "../../utils/printHtml";
+import { Modal } from "../../components/ui/modal";
 
 interface PurchaseReportItem {
   id: number;
   memo_no: string;
   purchase_date: string;
   supplier_name: string;
+  supplier_id?: number;
   branch_name: string;
+  branch_id?: number;
   total_amount: number;
   notes: string;
 }
@@ -39,6 +42,18 @@ const PurchaseReport: React.FC = () => {
   const [showDropdown, setShowDropdown] = useState(false);
   const printRef = useRef<HTMLDivElement>(null);
   const searchRef = useRef<HTMLDivElement>(null);
+  // Edit modal state
+  const [isEditOpen, setIsEditOpen] = useState(false);
+  const [editSaving, setEditSaving] = useState(false);
+  const [editData, setEditData] = useState<{
+    id: number;
+    memo_no: string;
+    purchase_date: string; // YYYY-MM-DD
+    supplier_name: string;
+    supplier_id?: number;
+    total_amount: number;
+    notes: string;
+  } | null>(null);
 
   // Format date to YYYY-MM-DD
   const formatDate = (date: Date) => date.toISOString().slice(0, 10);
@@ -120,6 +135,67 @@ const PurchaseReport: React.FC = () => {
     );
     setFilteredPurchases(allMatching);
     setShowDropdown(false);
+  };
+
+  // Open edit modal with current values
+  const openEdit = (purchase: PurchaseReportItem) => {
+    setEditData({
+      id: purchase.id,
+      memo_no: purchase.memo_no,
+      purchase_date: purchase.purchase_date.slice(0, 10),
+      supplier_name: purchase.supplier_name,
+      supplier_id: purchase.supplier_id,
+      total_amount: Number(purchase.total_amount) || 0,
+      notes: purchase.notes || "",
+    });
+    setIsEditOpen(true);
+  };
+
+  const closeEdit = () => {
+    setIsEditOpen(false);
+    setEditData(null);
+    setEditSaving(false);
+  };
+
+  const handleEditChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ) => {
+    if (!editData) return;
+    const { name, value } = e.target;
+    if (name === "total_amount") {
+      setEditData({ ...editData, total_amount: Number(value) || 0 });
+    } else {
+      setEditData({ ...editData, [name]: value } as any);
+    }
+  };
+
+  const handleEditSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editData) return;
+    setEditSaving(true);
+    try {
+      const payload = {
+        id: editData.id,
+        memo_no: editData.memo_no,
+        // backend expects time.Time; send RFC3339 date start-of-day
+        purchase_date: `${editData.purchase_date}T00:00:00Z`,
+        supplier_id: editData.supplier_id,
+        supplier_name: editData.supplier_name,
+        branch_id: branchId,
+        total_amount: editData.total_amount,
+        notes: editData.notes,
+      };
+      await axiosInstance.patch(`/purchase`, payload, {
+        headers: { "X-Branch-ID": branchId },
+      });
+      // Refresh list via fetch to ensure consistency with backend
+      await fetchReports();
+      closeEdit();
+    } catch (err) {
+      console.error("Failed to update purchase", err);
+      alert("Failed to update purchase. Please try again.");
+      setEditSaving(false);
+    }
   };
 
   // --- Print handler ---
@@ -321,13 +397,16 @@ const PurchaseReport: React.FC = () => {
                 <th className="px-3 py-2 border-b border-gray-200 dark:border-gray-700 text-center">
                   Notes
                 </th>
+                <th className="px-3 py-2 border-b border-gray-200 dark:border-gray-700 text-center">
+                  Actions
+                </th>
               </tr>
             </thead>
             <tbody>
               {filteredPurchases.length === 0 ? (
                 <tr>
                   <td
-                    colSpan={5}
+                    colSpan={6}
                     className="text-center py-4 text-gray-500 dark:text-gray-400"
                   >
                     No purchase found.
@@ -355,6 +434,15 @@ const PurchaseReport: React.FC = () => {
                       <td className="px-3 py-2 border-b border-gray-200 dark:border-gray-700 text-center">
                         {item.notes}
                       </td>
+                      <td className="px-3 py-2 border-b border-gray-200 dark:border-gray-700 text-center">
+                        <button
+                          type="button"
+                          onClick={() => openEdit(item)}
+                          className="px-3 py-1 text-xs font-medium border rounded-lg hover:bg-gray-100"
+                        >
+                          Edit
+                        </button>
+                      </td>
                     </tr>
                   ))}
 
@@ -373,8 +461,92 @@ const PurchaseReport: React.FC = () => {
           </table>
         </div>
       )}
+
+      {/* Edit Modal */}
+      {editData && (
+        <Modal isOpen={isEditOpen} onClose={closeEdit} className="max-w-[640px] m-4">
+          <div className="relative w-full bg-white rounded-3xl dark:bg-gray-900 flex flex-col max-h-[90vh]">
+            <div className="p-6 border-b border-gray-200 dark:border-gray-700">
+              <h4 className="text-xl font-semibold text-gray-800 dark:text-white/90">
+                Edit Purchase — {editData.memo_no}
+              </h4>
+            </div>
+            <form onSubmit={handleEditSubmit} className="flex-1 overflow-y-auto p-6 space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium mb-1">Memo No</label>
+                  <input
+                    name="memo_no"
+                    type="text"
+                    value={editData.memo_no}
+                    onChange={handleEditChange}
+                    className="w-full px-3 py-2 border rounded-lg bg-white dark:bg-gray-800"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Date</label>
+                  <input
+                    name="purchase_date"
+                    type="date"
+                    value={editData.purchase_date}
+                    onChange={handleEditChange}
+                    className="w-full px-3 py-2 border rounded-lg bg-white dark:bg-gray-800"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Supplier</label>
+                  <input
+                    name="supplier_name"
+                    type="text"
+                    value={editData.supplier_name}
+                    onChange={handleEditChange}
+                    className="w-full px-3 py-2 border rounded-lg bg-white dark:bg-gray-800"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Total Amount</label>
+                  <input
+                    name="total_amount"
+                    type="number"
+                    step="0.01"
+                    value={editData.total_amount}
+                    onChange={handleEditChange}
+                    className="w-full px-3 py-2 border rounded-lg bg-white dark:bg-gray-800 text-right"
+                  />
+                </div>
+                <div className="sm:col-span-2">
+                  <label className="block text-sm font-medium mb-1">Notes</label>
+                  <textarea
+                    name="notes"
+                    rows={3}
+                    value={editData.notes}
+                    onChange={handleEditChange}
+                    className="w-full px-3 py-2 border rounded-lg bg-white dark:bg-gray-800"
+                  />
+                </div>
+              </div>
+              <div className="flex justify-end gap-3 pt-2">
+                <button type="button" onClick={closeEdit} className="px-4 py-2 text-sm font-medium border rounded-lg">
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={editSaving}
+                  className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-60"
+                >
+                  {editSaving ? "Saving..." : "Save Changes"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </Modal>
+      )}
     </div>
   );
 };
+
+// Edit Modal markup below main component
+
+// Inject edit modal after the component return JSX
 
 export default PurchaseReport;
