@@ -8,7 +8,6 @@ interface SalaryItem {
   employee_name: string;
   role: string;
   base_salary: number;
-  overtime_rate: number;
   total_salary: number;
   sheet_date: string;
 }
@@ -131,7 +130,6 @@ const SalaryReport: React.FC = () => {
           <p><strong>Date:</strong> ${item.sheet_date}</p>
           <table>
             <tr><th>Base Salary</th><td>${item.base_salary}</td></tr>
-            <tr><th>Overtime Rate</th><td>${item.overtime_rate}</td></tr>
             <tr><th>Total Salary</th><td>${item.total_salary}</td></tr>
           </table>
         </body>
@@ -149,19 +147,16 @@ const SalaryReport: React.FC = () => {
           <td>${item.employee_name}</td>
           <td>${item.role}</td>
           <td style="text-align:right;">${item.base_salary}</td>
-          <td style="text-align:right;">${item.overtime_rate}</td>
           <td style="text-align:right;">${item.total_salary}</td>
         </tr>`
       )
       .join("");
     const totals = filteredEmployees.reduce(
       (acc, item) => {
-        acc.base_salary += item.base_salary;
-        acc.overtime_rate += item.overtime_rate;
         acc.total_salary += item.total_salary;
         return acc;
       },
-      { base_salary: 0, overtime_rate: 0, total_salary: 0 }
+      { base_salary: 0, total_salary: 0 }
     );
 
     const html = `
@@ -186,16 +181,13 @@ const SalaryReport: React.FC = () => {
                 <th>Name</th>
                 <th>Role</th>
                 <th>Base Salary</th>
-                <th>Overtime Rate</th>
                 <th>Total Salary</th>
               </tr>
             </thead>
             <tbody>${rows}</tbody>
             <tfoot>
               <tr>
-                <td colspan="3">Totals</td>
-                <td style="text-align:right;">${totals.base_salary}</td>
-                <td style="text-align:right;">${totals.overtime_rate}</td>
+                <td colspan="4">Totals</td>
                 <td style="text-align:right;">${totals.total_salary}</td>
               </tr>
             </tfoot>
@@ -208,12 +200,10 @@ const SalaryReport: React.FC = () => {
   // --- Calculate totals for the table footer in UI ---
   const totals = filteredEmployees.reduce(
     (acc, item) => {
-      acc.base_salary += item.base_salary;
-      acc.overtime_rate += item.overtime_rate;
       acc.total_salary += item.total_salary;
       return acc;
     },
-    { base_salary: 0, overtime_rate: 0, total_salary: 0 }
+    { base_salary: 0, total_salary: 0 }
   );
 
   return (
@@ -300,7 +290,6 @@ const SalaryReport: React.FC = () => {
                 <th className="px-3 py-2 border-b text-left">Name</th>
                 <th className="px-3 py-2 border-b text-left">Role</th>
                 <th className="px-3 py-2 border-b text-right">Base Salary</th>
-                <th className="px-3 py-2 border-b text-right">Overtime (Hours)</th>
                 <th className="px-3 py-2 border-b text-right">Total Salary</th>
                 <th className="px-3 py-2 border-b text-center">Actions</th>
               </tr>
@@ -308,7 +297,7 @@ const SalaryReport: React.FC = () => {
             <tbody>
               {filteredEmployees.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="text-center py-4 text-gray-500">
+                  <td colSpan={6} className="text-center py-4 text-gray-500">
                     No employee found.
                   </td>
                 </tr>
@@ -333,9 +322,6 @@ const SalaryReport: React.FC = () => {
                       {item.base_salary}
                     </td>
                     <td className="px-3 py-2 border-b text-right">
-                      {item.overtime_rate}
-                    </td>
-                    <td className="px-3 py-2 border-b text-right">
                       {item.total_salary}
                     </td>
                     <td className="px-3 py-2 border-b text-center">
@@ -355,14 +341,8 @@ const SalaryReport: React.FC = () => {
             {filteredEmployees.length > 0 && (
               <tfoot className="bg-gray-100 font-semibold">
                 <tr>
-                  <td colSpan={3} className="px-3 py-2 border-t text-right">
+                  <td colSpan={4} className="px-3 py-2 border-t text-left">
                     Totals:
-                  </td>
-                  <td className="px-3 py-2 border-t text-right">
-                    {totals.base_salary}
-                  </td>
-                  <td className="px-3 py-2 border-t text-right">
-                    {totals.overtime_rate}
                   </td>
                   <td className="px-3 py-2 border-t text-right">
                     {totals.total_salary}
