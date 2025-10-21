@@ -25,7 +25,7 @@ const branchList = [
 const PurchaseReport: React.FC = () => {
   const context = useContext(AppContext);
   if (!context) throw new Error("AppContext not provided");
-  const { branchId } = context;
+  const { branchId, userRole } = context;
 
   const [reportType, setReportType] = useState<"daily" | "weekly" | "monthly">(
     "daily"
@@ -435,13 +435,16 @@ const PurchaseReport: React.FC = () => {
                         {item.notes}
                       </td>
                       <td className="px-3 py-2 border-b border-gray-200 dark:border-gray-700 text-center">
-                        <button
+                        {
+                          userRole=="chairman"?
+                          (<button
                           type="button"
                           onClick={() => openEdit(item)}
                           className="px-3 py-1 text-xs font-medium border rounded-lg hover:bg-gray-100"
                         >
                           Edit
-                        </button>
+                        </button>):""
+                        }
                       </td>
                     </tr>
                   ))}

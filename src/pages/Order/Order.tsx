@@ -88,7 +88,7 @@ export default function Orders() {
   if (!context) {
     throw new Error("AppContext not provided");
   }
-  const { branchId } = context;
+  const { branchId, userRole } = context;
 
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
@@ -184,7 +184,6 @@ export default function Orders() {
     }
   }, [alert]);
 
-
   const filteredOrders = orders.filter((order) => {
     const query = searchTerm.toLowerCase();
 
@@ -228,7 +227,6 @@ export default function Orders() {
     );
   };
 
-
   const getNextStatus = (current: OrderStatus): OrderStatus | null => {
     const index = statusFlow.indexOf(current);
     if (index >= 0 && index < statusFlow.length - 1) {
@@ -269,9 +267,12 @@ export default function Orders() {
     let nextStatus = getNextStatus(order.status as OrderStatus);
     if (!nextStatus) return;
 
-    if (nextStatus === "delivery" || (nextStatus === "cancelled" && (order.total_items > order.items_delivered))) {
+    if (
+      nextStatus === "delivery" ||
+      (nextStatus === "cancelled" && order.total_items > order.items_delivered)
+    ) {
       //set the nextStatus
-      nextStatus = "delivery"
+      nextStatus = "delivery";
       // Prepare delivery form and open modal
       const today = new Date().toISOString().split("T")[0];
       // const remainingItems = order.items.reduce(
@@ -291,6 +292,8 @@ export default function Orders() {
     } else if (nextStatus === "checkout") {
       // Directly update status without modal
       setIsSubmitting(true);
+      // set per-row loading state for next action
+      setLoadingButtons((prev) => ({ ...prev, [`${order.id}-next`]: true }));
       try {
         const { data } = await axiosInstance.patch(
           `/orders/checkout?order_id=${order.id}&branch_id=${branchId}`,
@@ -314,6 +317,7 @@ export default function Orders() {
         });
       } finally {
         setIsSubmitting(false);
+        setLoadingButtons((prev) => ({ ...prev, [`${order.id}-next`]: false }));
       }
     }
   };
@@ -321,8 +325,14 @@ export default function Orders() {
   const handleConfirmAction = async () => {
     if (!confirmationAction) return;
     const { type, order } = confirmationAction;
-    setIsModalOpen(false)
+    setIsModalOpen(false);
     setIsSubmitting(true);
+    // mark corresponding row action as loading
+    if (type === "cancel") {
+      setLoadingButtons((prev) => ({ ...prev, [`${order.id}-cancel`]: true }));
+    } else if (type === "nextStatus") {
+      setLoadingButtons((prev) => ({ ...prev, [`${order.id}-next`]: true }));
+    }
 
     if (type === "cancel") {
       try {
@@ -346,13 +356,22 @@ export default function Orders() {
           title: "Error",
           message: "Failed to cancel order",
         });
+      } finally {
+        setLoadingButtons((prev) => ({
+          ...prev,
+          [`${order.id}-cancel`]: false,
+        }));
       }
     } else if (
       type === "nextStatus" &&
       confirmationAction.nextStatus === "delivery"
     ) {
-      const { paid_amount, payment_account_id, exit_date, total_items_delivered } =
-        deliveryFormData;
+      const {
+        paid_amount,
+        payment_account_id,
+        exit_date,
+        total_items_delivered,
+      } = deliveryFormData;
       if (!payment_account_id || !exit_date) {
         setAlert({
           variant: "warning",
@@ -360,6 +379,7 @@ export default function Orders() {
           message: "Please fill all delivery information",
         });
         setIsSubmitting(false);
+        setLoadingButtons((prev) => ({ ...prev, [`${order.id}-next`]: false }));
         return;
       }
 
@@ -372,7 +392,6 @@ export default function Orders() {
             paid_amount: Number(paid_amount),
             total_items_delivered: total_items_delivered,
             payment_account_id: Number(payment_account_id),
-            
           },
           { headers: { "X-Branch-ID": branchId } }
         );
@@ -390,6 +409,8 @@ export default function Orders() {
           title: "Error",
           message: "Failed to mark order as delivered",
         });
+      } finally {
+        setLoadingButtons((prev) => ({ ...prev, [`${order.id}-next`]: false }));
       }
     }
 
@@ -541,7 +562,8 @@ export default function Orders() {
                         )}
                         {order.due_amount > 0 && (
                           <div className="text-xs text-red-600 dark:text-red-400">
-                            Due:{" QR "}{order.due_amount}
+                            Due:{" QR "}
+                            {order.due_amount}
                           </div>
                         )}
                       </div>
@@ -551,17 +573,22 @@ export default function Orders() {
                       <Badge
                         size="sm"
                         color={
-                          (order.status === "pending"
+                          order.status === "pending"
                             ? "warning"
-                            : order.status === "checkout" ||
-                              order.total_items > order.items_delivered
+                            : order.status === "checkout"
                             ? "info"
+                            : order.status === "delivery" && order.total_items > order.items_delivered
+                            ? "dark"
                             : order.status === "delivery"
                             ? "success"
-                            : "error") as any // cancelled
+                            : "error" // cancelled or unknown
                         }
                       >
-                        {order?.status}
+                        {order.status === "delivery" &&
+                        order.total_items > order.items_delivered
+                          ? "Partial Delivery"
+                          : order.status.charAt(0).toUpperCase() +
+                            order.status.slice(1)}
                       </Badge>
                     </TableCell>
 
@@ -605,7 +632,9 @@ export default function Orders() {
                           </>
                         )}
 
-                        {(order.status === "checkout" || (order.total_items > order.items_delivered)) && (
+                        {(order.status === "checkout" ||
+                          (order.status === "delivery" &&
+                            order.total_items > order.items_delivered)) && (
                           <>
                             {/* Delivery */}
                             <Button
@@ -628,25 +657,31 @@ export default function Orders() {
                         )}
 
                         {(order.status === "pending" ||
-                          order.status === "checkout") && (
+                          order.status === "checkout" ||
+                          (order.status === "delivery" &&
+                            order.total_items > order.items_delivered)) && (
                           <>
                             {/* Cancel */}
-                            <Button
-                              onClick={() => handleCancelClick(order)}
-                              size="sm"
-                              variant="warning"
-                              className="flex items-center gap-2"
-                              disabled={loadingButtons[`${order.id}-cancel`]}
-                            >
-                              {loadingButtons[`${order.id}-cancel`] ? (
-                                <Loader2 className="animate-spin w-4 h-4" />
-                              ) : (
-                                <>
-                                  <CircleX className="h-4 w-4" />
-                                  Cancel
-                                </>
-                              )}
-                            </Button>
+                            {userRole == "chairman" ? (
+                              <Button
+                                onClick={() => handleCancelClick(order)}
+                                size="sm"
+                                variant="warning"
+                                className="flex items-center gap-2"
+                                disabled={loadingButtons[`${order.id}-cancel`]}
+                              >
+                                {loadingButtons[`${order.id}-cancel`] ? (
+                                  <Loader2 className="animate-spin w-4 h-4" />
+                                ) : (
+                                  <>
+                                    <CircleX className="h-4 w-4" />
+                                    Cancel
+                                  </>
+                                )}
+                              </Button>
+                            ) : (
+                              ""
+                            )}
                           </>
                         )}
                       </div>
@@ -707,7 +742,6 @@ export default function Orders() {
                               {account.name}
                             </option>
                           ))}
-                          
                         </select>
                       </div>
                       <div>
@@ -740,7 +774,9 @@ export default function Orders() {
                           onChange={(e) =>
                             setDeliveryFormData((prev) => ({
                               ...prev,
-                              total_items_delivered: Number(e.target.value || 0),
+                              total_items_delivered: Number(
+                                e.target.value || 0
+                              ),
                             }))
                           }
                           className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
@@ -826,7 +862,11 @@ export default function Orders() {
                                 selectedOrder?.status || ""
                               )}`}
                             >
-                              {selectedOrder?.status || "-"}
+                              {(selectedOrder?.status === "delivery" &&
+                                selectedOrder?.total_items >
+                                  selectedOrder?.items_delivered) === true
+                                ? "partial delivery"
+                                : selectedOrder?.status}
                             </span>{" "}
                             <br />
                             <strong>Paid Amount: </strong>{" "}
@@ -877,7 +917,7 @@ export default function Orders() {
                                 {item.quantity}
                               </td>
                               <td className="px-4 py-2 font-medium text-right ">
-                                {" QR "+(item.total_price)}
+                                {" QR " + item.total_price}
                               </td>
                             </tr>
                           ))}
