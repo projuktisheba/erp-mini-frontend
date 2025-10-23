@@ -1,8 +1,8 @@
 // api/axiosInstance.ts
 import axios from "axios";
 
-// export const API_URL = "http://localhost:8080/api/v1";
-export const API_URL = "https://api.erp.pssoft.xyz/api/v1";
+export const API_URL = "http://localhost:8080/api/v1";
+// export const API_URL = "https://api.erp.pssoft.xyz/api/v1";
 
 // Create an Axios instance
 const axiosInstance = axios.create({
@@ -32,7 +32,7 @@ axiosInstance.interceptors.response.use(
       console.warn("Unauthorized! Redirect to login or clear token.");
       localStorage.removeItem("token");
       // Redirect to login page here if using React Router
-      window.location.href = "/login";
+      // window.location.href = "/login";
     }
     return Promise.reject(error);
   }

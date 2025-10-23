@@ -9,6 +9,7 @@ interface BranchReportItem {
   branch_id: number;
   cash: number;
   checkout: number;
+  cancelled: number;
   expense: number;
   date: string;
   delivery: number;
@@ -102,6 +103,7 @@ const BranchReports: React.FC = () => {
       acc.order_count += item.order_count;
       acc.delivery += item.delivery;
       acc.checkout += item.checkout;
+      acc.cancelled += item.cancelled;
       acc.expensed += item.expensed;
       return acc;
     },
@@ -114,6 +116,7 @@ const BranchReports: React.FC = () => {
       order_count: 0,
       delivery: 0,
       checkout: 0,
+      cancelled:0,
       expensed: 0,
     }
   );
@@ -131,14 +134,16 @@ const BranchReports: React.FC = () => {
         (item) => `
       <tr>
         <td>${item.date.slice(0, 10)}</td>
+
+        <td>${item.order_count}</td>
+        <td>${item.checkout}</td>
+        <td>${item.delivery}</td>
+        <td>${item.cancelled}</td>
         <td>${item.total_amount}</td>
         <td>${item.cash}</td>
         <td>${item.bank}</td>
         <td>${item.expense}</td>
         <td>${item.total_amount-item.expense}</td>
-        <td>${item.order_count}</td>
-        <td>${item.checkout}</td>
-        <td>${item.delivery}</td>
       </tr>`
       )
       .join("");
@@ -150,6 +155,7 @@ const BranchReports: React.FC = () => {
       <td>${totals.order_count}</td>
       <td>${totals.checkout}</td>
       <td>${totals.delivery}</td>
+      <td>${totals.cancelled}</td>
       <td>${totals.total_amount}</td>
       <td>${totals.cash}</td>
       <td>${totals.bank}</td>
@@ -193,6 +199,7 @@ const BranchReports: React.FC = () => {
               <th>Orders</th>
               <th>Checkout</th>
               <th>Delivery</th>
+              <th>Cancelled</th>
               <th>Total</th>
               <th>Cash</th>
               <th>Bank</th>
@@ -307,6 +314,9 @@ const BranchReports: React.FC = () => {
                   Delivery
                 </th>
                 <th className="px-3 py-2 border-b border-gray-200 dark:border-gray-700 text-left">
+                  Cancelled
+                </th>
+                <th className="px-3 py-2 border-b border-gray-200 dark:border-gray-700 text-left">
                   Total
                 </th>
                 <th className="px-3 py-2 border-b border-gray-200 dark:border-gray-700 text-left">
@@ -327,7 +337,7 @@ const BranchReports: React.FC = () => {
               {data.length === 0 ? (
                 <tr>
                   <td
-                    colSpan={9}
+                    colSpan={10}
                     className="text-center py-4 text-gray-500 dark:text-gray-400"
                   >
                     No reports found.
@@ -345,6 +355,7 @@ const BranchReports: React.FC = () => {
                     <td className="px-3 py-2 border-b">{item.order_count}</td>
                     <td className="px-3 py-2 border-b">{item.checkout}</td>
                     <td className="px-3 py-2 border-b">{item.delivery}</td>
+                    <td className="px-3 py-2 border-b">{item.cancelled}</td>
                     <td className="px-3 py-2 border-b">{item.total_amount}</td>
                     <td className="px-3 py-2 border-b">{item.cash}</td>
                     <td className="px-3 py-2 border-b">{item.bank}</td>
@@ -360,6 +371,7 @@ const BranchReports: React.FC = () => {
                   <td className="px-3 py-2 border-b">{totals.order_count}</td>
                   <td className="px-3 py-2 border-b">{totals.checkout}</td>
                   <td className="px-3 py-2 border-b">{totals.delivery}</td>
+                  <td className="px-3 py-2 border-b">{totals.cancelled}</td>
                   <td className="px-3 py-2 border-b">{totals.total_amount}</td>
                   <td className="px-3 py-2 border-b">{totals.cash}</td>
                   <td className="px-3 py-2 border-b">{totals.bank}</td>
