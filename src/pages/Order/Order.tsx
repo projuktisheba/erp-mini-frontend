@@ -198,9 +198,12 @@ export default function Orders() {
     if (statusFilter === "all") {
       matchesStatus = true;
     } else if (statusFilter === "partial") {
-      // Partially delivered: some items delivered but not all
+      // Partially delivered: some items delivered but not all, total_payable_amount is greater than advance payment amount
       matchesStatus =
-        order.items_delivered > 0 && order.items_delivered < order.total_items;
+        order.status === "delivery" &&
+        ((order.items_delivered > 0 &&
+          order.items_delivered < order.total_items) ||
+          order.advance_payment_amount < order.total_payable_amount);
     } else {
       matchesStatus = order.status === statusFilter;
     }
@@ -577,7 +580,11 @@ export default function Orders() {
                             ? "warning"
                             : order.status === "checkout"
                             ? "info"
-                            : order.status === "delivery" && order.total_items > order.items_delivered
+                            : order.status === "delivery" &&
+                              ((order.items_delivered > 0 &&
+                                order.items_delivered < order.total_items) ||
+                                order.advance_payment_amount <
+                                  order.total_payable_amount)
                             ? "dark"
                             : order.status === "delivery"
                             ? "success"
@@ -585,7 +592,10 @@ export default function Orders() {
                         }
                       >
                         {order.status === "delivery" &&
-                        order.total_items > order.items_delivered
+                        ((order.items_delivered > 0 &&
+                          order.items_delivered < order.total_items) ||
+                          order.advance_payment_amount <
+                            order.total_payable_amount)
                           ? "Partial Delivery"
                           : order.status.charAt(0).toUpperCase() +
                             order.status.slice(1)}
@@ -634,7 +644,10 @@ export default function Orders() {
 
                         {(order.status === "checkout" ||
                           (order.status === "delivery" &&
-                            order.total_items > order.items_delivered)) && (
+                            ((order.items_delivered > 0 &&
+                              order.items_delivered < order.total_items) ||
+                              order.advance_payment_amount <
+                                order.total_payable_amount))) && (
                           <>
                             {/* Delivery */}
                             <Button
