@@ -885,8 +885,10 @@ export default function Orders() {
                                 : selectedOrder?.status}
                             </span>{" "}
                             <br />
-                            <strong>Paid Amount: </strong>{" "}
-                            {selectedOrder?.advance_payment_amount}
+                            <strong>Due Amount: </strong>
+                            {"  QR "}
+                            {(selectedOrder?.total_payable_amount ?? 0) -
+                              (selectedOrder?.advance_payment_amount ?? 0)}
                           </td>
                           <td className="px-4 py-2">
                             <strong>Order Date:</strong>{" "}
@@ -937,18 +939,31 @@ export default function Orders() {
                               </td>
                             </tr>
                           ))}
+                          {/* total products and amount */}
+                          <tr className="border-t border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-900/30">
+                            <td className="px-4 py-2 text-left text-green-800 dark:text-green-300 font-medium">
+                              <strong>Total Products & Amount:</strong>
+                            </td>
+                            <td className="px-4 py-2 text-right text-green-900 dark:text-green-200 font-semibold">
+                              {selectedOrder?.total_items || 0}
+                            </td>
+                            <td className="px-4 py-2 text-right text-green-900 dark:text-green-200 font-semibold">
+                              {"QR " +
+                                (selectedOrder?.total_payable_amount || 0)}
+                            </td>
+                          </tr>
                         </tbody>
-
-                        <tfoot>
-                          <tr className="border-t dark:border-gray-700 bg-gray-50 dark:bg-gray-800">
-                            <td
-                              className="px-4 py-2 text-left text-gray-700 dark:text-gray-300"
-                              colSpan={2}
-                            >
+                        <tfoot className="mt-4">
+                          <tr className="border-t border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-900/30">
+                            <td className="px-4 py-2 text-left text-blue-800 dark:text-blue-300 font-medium">
                               <strong>Partial Delivery Items:</strong>
                             </td>
-                            <td className="px-4 py-2 text-right text-gray-800 dark:text-gray-200 font-semibold">
+                            <td className="px-4 py-2 text-right text-blue-900 dark:text-blue-200 font-semibold">
                               {selectedOrder?.items_delivered || 0}
+                            </td>
+                            <td className="px-4 py-2 text-right text-blue-900 dark:text-blue-200 font-semibold">
+                              {"QR " +
+                                (selectedOrder?.advance_payment_amount || 0)}
                             </td>
                           </tr>
                         </tfoot>
