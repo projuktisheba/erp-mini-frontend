@@ -97,7 +97,7 @@ export default function Orders() {
     [key: string]: boolean;
   }>({});
   const [searchTerm, setSearchTerm] = useState("");
-  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [statusFilter, setStatusFilter] = useState<string>("pending");
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -272,7 +272,10 @@ export default function Orders() {
 
     if (
       nextStatus === "delivery" ||
-      (nextStatus === "cancelled" && order.total_items > order.items_delivered)
+      (nextStatus === "cancelled" &&
+        ((order.items_delivered > 0 &&
+          order.items_delivered < order.total_items) ||
+          order.advance_payment_amount < order.total_payable_amount))
     ) {
       //set the nextStatus
       nextStatus = "delivery";
@@ -479,7 +482,7 @@ export default function Orders() {
           <div className="flex items-center gap-2">
             <Filter className="text-gray-400 h-4 w-4" />
             <select
-              value={statusFilter}
+              value={statusFilter || "pending"}
               onChange={(e) => setStatusFilter(e.target.value)}
               className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
             >
