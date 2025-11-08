@@ -55,6 +55,7 @@ interface Order {
   created_at: string;
   updated_at: string;
   items: OrderItem[];
+  delivery_info: string;
 }
 
 interface Account {
@@ -863,7 +864,7 @@ export default function Orders() {
                     <table className="min-w-full text-sm border border-gray-200 dark:border-gray-700 rounded-lg">
                       <thead className="bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300">
                         <tr>
-                          <th className="px-4 py-2 text-left">Order ID</th>
+                          <th className="px-4 py-2 text-left">Order Info</th>
                           <th className="px-4 py-2 text-left"></th>
                         </tr>
                       </thead>
@@ -910,6 +911,7 @@ export default function Orders() {
                       </tbody>
                     </table>
                   </div>
+                  {/* Product info */}
                   <div className="mt-4">
                     <strong>Products:</strong>
                     <div className="overflow-x-auto border rounded-lg mt-2">
@@ -953,20 +955,107 @@ export default function Orders() {
                             </td>
                           </tr>
                         </tbody>
-                        <tfoot className="mt-4">
-                          <tr className="border-t border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-900/30">
-                            <td className="px-4 py-2 text-left text-blue-800 dark:text-blue-300 font-medium">
-                              <strong>Partial Delivery Items:</strong>
-                            </td>
-                            <td className="px-4 py-2 text-right text-blue-900 dark:text-blue-200 font-semibold">
-                              {selectedOrder?.items_delivered || 0}
-                            </td>
-                            <td className="px-4 py-2 text-right text-blue-900 dark:text-blue-200 font-semibold">
-                              {"QR " +
-                                (selectedOrder?.advance_payment_amount || 0)}
-                            </td>
+                      </table>
+                    </div>
+                  </div>
+                  {/* Delivery Info */}
+                  <div className="mt-4">
+                    <strong>Delivery Info:</strong>
+                    <div className="overflow-x-auto border rounded-lg mt-2">
+                      <table className="min-w-full text-sm">
+                        <thead className="bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300">
+                          <tr>
+                            <th className="px-4 py-2 text-left">Exit Date</th>
+                            <th className="px-4 py-2 text-right">Quantity</th>
+                            <th className="px-4 py-2 text-right">
+                              Paid Amount
+                            </th>
                           </tr>
-                        </tfoot>
+                        </thead>
+
+                        <tbody>
+                          {(() => {
+                            if (!selectedOrder?.delivery_info) {
+                              return (
+                                <tr className="border-t dark:border-gray-700">
+                                  <td
+                                    colSpan={3}
+                                    className="px-4 py-2 text-center text-gray-500 dark:text-gray-400"
+                                  >
+                                    No result
+                                  </td>
+                                </tr>
+                              );
+                            }
+
+                            const items = selectedOrder.delivery_info
+                              .split(":::")
+                              .map((info) => info.trim())
+                              .filter((info) => info !== "");
+
+                            if (items.length === 0) {
+                              return (
+                                <tr className="border-t dark:border-gray-700">
+                                  <td
+                                    colSpan={3}
+                                    className="px-4 py-2 text-center text-gray-500 dark:text-gray-400"
+                                  >
+                                    No result
+                                  </td>
+                                </tr>
+                              );
+                            }
+
+                            let totalQty = 0;
+                            let totalPaid = 0;
+
+                            const rows = items.map((info, index) => {
+                              const [exitDate, quantity, paidAmount] =
+                                info.split("@");
+                              const qtyNum = parseFloat(quantity) || 0;
+                              const paidNum = parseFloat(paidAmount) || 0;
+
+                              totalQty += qtyNum;
+                              totalPaid += paidNum;
+
+                              return (
+                                <tr
+                                  key={index}
+                                  className="border-t dark:border-gray-700"
+                                >
+                                  <td className="px-4 py-2">
+                                    {exitDate || "-"}
+                                  </td>
+                                  <td className="px-4 py-2 text-right">
+                                    {qtyNum}
+                                  </td>
+                                  <td className="px-4 py-2 font-medium text-right">
+                                    {"QR " + paidNum.toFixed(2)}
+                                  </td>
+                                </tr>
+                              );
+                            });
+
+                            return (
+                              <>
+                                {rows}
+
+                                {/* Total Row */}
+                                <tr className="border-t border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-900/30">
+                                  <td className="px-4 py-2 text-left text-green-800 dark:text-green-300 font-medium">
+                                    <strong>Total Products & Amount:</strong>
+                                  </td>
+                                  <td className="px-4 py-2 text-right text-green-900 dark:text-green-200 font-semibold">
+                                    {totalQty}
+                                  </td>
+                                  <td className="px-4 py-2 text-right text-green-900 dark:text-green-200 font-semibold">
+                                    {"QR " + totalPaid.toFixed(2)}
+                                  </td>
+                                </tr>
+                              </>
+                            );
+                          })()}
+                        </tbody>
                       </table>
                     </div>
                   </div>
