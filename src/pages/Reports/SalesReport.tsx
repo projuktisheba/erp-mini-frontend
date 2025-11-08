@@ -190,14 +190,14 @@ export default function SalesHistory() {
           <div className="flex justify-start mb-2">
             <strong>Sales History</strong>
           </div>
-          <div className="flex justify-end mb-2">
+          {/* <div className="flex justify-end mb-2">
             <button
               // onClick={handlePrintStockTable} // you can rename to handlePrintSalesTable
               className="px-4 py-2 text-sm font-medium text-blue-800 border border-blue-400 rounded-lg hover:bg-blue-100 hover:text-blue-800 transition-all duration-200 shadow-sm"
             >
               Print Sales
             </button>
-          </div>
+          </div> */}
         </div>
 
         <table className="min-w-full text-sm text-gray-700 dark:text-gray-200">

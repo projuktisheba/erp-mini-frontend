@@ -22,6 +22,7 @@ import {
 import { AppContext } from "../../context/AppContext";
 import { formatDate } from "../../utils/dateFormatter";
 import Badge from "../../components/ui/badge/Badge";
+import { useNavigate } from "react-router";
 
 interface OrderItem {
   id: number;
@@ -102,7 +103,7 @@ export default function Orders() {
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-
+  const navigate = useNavigate();
   const [alert, setAlert] = useState<{
     variant: "success" | "error" | "warning" | "info";
     title: string;
@@ -423,7 +424,12 @@ export default function Orders() {
 
     setIsSubmitting(false);
   };
-
+  const handleEditOrder = (order: Order) => {
+    closeModal()
+    // From sales_history page
+    order.order_date = order.order_date?.slice(0, 10) || new Date().toISOString().slice(0, 10),
+    navigate("/add-order", { state: { initialData: order } });
+  };
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-96">
@@ -1087,6 +1093,15 @@ export default function Orders() {
                 //   Edit Order
                 // </button>
               )}
+              {selectedOrder?.status && selectedOrder?.status === "pending" && (
+                <button
+                  onClick={() => handleEditOrder(selectedOrder!)}
+                  className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white"
+                >
+                  Edit Order
+                </button>
+              )}
+
               <button
                 onClick={closeModal}
                 className="px-4 py-2 rounded-lg bg-gray-300 dark:bg-gray-700 hover:bg-gray-400 dark:hover:bg-gray-600"

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useContext } from "react";
 import Swal from "sweetalert2";
-import { useNavigate } from "react-router";
+import { useNavigate, useLocation } from "react-router";
 import { AppContext } from "../../context/AppContext";
 import axiosInstance from "../../hooks/AxiosInstance/AxiosInstance";
 import { Loader2 } from "lucide-react";
@@ -11,6 +11,22 @@ interface ProductItem {
   quantity: number;
   total_price: number;
 }
+interface OrderFormData {
+  id?: number; // optional, for edit
+  order_date: string;
+  delivery_date: string;
+  memo_no: string;
+  salesperson_id: number;
+  salesperson_name?: string; // optional
+  customer_id: number;
+  customer_name?: string; // optional
+  total_payable_amount: number;
+  advance_payment_amount: number;
+  due_amount: number;
+  payment_account_id: number;
+  notes: string;
+  items: ProductItem[];
+}
 
 const AddOrder: React.FC = () => {
   const context = useContext(AppContext);
@@ -18,7 +34,7 @@ const AddOrder: React.FC = () => {
   const { branchId } = context;
 
   const [products, setProducts] = useState<any[]>([]);
-  const [salesmans, setSalesmans] = useState<any[]>([]);
+  const [salespersons, setSalespersons] = useState<any[]>([]);
   const [customers, setCustomers] = useState<any[]>([]);
   const [accounts, setAccounts] = useState<any[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -26,28 +42,68 @@ const AddOrder: React.FC = () => {
 
   // Helper to get current date
   const getCurrentDate = () => new Date().toISOString().slice(0, 10);
+  const location = useLocation();
+  // Get initialData from router state with type safety
+  const initialData: OrderFormData = location.state?.initialData;
 
-  const [formData, setFormData] = useState({
-    order_date: getCurrentDate(),
-    delivery_date: getCurrentDate(),
-    memo_no:"",
-    salesperson_id: 0,
-    customer_id: 0,
-    total_payable_amount: 0,
-    advance_payment_amount: 0,
-    due_amount: 0,
-    payment_account_id: 0,
-    notes: "",
-    items: [] as ProductItem[],
-  });
+  // Track if we are editing an existing order
+  const isEdit = Boolean(initialData) || false;
+  console.log("Editing Mode: ", isEdit);
+
+  // Helper to format date to YYYY-MM-DD
+  const formatDate = (dateStr: string) =>
+    dateStr?.slice(0, 10) || getCurrentDate();
+
+  const initialDataFromLocation = location.state?.initialData;
+
+  const [formData, setFormData] = useState<OrderFormData>(
+    initialDataFromLocation
+      ? {
+          id: initialDataFromLocation.id,
+          order_date: formatDate(initialDataFromLocation.order_date),
+          delivery_date: formatDate(initialDataFromLocation.delivery_date),
+          memo_no: initialDataFromLocation.memo_no || "",
+          salesperson_id: initialDataFromLocation.salesperson_id || 0,
+          salesperson_name: initialDataFromLocation.salesperson_name || "",
+          customer_id: initialDataFromLocation.customer_id || 0,
+          customer_name: initialDataFromLocation.customer_name || "",
+          total_payable_amount:
+            initialDataFromLocation.total_payable_amount || 0,
+          advance_payment_amount:
+            initialDataFromLocation.advance_payment_amount || 0,
+          due_amount: initialDataFromLocation.due_amount || 0,
+          payment_account_id: initialDataFromLocation.payment_account_id || 0,
+          notes: initialDataFromLocation.notes || "",
+          items: initialDataFromLocation.items || [],
+        }
+      : {
+          order_date: getCurrentDate(),
+          delivery_date: getCurrentDate(),
+          memo_no: "",
+          salesperson_id: 0,
+          salesperson_name: "",
+          customer_id: 0,
+          customer_name: "",
+          total_payable_amount: 0,
+          advance_payment_amount: 0,
+          due_amount: 0,
+          payment_account_id: 0,
+          notes: "",
+          items: [],
+        }
+  );
 
   const [selectedProductId, setSelectedProductId] = useState<number>(0);
 
-  const [salesmanSearch, setSalesmanSearch] = useState("");
-  const [filteredSalesmans, setFilteredSalesmans] = useState<any[]>([]);
+  const [salesmanSearch, setSalesmanSearch] = useState(
+    initialData?.salesperson_name || ""
+  );
+  const [filteredSalespersons, setFilteredSalespersons] = useState<any[]>([]);
   const [showSalesmanDropdown, setShowSalesmanDropdown] = useState(false);
 
-  const [customerSearch, setCustomerSearch] = useState("");
+  const [customerSearch, setCustomerSearch] = useState(
+    initialData?.customer_name || ""
+  );
   const [filteredCustomers, setFilteredCustomers] = useState<any[]>([]);
   const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
 
@@ -152,14 +208,14 @@ const AddOrder: React.FC = () => {
     setProducts(data.products || []);
   };
 
-  const fetchSalesmans = async () => {
+  const fetchSalespersons = async () => {
     const { data } = await axiosInstance.get(
       `/hr/employees/names?role=salesperson`,
       {
         headers: { "X-Branch-ID": branchId },
       }
     );
-    setSalesmans(data.employees || []);
+    setSalespersons(data.employees || []);
   };
 
   const fetchCustomers = async () => {
@@ -184,21 +240,21 @@ const AddOrder: React.FC = () => {
 
   useEffect(() => {
     fetchProducts();
-    fetchSalesmans();
+    fetchSalespersons();
     fetchCustomers();
     fetchAccounts();
   }, [branchId]);
 
   // Filter dropdown lists
   useEffect(() => {
-    setFilteredSalesmans(
-      salesmans.filter(
+    setFilteredSalespersons(
+      salespersons.filter(
         (s) =>
           s.id.toString().includes(salesmanSearch.toLowerCase()) ||
           s.name.toLowerCase().includes(salesmanSearch.toLowerCase())
       )
     );
-  }, [salesmanSearch, salesmans]);
+  }, [salesmanSearch, salespersons]);
 
   useEffect(() => {
     setFilteredCustomers(
@@ -238,24 +294,32 @@ const AddOrder: React.FC = () => {
         ...formData,
         order_date: formData.order_date + "T00:00:00Z",
         delivery_date: formData.delivery_date + "T00:00:00Z",
-        items: formData.items.map((i) => ({
+        items: formData.items.map((i: ProductItem) => ({
           product_id: i.product_id,
           quantity: i.quantity,
           total_price: i.total_price,
         })),
       };
-
-      const res = await axiosInstance.post(`/orders`, apiData, {
-        headers: {
-          "X-Branch-ID": branchId,
-        },
-      });
+      const res = await (isEdit
+        ? axiosInstance.patch(`/orders`, apiData, {
+            headers: { "X-Branch-ID": branchId },
+          })
+        : axiosInstance.post(`/orders`, apiData, {
+            headers: { "X-Branch-ID": branchId },
+          }));
 
       if (!res.data.error) {
-        Swal.fire("Success", "Order created successfully", "success");
+        Swal.fire(
+          "Success",
+          isEdit ? "Order updated successfully" : "Order created successfully",
+          "success"
+        );
         navigate("/orders");
-      } else if (res.data.message.includes('orders_memo_no_branch_id_key')){
-        Swal.fire("Error", "Duplicate memo is not allowed. Please enter unique memo number")
+      } else if (res.data.message.includes("orders_memo_no_branch_id_key")) {
+        Swal.fire(
+          "Error",
+          "Duplicate memo is not allowed. Please enter unique memo number"
+        );
       }
     } catch (error: any) {
       console.error("Order creation error:", error);
@@ -306,8 +370,8 @@ const AddOrder: React.FC = () => {
             />
             {showSalesmanDropdown && (
               <ul className="absolute bg-white border w-full max-h-40 overflow-y-auto z-10">
-                {filteredSalesmans.length > 0 ? (
-                  filteredSalesmans.map((s) => (
+                {filteredSalespersons.length > 0 ? (
+                  filteredSalespersons.map((s) => (
                     <li
                       key={s.id}
                       className="p-2 hover:bg-gray-200 cursor-pointer"
@@ -359,9 +423,8 @@ const AddOrder: React.FC = () => {
                       {c.name} {c.mobile ? `(${c.mobile})` : ""}
                     </li>
                   ))
-                ) : (<li>
-                    No customer found
-                  </li>
+                ) : (
+                  <li>No customer found</li>
                 )}
               </ul>
             )}
@@ -499,7 +562,7 @@ const AddOrder: React.FC = () => {
                   </td>
                 </tr>
               ) : (
-                formData.items.map((item, i) => (
+                formData.items.map((item: ProductItem, i: number) => (
                   <tr key={i}>
                     <td className="border p-2">{item.product_name}</td>
                     <td className="border p-2">
@@ -555,7 +618,7 @@ const AddOrder: React.FC = () => {
                 Processing...
               </>
             ) : (
-              "Confirm Order"
+              "Submit"
             )}
           </button>
         </div>
