@@ -30,7 +30,6 @@ import SalesReport from "./pages/Reports/SalesReport";
 import EditSoldProducts from "./pages/Stock/EditSoldProducts";
 import SalaryReport from "./pages/Reports/SalaryReports";
 import TransactionReport from "./pages/Reports/TransactionReport";
-import EditOrder from "./pages/Order/EditOrder";
 
 export default function App() {
   return (
