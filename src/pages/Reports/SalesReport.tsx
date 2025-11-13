@@ -121,22 +121,12 @@ export default function SalesHistory() {
   };
 
   const handleEditSale = (sale: Sale) => {
-    closeModal()
+    closeModal();
     // From sales_history page
-    sale.sale_date = sale.sale_date?.slice(0, 10) || new Date().toISOString().slice(0, 10),
-    navigate("/sale/edit", { state: { initialData: sale } });
+    (sale.sale_date =
+      sale.sale_date?.slice(0, 10) || new Date().toISOString().slice(0, 10)),
+      navigate("/sale/edit", { state: { initialData: sale } });
   };
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-[50vh]">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600 dark:text-gray-400">Loading...</p>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="container mx-auto py-6">
@@ -181,16 +171,21 @@ export default function SalesHistory() {
           </div>
         </div>
       </div>
-
-      <div
-        // ref={printRef}
-        className="overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm p-4"
-      >
-        <div className="grid grid-cols-2 gap-4">
-          <div className="flex justify-start mb-2">
-            <strong>Sales History</strong>
-          </div>
-          {/* <div className="flex justify-end mb-2">
+      {/* Table */}
+      {loading ? (
+        <div className="text-center py-10 text-gray-500 dark:text-gray-400">
+          Loading purchase reports...
+        </div>
+      ) : (
+        <div
+          // ref={printRef}
+          className="overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm p-4"
+        >
+          <div className="grid grid-cols-2 gap-4">
+            <div className="flex justify-start mb-2">
+              <strong>Sales History</strong>
+            </div>
+            {/* <div className="flex justify-end mb-2">
             <button
               // onClick={handlePrintStockTable} // you can rename to handlePrintSalesTable
               className="px-4 py-2 text-sm font-medium text-blue-800 border border-blue-400 rounded-lg hover:bg-blue-100 hover:text-blue-800 transition-all duration-200 shadow-sm"
@@ -198,101 +193,102 @@ export default function SalesHistory() {
               Print Sales
             </button>
           </div> */}
-        </div>
+          </div>
 
-        <table className="min-w-full text-sm text-gray-700 dark:text-gray-200">
-          <thead className="bg-gray-100 dark:bg-gray-800">
-            <tr>
-              <th className="px-3 py-2 border-b text-center">Date</th>
-              <th className="px-3 py-2 border-b text-center">Memo No</th>
-              <th className="px-3 py-2 border-b text-center">Customer</th>
-              <th className="px-3 py-2 border-b text-center">Salesperson</th>
-              <th className="px-3 py-2 border-b text-center">Total</th>
-              <th className="px-3 py-2 border-b text-center">Paid</th>
-              <th className="px-3 py-2 border-b text-center">Due</th>
-              <th className="px-3 py-2 border-b text-center">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredSales.length === 0 ? (
+          <table className="min-w-full text-sm text-gray-700 dark:text-gray-200">
+            <thead className="bg-gray-100 dark:bg-gray-800">
               <tr>
-                <td
-                  colSpan={8}
-                  className="text-center py-4 text-gray-500 dark:text-gray-400"
-                >
-                  {searchQuery
-                    ? "No sales match your search."
-                    : "No sales records found."}
-                </td>
+                <th className="px-3 py-2 border-b text-center">Date</th>
+                <th className="px-3 py-2 border-b text-center">Memo No</th>
+                <th className="px-3 py-2 border-b text-center">Customer</th>
+                <th className="px-3 py-2 border-b text-center">Salesperson</th>
+                <th className="px-3 py-2 border-b text-center">Total</th>
+                <th className="px-3 py-2 border-b text-center">Paid</th>
+                <th className="px-3 py-2 border-b text-center">Due</th>
+                <th className="px-3 py-2 border-b text-center">Actions</th>
               </tr>
-            ) : (
-              filteredSales.map((sale) => (
-                <tr
-                  key={sale.memo_no}
-                  className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-                >
-                  <td className="px-3 py-2 border-b text-center">
-                    {sale.sale_date.slice(0, 10)}
-                  </td>
-                  <td className="px-3 py-2 border-b text-center">
-                    {sale.memo_no}
-                  </td>
-                  <td className="px-3 py-2 border-b text-center">
-                    {sale.customer_name}
-                  </td>
-                  <td className="px-3 py-2 border-b text-center">
-                    {sale.salesperson_name}
-                  </td>
-                  <td className="px-3 py-2 border-b text-center">
-                    {sale.total_payable_amount.toFixed(2)}
-                  </td>
-                  <td className="px-3 py-2 border-b text-center">
-                    {sale.paid_amount.toFixed(2)}
-                  </td>
-                  <td className="px-3 py-2 border-b text-center">
-                    {sale.due_amount.toFixed(2)}
-                  </td>
-                  <td className="px-3 py-2 border-b text-center space-x-2">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => handleViewDetails(sale)}
-                    >
-                      {loadingRows[sale.memo_no] ? (
-                        <>
-                          <Loader className="animate-spin w-4 h-4 mr-2" />
-                          Processing...
-                        </>
-                      ) : (
-                        "View Details"
-                      )}
-                    </Button>
+            </thead>
+            <tbody>
+              {filteredSales.length === 0 ? (
+                <tr>
+                  <td
+                    colSpan={8}
+                    className="text-center py-4 text-gray-500 dark:text-gray-400"
+                  >
+                    {searchQuery
+                      ? "No sales match your search."
+                      : "No sales records found."}
                   </td>
                 </tr>
-              ))
-            )}
-          </tbody>
-          <tfoot>
-            {filteredSales.length > 0 && (
-              <tr className="bg-gray-100 dark:bg-gray-700 font-semibold">
-                <td colSpan={4} className="px-3 py-2 border-b text-right">
-                  Totals:
-                </td>
-                <td className="px-3 py-2 border-b text-center">
-                  {totals.total?.toFixed(2)}
-                </td>
-                <td className="px-3 py-2 border-b text-center">
-                  {totals.paid?.toFixed(2)}
-                </td>
-                <td className="px-3 py-2 border-b text-center">
-                  {totals.due?.toFixed(2)}
-                </td>
-                <td className="px-3 py-2 border-b text-center">{""}</td>
-              </tr>
-            )}
-          </tfoot>
-        </table>
-      </div>
+              ) : (
+                filteredSales.map((sale) => (
+                  <tr
+                    key={sale.memo_no}
+                    className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                  >
+                    <td className="px-3 py-2 border-b text-center">
+                      {sale.sale_date.slice(0, 10)}
+                    </td>
+                    <td className="px-3 py-2 border-b text-center">
+                      {sale.memo_no}
+                    </td>
+                    <td className="px-3 py-2 border-b text-center">
+                      {sale.customer_name}
+                    </td>
+                    <td className="px-3 py-2 border-b text-center">
+                      {sale.salesperson_name}
+                    </td>
+                    <td className="px-3 py-2 border-b text-center">
+                      {sale.total_payable_amount.toFixed(2)}
+                    </td>
+                    <td className="px-3 py-2 border-b text-center">
+                      {sale.paid_amount.toFixed(2)}
+                    </td>
+                    <td className="px-3 py-2 border-b text-center">
+                      {sale.due_amount.toFixed(2)}
+                    </td>
+                    <td className="px-3 py-2 border-b text-center space-x-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleViewDetails(sale)}
+                      >
+                        {loadingRows[sale.memo_no] ? (
+                          <>
+                            <Loader className="animate-spin w-4 h-4 mr-2" />
+                            Processing...
+                          </>
+                        ) : (
+                          "View Details"
+                        )}
+                      </Button>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+            <tfoot>
+              {filteredSales.length > 0 && (
+                <tr className="bg-gray-100 dark:bg-gray-700 font-semibold">
+                  <td colSpan={4} className="px-3 py-2 border-b text-right">
+                    Totals:
+                  </td>
+                  <td className="px-3 py-2 border-b text-center">
+                    {totals.total?.toFixed(2)}
+                  </td>
+                  <td className="px-3 py-2 border-b text-center">
+                    {totals.paid?.toFixed(2)}
+                  </td>
+                  <td className="px-3 py-2 border-b text-center">
+                    {totals.due?.toFixed(2)}
+                  </td>
+                  <td className="px-3 py-2 border-b text-center">{""}</td>
+                </tr>
+              )}
+            </tfoot>
+          </table>
+        </div>
+      )}
 
       {/* Details Modal */}
       <Modal isOpen={isOpen} onClose={closeModal} className="max-w-[700px] m-4">
