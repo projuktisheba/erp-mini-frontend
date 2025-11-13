@@ -90,6 +90,10 @@ const WorkerProgress: React.FC = () => {
     if (startDate && endDate) fetchWorkerProgress();
   }, [branchId, startDate, endDate, reportType]);
 
+    // --- Autocomplete: Unique employee names only ---
+  const uniqueEmployees = Array.from(
+    new Map(data.map((item) => [item.worker_id, item])).values()
+  );
   // --- Autocomplete Logic ---
   const handleWorkerInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
@@ -100,7 +104,7 @@ const WorkerProgress: React.FC = () => {
       return;
     }
 
-    const suggestions = data.filter((w) =>
+    const suggestions = uniqueEmployees.filter((w) =>
       w.worker_name.toLowerCase().includes(value.toLowerCase())
     );
     setFilteredWorkers(suggestions);
@@ -359,7 +363,7 @@ const WorkerProgress: React.FC = () => {
         />
         {showDropdown && (
           <ul className="absolute z-10 bg-white border rounded-lg shadow-md mt-1 w-64 max-h-48 overflow-y-auto">
-            {filteredWorkers.map((w) => (
+            {uniqueEmployees.map((w) => (
               <li
                 key={w.worker_id}
                 onClick={() => handleWorkerSelect(w)}
@@ -413,9 +417,9 @@ const WorkerProgress: React.FC = () => {
                   </td>
                 </tr>
               ) : (
-                filteredWorkers.map((item) => (
+                filteredWorkers.map((item, index) => (
                   <tr
-                    key={item.worker_id}
+                    key={index}
                     className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
                   >
                     <td className="px-3 py-2 border-b">{item.date}</td>
