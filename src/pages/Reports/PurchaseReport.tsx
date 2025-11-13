@@ -358,9 +358,9 @@ const PurchaseReport: React.FC = () => {
         />
         {showDropdown && (
           <ul className="absolute z-10 bg-white border rounded-lg shadow-md mt-1 w-64 max-h-48 overflow-y-auto">
-            {filteredPurchases.map((p) => (
+            {filteredPurchases.map((p, index) => (
               <li
-                key={p.id}
+                key={`${p.id}-${index}`}
                 onClick={() => handleSupplierSelect(p)}
                 className="px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
               >
@@ -414,9 +414,9 @@ const PurchaseReport: React.FC = () => {
                 </tr>
               ) : (
                 <>
-                  {filteredPurchases.map((item) => (
+                  {filteredPurchases.map((item, index) => (
                     <tr
-                      key={item.id}
+                      key={`${item.id}-${index}`}
                       className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
                     >
                       <td className="px-3 py-2 border-b border-gray-200 dark:border-gray-700 text-center">
