@@ -231,83 +231,20 @@ const TransactionReport: React.FC = () => {
     `;
     printHTML(html);
   };
-  // Print main transaction table
-  const handlePrintTable = () => {
-    if (filteredTransactions.length === 0) {
-      alert("No transaction data to print!");
-      return;
-    }
 
-    const rows = filteredTransactions
-      .map(
-        (t) => `
-      <tr>
-        <td>${(t.created_at || "").slice(0, 10)}</td>
-        <td>${t.memo_no}</td>
-        <td>${t.transaction_id || ""}</td>
-        <td>${t.from_account_name} (${t.from_type.slice(0, -1)})</td>
-        <td>${t.to_account_name} (${t.to_type.slice(0, -1)})</td>
-        <td>${t.transaction_type}</td>
-        <td style="text-align:right">${Number(t.amount || 0).toFixed(2)}</td>
-        <td>${t.notes || ""}</td>
-      </tr>`
-      )
-      .join("");
 
-    const totalsRow = `
-        <tr style=\"font-weight:bold; background:#f3f3f3;\">
-            <td colspan=\"6\" style=\"text-align:right\">Total Amount</td>
-            <td style=\"text-align:right\">${Number(totals.total_amount).toFixed(2)}</td>
-            <td></td>
-        </tr>
-        `;
-
-    const html = `
-      <html>
-        <head>
-          <title>Transaction Report - ${reportType.toUpperCase()}</title>
-          <style>
-            body { font-family: Arial, sans-serif; padding: 20px; color: #222; }
-            .header { text-align: center; margin-bottom: 20px; }
-            .header h1 { margin: 0; font-size: 22px; }
-            .header .meta { margin-top: 5px; font-size: 14px; }
-            table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-            th, td { border: 1px solid #ccc; padding: 8px; text-align: center; }
-            th { background: #f3f3f3; text-transform: uppercase; }
-          </style>
-        </head>
-        <body>
-          <div class=\"header\">
-            <h1>Transaction Report</h1>
-            <div class=\"meta\">
-              <strong>Branch:</strong> ${branchList[branchId - 1]?.name || "N/A"}<br/>
-              <strong>Date Range:</strong> ${startDate} to ${endDate}<br/>
-              <strong>Report Type:</strong> ${reportType.charAt(0).toUpperCase() + reportType.slice(1)}
-            </div>
-          </div>
-          <table>
-            <thead>
-              <tr>
-                <th>Date</th>
-                <th>Memo No</th>
-                <th>Tx ID</th>
-                <th>From</th>
-                <th>To</th>
-                <th>Type</th>
-                <th>Amount</th>
-                <th colspan=2>Notes</th>
-              </tr>
-            </thead>
-            <tbody>${rows}</tbody>
-            <tfoot>${totalsRow}</tfoot>
-          </table>
-        </body>
-      </html>
-  `;
-    printHTML(html);
-  };
-
-  // Print summary table
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-96">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600 dark:text-gray-400">
+            Loading orders...
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="container mx-auto p-4">
@@ -369,9 +306,9 @@ const TransactionReport: React.FC = () => {
 
           {showDropdown && (
             <ul className="absolute top-full left-0 w-full z-10 bg-white border rounded-lg shadow-md max-h-48 overflow-y-auto mt-1">
-              {filteredTransactions.map((s) => (
+              {filteredTransactions.map((s, index) => (
                 <li
-                  key={s.id}
+                  key={`${s.id}-${index}`}
                   onClick={() => handleSelect(s)}
                   className="px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
                 >
@@ -411,14 +348,6 @@ const TransactionReport: React.FC = () => {
             <div className="flex justify-start mb-2">
               <strong>Transaction History</strong>
             </div>
-            <div className="flex justify-end mb-2">
-              <button
-                onClick={handlePrintTable}
-                className="px-4 py-2 text-sm font-medium text-blue-800 border border-blue-400 rounded-lg hover:bg-blue-100 hover:text-blue-800 transition-all duration-200 shadow-sm"
-              >
-                Print Table
-              </button>
-            </div>
           </div>
           <table className="min-w-full text-sm text-gray-700 dark:text-gray-200">
             <thead className="bg-gray-100 dark:bg-gray-800">
@@ -444,9 +373,9 @@ const TransactionReport: React.FC = () => {
                   </td>
                 </tr>
               ) : (
-                filteredTransactions.map((t) => (
+                filteredTransactions.map((t, index) => (
                   <tr
-                    key={t.id}
+                    key={`${t.id}-${index}`}
                     className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
                   >
                     <td className="px-3 py-2 border-b text-left">{(t.created_at || "").slice(0, 10)}</td>
