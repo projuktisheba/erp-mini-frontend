@@ -15,7 +15,10 @@ interface PurchaseReportItem {
   total_amount: number;
   notes: string;
 }
-
+interface Supplier {
+  id: number;
+  name: string;
+}
 const branchList = [
   { id: 1, name: "AL FANAR ABAYAT" },
   { id: 2, name: "DIVA ABAYAT" },
@@ -42,6 +45,12 @@ const PurchaseReport: React.FC = () => {
   const [showDropdown, setShowDropdown] = useState(false);
   const printRef = useRef<HTMLDivElement>(null);
   const searchRef = useRef<HTMLDivElement>(null);
+  const [suppliers, setSuppliers] = useState<Supplier[]>([]);
+   const supplierRef = useRef<HTMLDivElement>(null);
+  const [supplierSearch, setSupplierSearch] = useState("");
+  const [showSupplierDropdown, setShowSupplierDropdown] = useState(false);
+  const [filteredSuppliers, setFilteredSuppliers] = useState<Supplier[]>([]);
+    
   // Edit modal state
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [editSaving, setEditSaving] = useState(false);
@@ -75,6 +84,23 @@ const PurchaseReport: React.FC = () => {
     setEndDate(formatDate(today));
   };
 
+  // Fetch suppliers
+  const fetchSuppliers = async () => {
+    try {
+      const { data } = await axiosInstance.get("/mis/suppliers", {
+        headers: { "X-Branch-ID": branchId },
+      });
+      setSuppliers(data.suppliers || []);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  useEffect(() => {
+    fetchSuppliers();
+    console.log("suppliers: ", suppliers)
+  }, [branchId]);
+
   const fetchReports = async () => {
     if (!startDate || !endDate) return;
     setLoading(true);
@@ -105,7 +131,14 @@ const PurchaseReport: React.FC = () => {
   useEffect(() => {
     if (startDate && endDate) fetchReports();
   }, [branchId, startDate, endDate, reportType]);
-
+// Filter suppliers based on input
+  useEffect(() => {
+    setFilteredSuppliers(
+      suppliers.filter((s) =>
+        s.name.toLowerCase().includes(supplierSearch.toLowerCase())
+      )
+    );
+  }, [supplierSearch, suppliers]);
   // --- Search handlers ---
   const handleSupplierInputChange = (
     e: React.ChangeEvent<HTMLInputElement>
@@ -148,7 +181,10 @@ const PurchaseReport: React.FC = () => {
       total_amount: Number(purchase.total_amount) || 0,
       notes: purchase.notes || "",
     });
+    setSupplierSearch(purchase?.supplier_name)
+    console.log("current Data", purchase.supplier_name, purchase.supplier_id)
     setIsEditOpen(true);
+    
   };
 
   const closeEdit = () => {
@@ -251,7 +287,7 @@ const PurchaseReport: React.FC = () => {
             <h1>Purchase Report</h1>
             <div class="meta">
               <strong>Branch:</strong> ${
-                branchList[branchId-1]?.name || "N/A"
+                branchList[branchId - 1]?.name || "N/A"
               }<br/>
               <strong>Date Range:</strong> ${startDate} to ${endDate}<br/>
               <strong>Report Type:</strong> ${
@@ -276,7 +312,7 @@ const PurchaseReport: React.FC = () => {
         </body>
       </html>
     `;
-    printHTML(html)
+    printHTML(html);
   };
 
   const totalAmount = filteredPurchases.reduce(
@@ -435,16 +471,17 @@ const PurchaseReport: React.FC = () => {
                         {item.notes}
                       </td>
                       <td className="px-3 py-2 border-b border-gray-200 dark:border-gray-700 text-center">
-                        {
-                          userRole=="chairman"?
-                          (<button
-                          type="button"
-                          onClick={() => openEdit(item)}
-                          className="px-3 py-1 text-xs font-medium border rounded-lg hover:bg-gray-100"
-                        >
-                          Edit
-                        </button>):""
-                        }
+                        {userRole == "chairman" ? (
+                          <button
+                            type="button"
+                            onClick={() => openEdit(item)}
+                            className="px-3 py-1 text-xs font-medium border rounded-lg hover:bg-gray-100"
+                          >
+                            Edit
+                          </button>
+                        ) : (
+                          ""
+                        )}
                       </td>
                     </tr>
                   ))}
@@ -467,17 +504,26 @@ const PurchaseReport: React.FC = () => {
 
       {/* Edit Modal */}
       {editData && (
-        <Modal isOpen={isEditOpen} onClose={closeEdit} className="max-w-[640px] m-4">
+        <Modal
+          isOpen={isEditOpen}
+          onClose={closeEdit}
+          className="max-w-[640px] m-4"
+        >
           <div className="relative w-full bg-white rounded-3xl dark:bg-gray-900 flex flex-col max-h-[90vh]">
             <div className="p-6 border-b border-gray-200 dark:border-gray-700">
               <h4 className="text-xl font-semibold text-gray-800 dark:text-white/90">
                 Edit Purchase — {editData.memo_no}
               </h4>
             </div>
-            <form onSubmit={handleEditSubmit} className="flex-1 overflow-y-auto p-6 space-y-4">
+            <form
+              onSubmit={handleEditSubmit}
+              className="flex-1 overflow-y-auto p-6 space-y-4"
+            >
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium mb-1">Memo No</label>
+                  <label className="block text-sm font-medium mb-1">
+                    Memo No
+                  </label>
                   <input
                     name="memo_no"
                     type="text"
@@ -497,17 +543,49 @@ const PurchaseReport: React.FC = () => {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-1">Supplier</label>
-                  <input
-                    name="supplier_name"
-                    type="text"
-                    value={editData.supplier_name}
-                    onChange={handleEditChange}
-                    className="w-full px-3 py-2 border rounded-lg bg-white dark:bg-gray-800"
-                  />
+                  <div className="relative" ref={supplierRef}>
+                    <label className="block text-sm font-medium mb-1">
+                    Supplier
+                  </label>
+                    <input
+                      type="text"
+                      placeholder="Search supplier"
+                      value={supplierSearch}
+                      onChange={(e) => {
+                        setSupplierSearch(e.target.value);
+                        setShowSupplierDropdown(true);
+                      }}
+                      className="w-full p-2 border rounded-lg"
+                    />
+                    {showSupplierDropdown && (
+                      <ul className="absolute bg-white border w-full max-h-40 overflow-y-auto z-10">
+                        {filteredSuppliers.length > 0 ? (
+                          filteredSuppliers.map((s) => (
+                            <li
+                              key={s.id}
+                              className="p-2 hover:bg-gray-200 cursor-pointer"
+                              onClick={() => {
+                                setEditData((prev) => (prev ? { ...prev, supplier_id: s.id } : prev));
+                                setSupplierSearch(s.name);
+                                setShowSupplierDropdown(false);
+                              }}
+                            >
+                              {s.name}
+                            </li>
+                          ))
+                        ) : (
+                          <li className="p-2 text-gray-500">
+                            No supplier found
+                          </li>
+                        )}
+                      </ul>
+                    )}
+                  </div>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-1">Total Amount</label>
+                  <label className="block text-sm font-medium mb-1">
+                    Total Amount
+                  </label>
                   <input
                     name="total_amount"
                     type="number"
@@ -518,7 +596,9 @@ const PurchaseReport: React.FC = () => {
                   />
                 </div>
                 <div className="sm:col-span-2">
-                  <label className="block text-sm font-medium mb-1">Notes</label>
+                  <label className="block text-sm font-medium mb-1">
+                    Notes
+                  </label>
                   <textarea
                     name="notes"
                     rows={3}
@@ -529,7 +609,11 @@ const PurchaseReport: React.FC = () => {
                 </div>
               </div>
               <div className="flex justify-end gap-3 pt-2">
-                <button type="button" onClick={closeEdit} className="px-4 py-2 text-sm font-medium border rounded-lg">
+                <button
+                  type="button"
+                  onClick={closeEdit}
+                  className="px-4 py-2 text-sm font-medium border rounded-lg"
+                >
                   Cancel
                 </button>
                 <button
@@ -547,6 +631,5 @@ const PurchaseReport: React.FC = () => {
     </div>
   );
 };
-
 
 export default PurchaseReport;
