@@ -2,6 +2,7 @@ import React, { useContext, useEffect, useRef, useState } from "react";
 import axiosInstance from "../../hooks/AxiosInstance/AxiosInstance";
 import { AppContext } from "../../context/AppContext";
 import { printHTML } from "../../utils/printHtml";
+import { Modal } from "../../components/ui/modal";
 
 interface WorkerProgressItem {
   worker_id: number;
@@ -24,12 +25,12 @@ const branchList = [
 const WorkerProgress: React.FC = () => {
   const context = useContext(AppContext);
   if (!context) throw new Error("AppContext not provided");
-  const { branchId } = context;
+  const { branchId, userRole } = context;
 
   const [data, setData] = useState<WorkerProgressItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [reportType, setReportType] = useState<"daily" | "weekly" | "monthly">(
-    "monthly"
+    "daily"
   );
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
@@ -40,6 +41,86 @@ const WorkerProgress: React.FC = () => {
   );
   const [showDropdown, setShowDropdown] = useState(false);
   const workerRef = useRef<HTMLDivElement>(null);
+
+  // Edit modal state
+  const [isEditOpen, setIsEditOpen] = useState(false);
+  const [editSaving, setEditSaving] = useState(false);
+  const [editData, setEditData] = useState<{
+    worker_id: number;
+    worker_name: string;
+    mobile: string;
+    date: string;
+    total_advance_payment: number;
+    total_production_units: number;
+    total_overtime_hours: number;
+  } | null>(null);
+
+  // Open edit modal with current values
+  const openEdit = (worker: WorkerProgressItem) => {
+    setEditData({
+      worker_id: worker.worker_id,
+      worker_name: worker.worker_name,
+      mobile: worker.mobile,
+      date: worker.date,
+      total_advance_payment: worker.total_advance_payment,
+      total_production_units: worker.total_production_units,
+      total_overtime_hours: worker.total_overtime_hours,
+    });
+    setIsEditOpen(true);
+  };
+  const handleEditChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+
+    // Ensure editData is not null before updating
+    setEditData((prev) => {
+      if (!prev) return prev;
+
+      // Convert numeric fields properly
+      const numericFields = [
+        "total_advance_payment",
+        "total_production_units",
+        "total_overtime_hours",
+      ];
+
+      return {
+        ...prev,
+        [name]: numericFields.includes(name) ? parseFloat(value) || 0 : value,
+      };
+    });
+  };
+
+  const closeEdit = () => {
+    setIsEditOpen(false);
+    setEditData(null);
+    setEditSaving(false);
+  };
+
+  const handleEditSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editData) return;
+    setEditSaving(true);
+    try {
+      const payload = {
+        worker_id: editData.worker_id,
+        worker_name: editData.worker_name,
+        mobile: editData.mobile,
+        date: `${editData.date}T00:00:00Z`,
+        total_advance_payment: editData.total_advance_payment,
+        total_production_units: editData.total_production_units,
+        total_overtime_hours: editData.total_overtime_hours,
+      };
+      await axiosInstance.patch(`/hr/worker/progress`, payload, {
+        headers: { "X-Branch-ID": branchId },
+      });
+      // Refresh list via fetch to ensure consistency with backend
+      await fetchWorkerProgress();
+      closeEdit();
+    } catch (err) {
+      console.error("Failed to update purchase", err);
+      alert("Failed to update purchase. Please try again.");
+      setEditSaving(false);
+    }
+  };
 
   // Auto-set date range
   const updateDates = (type: "daily" | "weekly" | "monthly") => {
@@ -90,7 +171,7 @@ const WorkerProgress: React.FC = () => {
     if (startDate && endDate) fetchWorkerProgress();
   }, [branchId, startDate, endDate, reportType]);
 
-    // --- Autocomplete: Unique employee names only ---
+  // --- Autocomplete: Unique employee names only ---
   const uniqueEmployees = Array.from(
     new Map(data.map((item) => [item.worker_id, item])).values()
   );
@@ -171,7 +252,7 @@ const WorkerProgress: React.FC = () => {
         <div class="header">
           <h1>Worker Progress Report</h1>
           <div class="branch-info">
-            <strong>Branch:</strong>${branchList[branchId-1]?.name}<br/>
+            <strong>Branch:</strong>${branchList[branchId - 1]?.name}<br/>
             <strong>Date Range:</strong> ${startDate} To ${endDate} <br/>
             <strong>Report Type:</strong> ${reportType
               .charAt(0)
@@ -255,7 +336,7 @@ const WorkerProgress: React.FC = () => {
         <div class="header">
           <h1>Worker Progress Report</h1>
           <div class="branch-info">
-            <strong>Branch:</strong>${branchList[branchId-1]?.name}<br/>
+            <strong>Branch:</strong>${branchList[branchId - 1]?.name}<br/>
             <strong>Date Range:</strong> ${startDate} To ${endDate} <br/>
             <strong>Report Type:</strong> ${reportType
               .charAt(0)
@@ -433,13 +514,25 @@ const WorkerProgress: React.FC = () => {
                     <td className="px-3 py-2 border-b text-right">
                       {item.total_advance_payment}
                     </td>
-                    <td className="px-3 py-2 border-b text-center">
-                      <button
-                        onClick={() => handlePrint(item)}
-                        className="px-3 py-1 text-sm font-medium text-green-800 border border-green-400 rounded-lg hover:bg-green-100 hover:text-green-800 transition-all duration-200 shadow-sm"
-                      >
-                        Print
-                      </button>
+
+                    <td className="px-3 py-2 border-b border-gray-200 dark:border-gray-700 text-center">
+                      <div className="inline-flex items-center justify-center gap-2">
+                        <button
+                          onClick={() => handlePrint(item)}
+                          className="px-3 py-1 text-xs font-medium text-green-800 border border-green-400 rounded-lg hover:bg-green-100 hover:text-green-800 transition-all duration-200 shadow-sm"
+                        >
+                          Print
+                        </button>
+                        {userRole === "chairman" && reportType == "daily" && (
+                          <button
+                            type="button"
+                            onClick={() => openEdit(item)}
+                            className="px-3 py-1 text-xs font-medium border rounded-lg hover:bg-gray-100 transition-all duration-200"
+                          >
+                            Edit
+                          </button>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))
@@ -464,6 +557,109 @@ const WorkerProgress: React.FC = () => {
             </tfoot>
           </table>
         </div>
+      )}
+
+      {/* Edit Worker Modal */}
+      {editData && (
+        <Modal
+          isOpen={isEditOpen}
+          onClose={closeEdit}
+          className="max-w-[640px] m-4"
+        >
+          <div className="relative w-full bg-white rounded-3xl dark:bg-gray-900 flex flex-col max-h-[90vh]">
+            {/* Header */}
+            <div className="p-6 border-b border-gray-200 dark:border-gray-700">
+              <h4 className="text-xl font-semibold text-gray-800 dark:text-white/90">
+                Edit Worker — {editData.worker_name}
+              </h4>
+              <p className="text-sm text-gray-600 dark:text-gray-400">
+                Mobile: {editData.mobile}
+              </p>
+            </div>
+
+            {/* Form */}
+            <form
+              onSubmit={handleEditSubmit}
+              className="flex-1 overflow-y-auto p-6 space-y-4"
+            >
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium mb-1">Date</label>
+                  <input
+                    name="date"
+                    type="date"
+                    value={editData.date}
+                    onChange={handleEditChange}
+                    className="w-full px-3 py-2 border rounded-lg bg-white dark:bg-gray-800"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-1">
+                    Total Advance Payment
+                  </label>
+                  <input
+                    name="total_advance_payment"
+                    type="number"
+                    step="0.01"
+                    value={editData.total_advance_payment}
+                    onChange={handleEditChange}
+                    className="w-full px-3 py-2 border rounded-lg bg-white dark:bg-gray-800 text-right"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-1">
+                    Total Production Units
+                  </label>
+                  <input
+                    name="total_production_units"
+                    type="number"
+                    value={editData.total_production_units}
+                    onChange={handleEditChange}
+                    className="w-full px-3 py-2 border rounded-lg bg-white dark:bg-gray-800 text-right"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-1">
+                    Total Overtime Hours
+                  </label>
+                  <input
+                    name="total_overtime_hours"
+                    type="number"
+                    step="0.01"
+                    value={editData.total_overtime_hours}
+                    onChange={handleEditChange}
+                    className="w-full px-3 py-2 border rounded-lg bg-white dark:bg-gray-800 text-right"
+                    required
+                  />
+                </div>
+              </div>
+
+              {/* Footer Buttons */}
+              <div className="flex justify-end gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={closeEdit}
+                  className="px-4 py-2 text-sm font-medium border rounded-lg"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={editSaving}
+                  className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-60"
+                >
+                  {editSaving ? "Saving..." : "Save Changes"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </Modal>
       )}
     </div>
   );

@@ -548,8 +548,5 @@ const PurchaseReport: React.FC = () => {
   );
 };
 
-// Edit Modal markup below main component
-
-// Inject edit modal after the component return JSX
 
 export default PurchaseReport;
