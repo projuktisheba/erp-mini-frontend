@@ -5,7 +5,7 @@ import Button from "../ui/button/Button";
 import axiosInstance from "../../hooks/AxiosInstance/AxiosInstance";
 import { useUser } from "../UserContext/UserContext";
 import { AppContext } from "../../context/AppContext";
-import { API_URL } from "../../hooks/AxiosInstance/AxiosInstance";
+import { API_BASE_URL } from "../../config/apiConfig";
 
 type UserMetaCardProps = {
   id: number;
@@ -62,7 +62,7 @@ export default function UserMetaCard({ id, image, name }: UserMetaCardProps) {
       );
 
       if (res.data?.avatar_link) {
-        const newUrl = `${API_URL}${res.data.avatar_link}`;
+        const newUrl = `${API_BASE_URL}${res.data.avatar_link}`;
         setPreview(newUrl);
         setAvatar(newUrl);
       }

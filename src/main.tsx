@@ -9,7 +9,7 @@ import { ThemeProvider } from "./context/ThemeContext.tsx";
 import { UserProvider } from "./components/UserContext/UserContext.tsx";
 import toast, { Toaster } from "react-hot-toast";
 import AppContextProvider, { AppContext } from "./context/AppContext.tsx";
-import { API_URL } from "./hooks/AxiosInstance/AxiosInstance.tsx";
+import { API_BASE_URL } from "./config/apiConfig.ts";
 
 const LoginPage = ({ onLogin }: { onLogin: () => void }) => {
   const { setUserRole, setBranchId } = useContext(AppContext)!;
@@ -24,7 +24,7 @@ const LoginPage = ({ onLogin }: { onLogin: () => void }) => {
     setLoading(true);
 
     try {
-      const response = await fetch(`${API_URL}/login`, {
+      const response = await fetch(`${API_BASE_URL}/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username, password }),

@@ -5,8 +5,9 @@ import UserMetaCard from "../components/UserProfile/UserMetaCard";
 import UserInfoCard from "../components/UserProfile/UserInfoCard";
 import UserAddressCard from "../components/UserProfile/UserAddressCard";
 import AccessControl from "../components/UserProfile/AccessControl/AccessControl";
-import axiosInstance, { API_URL } from "../hooks/AxiosInstance/AxiosInstance";
 import { AppContext } from "../context/AppContext";
+import axiosInstance from "../hooks/AxiosInstance/AxiosInstance";
+import { API_BASE_URL } from "../config/apiConfig";
 
 // type Tab = "profile" | "calendar" | "ledger";
 
@@ -70,7 +71,7 @@ export default function UserProfiles() {
         <div className="space-y-6">
           <UserMetaCard
             id={employee.id}
-            image={employee.avatar_link == "" ? "image/user/user.png" : `${API_URL}${employee.avatar_link}` }
+            image={employee.avatar_link == "" ? "image/user/user.png" : `${API_BASE_URL}${employee.avatar_link}` }
             name={`${employee.name}`}
           />
           <UserInfoCard employee={employee} />

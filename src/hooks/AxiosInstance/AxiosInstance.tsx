@@ -1,12 +1,10 @@
 // api/axiosInstance.ts
 import axios from "axios";
-
-// export const API_URL = "http://localhost:8080/api/v1";
-export const API_URL = "https://api.erp.pssoft.xyz/api/v1";
+import { API_BASE_URL } from "../../config/apiConfig";
 
 // Create an Axios instance
 const axiosInstance = axios.create({
-  baseURL: API_URL,
+  baseURL: API_BASE_URL,
   headers: {
     "Content-Type": "application/json",
   },

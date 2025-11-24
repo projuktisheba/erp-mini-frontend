@@ -1,7 +1,7 @@
 import { useState, useEffect, useContext, useRef } from "react";
 import { Store } from "lucide-react";
 import { AppContext } from "../../context/AppContext";
-import { API_URL } from "../../hooks/AxiosInstance/AxiosInstance";
+import { API_BASE_URL } from "../../config/apiConfig";
 
 interface UserData {
   id: string;
@@ -52,7 +52,7 @@ export default function UserDropdown() {
   const branchName = branchList[branchId-1] || ""
   const displayEmail = userData?.email || "user@example.com";
   const profileImage = userData?.avatar_link
-    ? `${API_URL}${userData.avatar_link}`
+    ? `${API_BASE_URL}${userData.avatar_link}`
     : "https://i.postimg.cc/kG1Byx5n/photo-1740252117044-2af197eea287.avif";
 
   const role = JSON.parse(localStorage.getItem("userData") || "{}")?.role || "";
