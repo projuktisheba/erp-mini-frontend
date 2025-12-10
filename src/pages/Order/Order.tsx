@@ -82,7 +82,9 @@ export default function Orders() {
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
-  const [loadingButtons, setLoadingButtons] = useState<{ [key: string]: boolean }>({});
+  const [loadingButtons, setLoadingButtons] = useState<{
+    [key: string]: boolean;
+  }>({});
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("pending");
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
@@ -95,7 +97,8 @@ export default function Orders() {
     message: string;
   } | null>(null);
 
-  const [confirmationAction, setConfirmationAction] = useState<ConfirmationAction>(null);
+  const [confirmationAction, setConfirmationAction] =
+    useState<ConfirmationAction>(null);
   const [deliveryFormData, setDeliveryFormData] = useState({
     paid_amount: 0,
     total_items_delivered: 0,
@@ -111,10 +114,11 @@ export default function Orders() {
    */
   const isOrderPartial = (order: Order) => {
     if (order.status !== "delivery") return false;
-    
+
     const itemsRemaining = order.items_delivered < order.total_items;
-    const paymentRemaining = order.advance_payment_amount < order.total_payable_amount;
-    
+    const paymentRemaining =
+      order.advance_payment_amount < order.total_payable_amount;
+
     return itemsRemaining || paymentRemaining;
   };
 
@@ -131,10 +135,12 @@ export default function Orders() {
     }
 
     const colors: Record<string, string> = {
-      pending: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300",
+      pending:
+        "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300",
       checkout: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300",
       cancelled: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300",
-      delivery: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300", // Full Delivery
+      delivery:
+        "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300", // Full Delivery
     };
     return colors[order.status] || "bg-gray-100 text-gray-800";
   };
@@ -166,9 +172,12 @@ export default function Orders() {
     const key = `${order.id}-view`;
     setLoadingButtons((prev) => ({ ...prev, [key]: true }));
     try {
-      const res = await axiosInstance.get("/orders/items?memo_no=" + order.memo_no, {
-        headers: { "X-Branch-ID": branchId },
-      });
+      const res = await axiosInstance.get(
+        "/orders/items?memo_no=" + order.memo_no,
+        {
+          headers: { "X-Branch-ID": branchId },
+        }
+      );
       if (!res.data.error) {
         order.items = res.data.items;
         setSelectedOrder(order);
@@ -180,7 +189,7 @@ export default function Orders() {
         });
       }
     } catch (error) {
-       console.error(error);
+      console.error(error);
     }
     setLoadingButtons((prev) => ({ ...prev, [key]: false }));
   };
@@ -214,10 +223,13 @@ export default function Orders() {
       matchesStatus = true;
     } else if (statusFilter === "partial") {
       matchesStatus = isOrderPartial(order);
-    } else if (statusFilter !== "delivery" || (statusFilter === "delivery" && !isOrderPartial(order))) {
+    } else if (
+      statusFilter !== "delivery" ||
+      (statusFilter === "delivery" && !isOrderPartial(order))
+    ) {
       // If filtering for 'delivery', we usually mean 'completed delivery' OR 'any delivery'?
       // Usually, exact match. But if 'partial' is a separate filter, 'delivery' might mean full delivery.
-      // For now, strict string match. 
+      // For now, strict string match.
       // Note: isOrderPartial(order) implies status === 'delivery'.
       // If user selects 'delivery', they might want to see both partial and full, or just full.
       // Standard logic: match the string status.
@@ -253,8 +265,11 @@ export default function Orders() {
     setIsModalOpen(true);
   };
 
-  const handleActionClick = async (order: Order, actionType: 'checkout' | 'delivery') => {
-    if (actionType === 'checkout') {
+  const handleActionClick = async (
+    order: Order,
+    actionType: "checkout" | "delivery"
+  ) => {
+    if (actionType === "checkout") {
       // Move Pending -> Checkout
       setIsSubmitting(true);
       setLoadingButtons((prev) => ({ ...prev, [`${order.id}-next`]: true }));
@@ -281,22 +296,26 @@ export default function Orders() {
         setIsSubmitting(false);
         setLoadingButtons((prev) => ({ ...prev, [`${order.id}-next`]: false }));
       }
-    } else if (actionType === 'delivery') {
+    } else if (actionType === "delivery") {
       // Move Checkout/Partial -> Delivery (Open Modal)
       const today = new Date().toISOString().split("T")[0];
-      
+
       // Calculate remaining items/payment for convenience
       const remainingItems = order.total_items - order.items_delivered;
       // const remainingDue = order.total_payable_amount - order.advance_payment_amount;
 
       setDeliveryFormData({
-        paid_amount: order.due_amount > 0 ? order.due_amount : 0, 
+        paid_amount: order.due_amount > 0 ? order.due_amount : 0,
         total_items_delivered: remainingItems > 0 ? remainingItems : 0,
         payment_account_id: "",
         exit_date: today,
       });
 
-      setConfirmationAction({ type: "nextStatus", order, nextStatus: "delivery" });
+      setConfirmationAction({
+        type: "nextStatus",
+        order,
+        nextStatus: "delivery",
+      });
       setIsModalOpen(true);
     }
   };
@@ -329,11 +348,22 @@ export default function Orders() {
           message: "Failed to cancel order",
         });
       } finally {
-        setLoadingButtons((prev) => ({ ...prev, [`${order.id}-cancel`]: false }));
+        setLoadingButtons((prev) => ({
+          ...prev,
+          [`${order.id}-cancel`]: false,
+        }));
       }
-    } else if (type === "nextStatus" && confirmationAction.nextStatus === "delivery") {
+    } else if (
+      type === "nextStatus" &&
+      confirmationAction.nextStatus === "delivery"
+    ) {
       setLoadingButtons((prev) => ({ ...prev, [`${order.id}-next`]: true }));
-      const { paid_amount, payment_account_id, exit_date, total_items_delivered } = deliveryFormData;
+      const {
+        paid_amount,
+        payment_account_id,
+        exit_date,
+        total_items_delivered,
+      } = deliveryFormData;
 
       if (!payment_account_id || !exit_date) {
         setAlert({
@@ -381,7 +411,8 @@ export default function Orders() {
 
   const handleEditOrder = (order: Order) => {
     closeModal();
-    order.order_date = order.order_date?.slice(0, 10) || new Date().toISOString().slice(0, 10);
+    order.order_date =
+      order.order_date?.slice(0, 10) || new Date().toISOString().slice(0, 10);
     navigate("/add-order", { state: { initialData: order } });
   };
 
@@ -390,7 +421,9 @@ export default function Orders() {
       <div className="flex items-center justify-center min-h-96">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600 dark:text-gray-400">Loading orders...</p>
+          <p className="mt-4 text-gray-600 dark:text-gray-400">
+            Loading orders...
+          </p>
         </div>
       </div>
     );
@@ -399,12 +432,17 @@ export default function Orders() {
   return (
     <div className="container mx-auto py-6">
       {alert && (
-        <div className={`mb-4 p-2 rounded-lg ${
-            alert.variant === "success" ? "bg-green-100 text-green-800" : 
-            alert.variant === "error" ? "bg-red-100 text-red-800" : 
-            alert.variant === "warning" ? "bg-yellow-100 text-yellow-800" : 
-            "bg-blue-100 text-blue-800"
-          } dark:opacity-90`}>
+        <div
+          className={`mb-4 p-2 rounded-lg ${
+            alert.variant === "success"
+              ? "bg-green-100 text-green-800"
+              : alert.variant === "error"
+              ? "bg-red-100 text-red-800"
+              : alert.variant === "warning"
+              ? "bg-yellow-100 text-yellow-800"
+              : "bg-blue-100 text-blue-800"
+          } dark:opacity-90`}
+        >
           <strong className="block font-medium">{alert.title}</strong>
           <span>{alert.message}</span>
         </div>
@@ -412,8 +450,12 @@ export default function Orders() {
 
       {/* Header */}
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Orders Management</h1>
-        <p className="text-gray-600 dark:text-gray-400">Manage and track all customer orders</p>
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
+          Orders Management
+        </h1>
+        <p className="text-gray-600 dark:text-gray-400">
+          Manage and track all customer orders
+        </p>
       </div>
 
       {/* Filters */}
@@ -475,10 +517,15 @@ export default function Orders() {
                 filteredOrders.map((order) => {
                   const partial = isOrderPartial(order);
                   return (
-                    <TableRow key={order.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+                    <TableRow
+                      key={order.id}
+                      className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
+                    >
                       <TableCell>
                         <div className="p-2">
-                          <div className="font-medium text-gray-900 dark:text-white">{order.memo_no}</div>
+                          <div className="font-medium text-gray-900 dark:text-white">
+                            {order.memo_no}
+                          </div>
                         </div>
                       </TableCell>
 
@@ -494,7 +541,9 @@ export default function Orders() {
                       <TableCell>
                         <div className="flex items-center gap-2">
                           <User className="h-4 w-4 text-gray-400" />
-                          <span className="text-gray-700 dark:text-gray-300">{order.customer_name}</span>
+                          <span className="text-gray-700 dark:text-gray-300">
+                            {order.customer_name}
+                          </span>
                         </div>
                       </TableCell>
 
@@ -519,8 +568,15 @@ export default function Orders() {
                       </TableCell>
 
                       <TableCell>
-                        <span   color={getStatusColor(order)}>
-                          {partial ? "Partial Delivery" : order.status.charAt(0).toUpperCase() + order.status.slice(1)}
+                        <span
+                          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(
+                            order
+                          )}`}
+                        >
+                          {partial
+                            ? "Partial Delivery"
+                            : order.status.charAt(0).toUpperCase() +
+                              order.status.slice(1)}
                         </span>
                       </TableCell>
 
@@ -542,11 +598,13 @@ export default function Orders() {
                           </Button>
 
                           {/* ACTION BUTTONS LOGIC */}
-                          
+
                           {/* Checkout Button: Visible if status == pending */}
                           {order.status === "pending" && (
                             <Button
-                              onClick={() => handleActionClick(order, 'checkout')}
+                              onClick={() =>
+                                handleActionClick(order, "checkout")
+                              }
                               size="sm"
                               variant="info"
                               className="flex items-center gap-2"
@@ -566,7 +624,9 @@ export default function Orders() {
                           {/* Delivery Button: Visible if status == checkout OR isPartial */}
                           {(order.status === "checkout" || partial) && (
                             <Button
-                              onClick={() => handleActionClick(order, 'delivery')}
+                              onClick={() =>
+                                handleActionClick(order, "delivery")
+                              }
                               size="sm"
                               variant="primary"
                               className="flex items-center gap-2"
@@ -584,24 +644,27 @@ export default function Orders() {
                           )}
 
                           {/* Cancel Button: Visible if status == pending OR isPartial OR status == checkout */}
-                          {userRole === "chairman" && (order.status === "pending" || order.status === "checkout" || partial) && (
-                            <Button
-                              onClick={() => handleCancelClick(order)}
-                              size="sm"
-                              variant="warning"
-                              className="flex items-center gap-2"
-                              disabled={loadingButtons[`${order.id}-cancel`]}
-                            >
-                              {loadingButtons[`${order.id}-cancel`] ? (
-                                <Loader2 className="animate-spin w-4 h-4" />
-                              ) : (
-                                <>
-                                  <CircleX className="h-4 w-4" />
-                                  Cancel
-                                </>
-                              )}
-                            </Button>
-                          )}
+                          {userRole === "chairman" &&
+                            (order.status === "pending" ||
+                              order.status === "checkout" ||
+                              partial) && (
+                              <Button
+                                onClick={() => handleCancelClick(order)}
+                                size="sm"
+                                variant="warning"
+                                className="flex items-center gap-2"
+                                disabled={loadingButtons[`${order.id}-cancel`]}
+                              >
+                                {loadingButtons[`${order.id}-cancel`] ? (
+                                  <Loader2 className="animate-spin w-4 h-4" />
+                                ) : (
+                                  <>
+                                    <CircleX className="h-4 w-4" />
+                                    Cancel
+                                  </>
+                                )}
+                              </Button>
+                            )}
                         </div>
                       </TableCell>
                     </TableRow>
@@ -636,7 +699,8 @@ export default function Orders() {
             <div className="space-y-4">
               {confirmationAction ? (
                 <>
-                  {confirmationAction.type === "nextStatus" && confirmationAction.nextStatus === "delivery" ? (
+                  {confirmationAction.type === "nextStatus" &&
+                  confirmationAction.nextStatus === "delivery" ? (
                     <div className="space-y-4">
                       <div>
                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
@@ -645,7 +709,10 @@ export default function Orders() {
                         <select
                           value={deliveryFormData.payment_account_id}
                           onChange={(e) =>
-                            setDeliveryFormData((prev) => ({ ...prev, payment_account_id: e.target.value }))
+                            setDeliveryFormData((prev) => ({
+                              ...prev,
+                              payment_account_id: e.target.value,
+                            }))
                           }
                           className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
                         >
@@ -667,7 +734,10 @@ export default function Orders() {
                           placeholder="Enter paid amount"
                           value={deliveryFormData.paid_amount}
                           onChange={(e) =>
-                            setDeliveryFormData((prev) => ({ ...prev, paid_amount: Number(e.target.value || 0) }))
+                            setDeliveryFormData((prev) => ({
+                              ...prev,
+                              paid_amount: Number(e.target.value || 0),
+                            }))
                           }
                           className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
                         />
@@ -684,7 +754,9 @@ export default function Orders() {
                           onChange={(e) =>
                             setDeliveryFormData((prev) => ({
                               ...prev,
-                              total_items_delivered: Number(e.target.value || 0),
+                              total_items_delivered: Number(
+                                e.target.value || 0
+                              ),
                             }))
                           }
                           className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
@@ -698,7 +770,10 @@ export default function Orders() {
                           type="date"
                           value={deliveryFormData.exit_date}
                           onChange={(e) =>
-                            setDeliveryFormData((prev) => ({ ...prev, exit_date: e.target.value }))
+                            setDeliveryFormData((prev) => ({
+                              ...prev,
+                              exit_date: e.target.value,
+                            }))
                           }
                           className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
                         />
@@ -706,7 +781,11 @@ export default function Orders() {
                     </div>
                   ) : (
                     <p className="text-gray-700 dark:text-gray-400">
-                      Are you sure you want to {confirmationAction.type === "cancel" ? "cancel" : `move to ${confirmationAction.nextStatus}`} this order?
+                      Are you sure you want to{" "}
+                      {confirmationAction.type === "cancel"
+                        ? "cancel"
+                        : `move to ${confirmationAction.nextStatus}`}{" "}
+                      this order?
                     </p>
                   )}
                 </>
@@ -718,18 +797,24 @@ export default function Orders() {
                       <thead className="bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300">
                         <tr>
                           <th className="px-4 py-2 text-left">Customer Info</th>
-                          <th className="px-4 py-2 text-left">Salesperson Info</th>
+                          <th className="px-4 py-2 text-left">
+                            Salesperson Info
+                          </th>
                         </tr>
                       </thead>
                       <tbody>
                         <tr className="border-t dark:border-gray-700">
                           <td className="px-4 py-2">
-                            <strong>Name:</strong> {selectedOrder?.customer_name || "-"} <br />
-                            <strong>Mobile:</strong> {selectedOrder?.customer_mobile || "-"}
+                            <strong>Name:</strong>{" "}
+                            {selectedOrder?.customer_name || "-"} <br />
+                            <strong>Mobile:</strong>{" "}
+                            {selectedOrder?.customer_mobile || "-"}
                           </td>
                           <td className="px-4 py-2">
-                            <strong>Name:</strong> {selectedOrder?.salesperson_name || "-"} <br />
-                            <strong>Mobile:</strong> {selectedOrder?.salesperson_mobile || "-"}
+                            <strong>Name:</strong>{" "}
+                            {selectedOrder?.salesperson_name || "-"} <br />
+                            <strong>Mobile:</strong>{" "}
+                            {selectedOrder?.salesperson_mobile || "-"}
                           </td>
                         </tr>
                       </tbody>
@@ -747,19 +832,41 @@ export default function Orders() {
                       <tbody>
                         <tr className="border-t dark:border-gray-700">
                           <td className="px-4 py-2">
-                            <strong>Memo: {selectedOrder?.memo_no}</strong> <br />
-                            <strong>Status: </strong> 
-                            <span className={`inline-block px-2 py-1 text-xs rounded-sm ${selectedOrder ? getStatusColor(selectedOrder) : ''}`}>
-                               {selectedOrder && isOrderPartial(selectedOrder) ? "Partial Delivery" : selectedOrder?.status}
-                            </span> <br />
+                            <strong>Memo: {selectedOrder?.memo_no}</strong>{" "}
+                            <br />
+                            <strong>Status: </strong>
+                            <span
+                              className={`inline-block px-2 py-1 text-xs rounded-sm ${
+                                selectedOrder
+                                  ? getStatusColor(selectedOrder)
+                                  : ""
+                              }`}
+                            >
+                              {selectedOrder && isOrderPartial(selectedOrder)
+                                ? "Partial Delivery"
+                                : selectedOrder?.status}
+                            </span>{" "}
+                            <br />
                             <strong>Due Amount: </strong>
                             {" QR "}
-                            {(selectedOrder?.total_payable_amount ?? 0) - (selectedOrder?.advance_payment_amount ?? 0)}
+                            {(selectedOrder?.total_payable_amount ?? 0) -
+                              (selectedOrder?.advance_payment_amount ?? 0)}
                           </td>
                           <td className="px-4 py-2">
-                            <strong>Order Date:</strong> {selectedOrder?.order_date ? formatDate(selectedOrder.order_date) : "-"} <br />
-                            <strong>Delivery Date:</strong> {selectedOrder?.delivery_date ? formatDate(selectedOrder.delivery_date) : "-"} <br />
-                            <strong>Exit Date:</strong> {selectedOrder?.exit_date ? formatDate(selectedOrder.exit_date) : "-"}
+                            <strong>Order Date:</strong>{" "}
+                            {selectedOrder?.order_date
+                              ? formatDate(selectedOrder.order_date)
+                              : "-"}{" "}
+                            <br />
+                            <strong>Delivery Date:</strong>{" "}
+                            {selectedOrder?.delivery_date
+                              ? formatDate(selectedOrder.delivery_date)
+                              : "-"}{" "}
+                            <br />
+                            <strong>Exit Date:</strong>{" "}
+                            {selectedOrder?.exit_date
+                              ? formatDate(selectedOrder.exit_date)
+                              : "-"}
                           </td>
                         </tr>
                       </tbody>
@@ -772,17 +879,26 @@ export default function Orders() {
                       <table className="min-w-full text-sm">
                         <thead className="bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300">
                           <tr>
-                            <th className="px-4 py-2 text-left">Product Name</th>
+                            <th className="px-4 py-2 text-left">
+                              Product Name
+                            </th>
                             <th className="px-4 py-2 text-right">Quantity</th>
                             <th className="px-4 py-2 text-right">Total</th>
                           </tr>
                         </thead>
                         <tbody>
                           {selectedOrder?.items.map((item) => (
-                            <tr key={item.id} className="border-t dark:border-gray-700">
+                            <tr
+                              key={item.id}
+                              className="border-t dark:border-gray-700"
+                            >
                               <td className="px-4 py-2">{item.product_name}</td>
-                              <td className="px-4 py-2 text-right ">{item.quantity}</td>
-                              <td className="px-4 py-2 font-medium text-right ">{" QR " + item.total_price}</td>
+                              <td className="px-4 py-2 text-right ">
+                                {item.quantity}
+                              </td>
+                              <td className="px-4 py-2 font-medium text-right ">
+                                {" QR " + item.total_price}
+                              </td>
                             </tr>
                           ))}
                           <tr className="border-t border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-900/30">
@@ -793,7 +909,8 @@ export default function Orders() {
                               {selectedOrder?.total_items || 0}
                             </td>
                             <td className="px-4 py-2 text-right text-green-900 dark:text-green-200 font-semibold">
-                              {"QR " + (selectedOrder?.total_payable_amount || 0)}
+                              {"QR " +
+                                (selectedOrder?.total_payable_amount || 0)}
                             </td>
                           </tr>
                         </tbody>
@@ -809,28 +926,63 @@ export default function Orders() {
                           <tr>
                             <th className="px-4 py-2 text-left">Exit Date</th>
                             <th className="px-4 py-2 text-right">Quantity</th>
-                            <th className="px-4 py-2 text-right">Paid Amount</th>
+                            <th className="px-4 py-2 text-right">
+                              Paid Amount
+                            </th>
                           </tr>
                         </thead>
                         <tbody>
                           {(() => {
-                            if (!selectedOrder?.delivery_info) return <tr className="border-t dark:border-gray-700"><td colSpan={3} className="px-4 py-2 text-center text-gray-500">No result</td></tr>;
-                            const items = selectedOrder.delivery_info.split(":::").map((info) => info.trim()).filter((info) => info !== "");
-                            if (items.length === 0) return <tr className="border-t dark:border-gray-700"><td colSpan={3} className="px-4 py-2 text-center text-gray-500">No result</td></tr>;
+                            if (!selectedOrder?.delivery_info)
+                              return (
+                                <tr className="border-t dark:border-gray-700">
+                                  <td
+                                    colSpan={3}
+                                    className="px-4 py-2 text-center text-gray-500"
+                                  >
+                                    No result
+                                  </td>
+                                </tr>
+                              );
+                            const items = selectedOrder.delivery_info
+                              .split(":::")
+                              .map((info) => info.trim())
+                              .filter((info) => info !== "");
+                            if (items.length === 0)
+                              return (
+                                <tr className="border-t dark:border-gray-700">
+                                  <td
+                                    colSpan={3}
+                                    className="px-4 py-2 text-center text-gray-500"
+                                  >
+                                    No result
+                                  </td>
+                                </tr>
+                              );
 
                             let totalQty = 0;
                             let totalPaid = 0;
                             const rows = items.map((info, index) => {
-                              const [exitDate, quantity, paidAmount] = info.split("@");
+                              const [exitDate, quantity, paidAmount] =
+                                info.split("@");
                               const qtyNum = parseFloat(quantity) || 0;
                               const paidNum = parseFloat(paidAmount) || 0;
                               totalQty += qtyNum;
                               totalPaid += paidNum;
                               return (
-                                <tr key={index} className="border-t dark:border-gray-700">
-                                  <td className="px-4 py-2">{exitDate || "-"}</td>
-                                  <td className="px-4 py-2 text-right">{qtyNum}</td>
-                                  <td className="px-4 py-2 font-medium text-right">{"QR " + paidNum.toFixed(2)}</td>
+                                <tr
+                                  key={index}
+                                  className="border-t dark:border-gray-700"
+                                >
+                                  <td className="px-4 py-2">
+                                    {exitDate || "-"}
+                                  </td>
+                                  <td className="px-4 py-2 text-right">
+                                    {qtyNum}
+                                  </td>
+                                  <td className="px-4 py-2 font-medium text-right">
+                                    {"QR " + paidNum.toFixed(2)}
+                                  </td>
                                 </tr>
                               );
                             });
@@ -838,9 +990,15 @@ export default function Orders() {
                               <>
                                 {rows}
                                 <tr className="border-t border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-900/30">
-                                  <td className="px-4 py-2 text-left text-green-800 dark:text-green-300 font-medium"><strong>Total:</strong></td>
-                                  <td className="px-4 py-2 text-right text-green-900 dark:text-green-200 font-semibold">{totalQty}</td>
-                                  <td className="px-4 py-2 text-right text-green-900 dark:text-green-200 font-semibold">{"QR " + totalPaid.toFixed(2)}</td>
+                                  <td className="px-4 py-2 text-left text-green-800 dark:text-green-300 font-medium">
+                                    <strong>Total:</strong>
+                                  </td>
+                                  <td className="px-4 py-2 text-right text-green-900 dark:text-green-200 font-semibold">
+                                    {totalQty}
+                                  </td>
+                                  <td className="px-4 py-2 text-right text-green-900 dark:text-green-200 font-semibold">
+                                    {"QR " + totalPaid.toFixed(2)}
+                                  </td>
                                 </tr>
                               </>
                             );
@@ -859,15 +1017,25 @@ export default function Orders() {
                   onClick={handleConfirmAction}
                   className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white"
                 >
-                  {isSubmitting ? <Loader2 className="animate-spin w-4 h-4 mr-2" /> : "Confirm"}
+                  {isSubmitting ? (
+                    <Loader2 className="animate-spin w-4 h-4 mr-2" />
+                  ) : (
+                    "Confirm"
+                  )}
                 </button>
               )}
               {selectedOrder?.status === "pending" && (
-                <button onClick={() => handleEditOrder(selectedOrder!)} className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white">
+                <button
+                  onClick={() => handleEditOrder(selectedOrder!)}
+                  className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white"
+                >
                   Edit Order
                 </button>
               )}
-              <button onClick={closeModal} className="px-4 py-2 rounded-lg bg-gray-300 dark:bg-gray-700 hover:bg-gray-400 dark:hover:bg-gray-600">
+              <button
+                onClick={closeModal}
+                className="px-4 py-2 rounded-lg bg-gray-300 dark:bg-gray-700 hover:bg-gray-400 dark:hover:bg-gray-600"
+              >
                 Close
               </button>
             </div>
