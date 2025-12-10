@@ -21,9 +21,9 @@ import {
 } from "lucide-react";
 import { AppContext } from "../../context/AppContext";
 import { formatDate } from "../../utils/dateFormatter";
-import Badge from "../../components/ui/badge/Badge";
 import { useNavigate } from "react-router";
 
+// --- Interfaces ---
 interface OrderItem {
   id: number;
   order_id: number;
@@ -66,20 +66,6 @@ interface Account {
 
 type OrderStatus = "pending" | "checkout" | "delivery" | "cancelled";
 
-const statusFlow: OrderStatus[] = [
-  "pending",
-  "checkout",
-  "delivery",
-  "cancelled",
-];
-const getNoOrdersMessage = (status: string) => {
-  if (status === "all") {
-    return `No orders found`;
-  }
-  const statusCapitalized = status.charAt(0).toUpperCase() + status.slice(1);
-  return `No ${statusCapitalized} orders found.`;
-};
-
 type ConfirmationAction =
   | { type: "cancel"; order: Order }
   | { type: "nextStatus"; order: Order; nextStatus: OrderStatus }
@@ -92,12 +78,11 @@ export default function Orders() {
   }
   const { branchId, userRole } = context;
 
+  // --- State ---
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
-  const [loadingButtons, setLoadingButtons] = useState<{
-    [key: string]: boolean;
-  }>({});
+  const [loadingButtons, setLoadingButtons] = useState<{ [key: string]: boolean }>({});
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("pending");
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
@@ -110,8 +95,7 @@ export default function Orders() {
     message: string;
   } | null>(null);
 
-  const [confirmationAction, setConfirmationAction] =
-    useState<ConfirmationAction>(null);
+  const [confirmationAction, setConfirmationAction] = useState<ConfirmationAction>(null);
   const [deliveryFormData, setDeliveryFormData] = useState({
     paid_amount: 0,
     total_items_delivered: 0,
@@ -119,15 +103,50 @@ export default function Orders() {
     exit_date: "",
   });
 
+  // --- Helper Logic ---
+
+  /**
+   * Determines if an order is in a "Partial Delivery" state.
+   * Condition: Status is 'delivery' AND (Items not fully delivered OR Payment not fully cleared)
+   */
+  const isOrderPartial = (order: Order) => {
+    if (order.status !== "delivery") return false;
+    
+    const itemsRemaining = order.items_delivered < order.total_items;
+    const paymentRemaining = order.advance_payment_amount < order.total_payable_amount;
+    
+    return itemsRemaining || paymentRemaining;
+  };
+
+  const getNoOrdersMessage = (status: string) => {
+    if (status === "all") return `No orders found`;
+    const statusCapitalized = status.charAt(0).toUpperCase() + status.slice(1);
+    return `No ${statusCapitalized} orders found.`;
+  };
+
+  const getStatusColor = (order: Order) => {
+    // Check partial first
+    if (isOrderPartial(order)) {
+      return "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300"; // Distinct color for partial
+    }
+
+    const colors: Record<string, string> = {
+      pending: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300",
+      checkout: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300",
+      cancelled: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300",
+      delivery: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300", // Full Delivery
+    };
+    return colors[order.status] || "bg-gray-100 text-gray-800";
+  };
+
+  // --- API Calls ---
+
   const fetchOrders = async () => {
     try {
       setLoading(true);
       const res = await axiosInstance.get("/orders/list", {
-        headers: {
-          "X-Branch-ID": branchId,
-        },
+        headers: { "X-Branch-ID": branchId },
       });
-
       setOrders(res.data.orders);
     } catch (err) {
       console.error(err);
@@ -138,33 +157,30 @@ export default function Orders() {
 
   const fetchAccounts = async () => {
     const res = await axiosInstance.get("/accounts/names", {
-      headers: {
-        "X-Branch-ID": branchId,
-      },
+      headers: { "X-Branch-ID": branchId },
     });
     setAccounts(res.data.accounts);
   };
+
   const fetchOrderItems = async (order: Order) => {
     const key = `${order.id}-view`;
     setLoadingButtons((prev) => ({ ...prev, [key]: true }));
-    const res = await axiosInstance.get(
-      "/orders/items?memo_no=" + order.memo_no,
-      {
-        headers: {
-          "X-Branch-ID": branchId,
-        },
-      }
-    );
-    if (!res.data.error) {
-      order.items = res.data.items;
-      setSelectedOrder(order);
-      console.log(selectedOrder);
-    } else {
-      setAlert({
-        variant: "error",
-        title: "Error",
-        message: res.data.message || `Unable to fetch data`,
+    try {
+      const res = await axiosInstance.get("/orders/items?memo_no=" + order.memo_no, {
+        headers: { "X-Branch-ID": branchId },
       });
+      if (!res.data.error) {
+        order.items = res.data.items;
+        setSelectedOrder(order);
+      } else {
+        setAlert({
+          variant: "error",
+          title: "Error",
+          message: res.data.message || `Unable to fetch data`,
+        });
+      }
+    } catch (error) {
+       console.error(error);
     }
     setLoadingButtons((prev) => ({ ...prev, [key]: false }));
   };
@@ -174,71 +190,44 @@ export default function Orders() {
     fetchAccounts();
   }, [branchId]);
 
-  // automatically hide alert after 2 second
   useEffect(() => {
     if (alert) {
       const timeout = setTimeout(() => {
-        setAlert(null); // Hide alert
-        fetchOrders(); // Reload orders after alert disappears
-      }, 4000); // 4 seconds
-
+        setAlert(null);
+        fetchOrders();
+      }, 4000);
       return () => clearTimeout(timeout);
     }
   }, [alert]);
 
+  // --- Filtering ---
+
   const filteredOrders = orders.filter((order) => {
     const query = searchTerm.toLowerCase();
-
-    // Check if search term matches
     const matchesSearch =
       order.memo_no.toLowerCase().includes(query) ||
       order.customer_name.toLowerCase().includes(query) ||
       order.customer_mobile.includes(query);
 
-    // Check status filter
     let matchesStatus = false;
     if (statusFilter === "all") {
       matchesStatus = true;
     } else if (statusFilter === "partial") {
-      // Partially delivered: some items delivered but not all, total_payable_amount is greater than advance payment amount
-      matchesStatus =
-        order.status === "delivery" &&
-        ((order.items_delivered > 0 &&
-          order.items_delivered < order.total_items) ||
-          order.advance_payment_amount < order.total_payable_amount);
-    } else {
+      matchesStatus = isOrderPartial(order);
+    } else if (statusFilter !== "delivery" || (statusFilter === "delivery" && !isOrderPartial(order))) {
+      // If filtering for 'delivery', we usually mean 'completed delivery' OR 'any delivery'?
+      // Usually, exact match. But if 'partial' is a separate filter, 'delivery' might mean full delivery.
+      // For now, strict string match. 
+      // Note: isOrderPartial(order) implies status === 'delivery'.
+      // If user selects 'delivery', they might want to see both partial and full, or just full.
+      // Standard logic: match the string status.
       matchesStatus = order.status === statusFilter;
     }
 
     return matchesSearch && matchesStatus;
   });
 
-  const getStatusColor = (status: string) => {
-    const colors = {
-      pending:
-        "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300",
-      checkout:
-        "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300",
-      cancelled: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300",
-      partial:
-        "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300",
-      delivery: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300",
-      returned:
-        "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300",
-    };
-    return (
-      colors[status as OrderStatus] ||
-      "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300"
-    );
-  };
-
-  const getNextStatus = (current: OrderStatus): OrderStatus | null => {
-    const index = statusFlow.indexOf(current);
-    if (index >= 0 && index < statusFlow.length - 1) {
-      return statusFlow[index + 1];
-    }
-    return null;
-  };
+  // --- Handlers ---
 
   const openModal = (order: Order) => {
     fetchOrderItems(order).then(() => {
@@ -259,61 +248,26 @@ export default function Orders() {
     });
   };
 
-  // const handleEdit = (order: Order) => {
-  //   console.log("Edit", order.id);
-  // };
-
   const handleCancelClick = (order: Order) => {
     setConfirmationAction({ type: "cancel", order });
     setIsModalOpen(true);
   };
 
-  const handleNextStateClick = async (order: Order) => {
-    let nextStatus = getNextStatus(order.status as OrderStatus);
-    if (!nextStatus) return;
-
-    if (
-      nextStatus === "delivery" ||
-      (nextStatus === "cancelled" &&
-        ((order.items_delivered > 0 &&
-          order.items_delivered < order.total_items) ||
-          order.advance_payment_amount < order.total_payable_amount))
-    ) {
-      //set the nextStatus
-      nextStatus = "delivery";
-      // Prepare delivery form and open modal
-      const today = new Date().toISOString().split("T")[0];
-      // const remainingItems = order.items.reduce(
-      //   (sum, item) => sum + item.quantity,
-      //   0
-      // ) - order.items_delivered;
-
-      setDeliveryFormData({
-        paid_amount: order.total_payable_amount - order.advance_payment_amount,
-        total_items_delivered: order.total_items - order.items_delivered,
-        payment_account_id: "",
-        exit_date: today,
-      });
-
-      setConfirmationAction({ type: "nextStatus", order, nextStatus });
-      setIsModalOpen(true);
-    } else if (nextStatus === "checkout") {
-      // Directly update status without modal
+  const handleActionClick = async (order: Order, actionType: 'checkout' | 'delivery') => {
+    if (actionType === 'checkout') {
+      // Move Pending -> Checkout
       setIsSubmitting(true);
-      // set per-row loading state for next action
       setLoadingButtons((prev) => ({ ...prev, [`${order.id}-next`]: true }));
       try {
         const { data } = await axiosInstance.patch(
           `/orders/checkout?order_id=${order.id}&branch_id=${branchId}`,
           {},
-          {
-            headers: { "X-Branch-ID": branchId },
-          }
+          { headers: { "X-Branch-ID": branchId } }
         );
         setAlert({
           variant: "success",
           title: "Success",
-          message: data.message || `Order moved to ${nextStatus}`,
+          message: data.message || `Order moved to checkout`,
         });
         fetchOrders();
       } catch (err) {
@@ -327,6 +281,23 @@ export default function Orders() {
         setIsSubmitting(false);
         setLoadingButtons((prev) => ({ ...prev, [`${order.id}-next`]: false }));
       }
+    } else if (actionType === 'delivery') {
+      // Move Checkout/Partial -> Delivery (Open Modal)
+      const today = new Date().toISOString().split("T")[0];
+      
+      // Calculate remaining items/payment for convenience
+      const remainingItems = order.total_items - order.items_delivered;
+      // const remainingDue = order.total_payable_amount - order.advance_payment_amount;
+
+      setDeliveryFormData({
+        paid_amount: order.due_amount > 0 ? order.due_amount : 0, 
+        total_items_delivered: remainingItems > 0 ? remainingItems : 0,
+        payment_account_id: "",
+        exit_date: today,
+      });
+
+      setConfirmationAction({ type: "nextStatus", order, nextStatus: "delivery" });
+      setIsModalOpen(true);
     }
   };
 
@@ -335,20 +306,13 @@ export default function Orders() {
     const { type, order } = confirmationAction;
     setIsModalOpen(false);
     setIsSubmitting(true);
-    // mark corresponding row action as loading
-    if (type === "cancel") {
-      setLoadingButtons((prev) => ({ ...prev, [`${order.id}-cancel`]: true }));
-    } else if (type === "nextStatus") {
-      setLoadingButtons((prev) => ({ ...prev, [`${order.id}-next`]: true }));
-    }
 
     if (type === "cancel") {
+      setLoadingButtons((prev) => ({ ...prev, [`${order.id}-cancel`]: true }));
       try {
         const { data } = await axiosInstance.delete(
           `/orders?order_id=${order.id}`,
-          {
-            headers: { "X-Branch-ID": branchId },
-          }
+          { headers: { "X-Branch-ID": branchId } }
         );
         closeModal();
         setAlert({
@@ -365,21 +329,12 @@ export default function Orders() {
           message: "Failed to cancel order",
         });
       } finally {
-        setLoadingButtons((prev) => ({
-          ...prev,
-          [`${order.id}-cancel`]: false,
-        }));
+        setLoadingButtons((prev) => ({ ...prev, [`${order.id}-cancel`]: false }));
       }
-    } else if (
-      type === "nextStatus" &&
-      confirmationAction.nextStatus === "delivery"
-    ) {
-      const {
-        paid_amount,
-        payment_account_id,
-        exit_date,
-        total_items_delivered,
-      } = deliveryFormData;
+    } else if (type === "nextStatus" && confirmationAction.nextStatus === "delivery") {
+      setLoadingButtons((prev) => ({ ...prev, [`${order.id}-next`]: true }));
+      const { paid_amount, payment_account_id, exit_date, total_items_delivered } = deliveryFormData;
+
       if (!payment_account_id || !exit_date) {
         setAlert({
           variant: "warning",
@@ -421,23 +376,21 @@ export default function Orders() {
         setLoadingButtons((prev) => ({ ...prev, [`${order.id}-next`]: false }));
       }
     }
-
     setIsSubmitting(false);
   };
+
   const handleEditOrder = (order: Order) => {
-    closeModal()
-    // From sales_history page
-    order.order_date = order.order_date?.slice(0, 10) || new Date().toISOString().slice(0, 10),
+    closeModal();
+    order.order_date = order.order_date?.slice(0, 10) || new Date().toISOString().slice(0, 10);
     navigate("/add-order", { state: { initialData: order } });
   };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-96">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600 dark:text-gray-400">
-            Loading orders...
-          </p>
+          <p className="mt-4 text-gray-600 dark:text-gray-400">Loading orders...</p>
         </div>
       </div>
     );
@@ -446,17 +399,12 @@ export default function Orders() {
   return (
     <div className="container mx-auto py-6">
       {alert && (
-        <div
-          className={`mb-4 p-2 rounded-lg ${
-            alert.variant === "success"
-              ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300"
-              : alert.variant === "error"
-              ? "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300"
-              : alert.variant === "warning"
-              ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300"
-              : "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300"
-          }`}
-        >
+        <div className={`mb-4 p-2 rounded-lg ${
+            alert.variant === "success" ? "bg-green-100 text-green-800" : 
+            alert.variant === "error" ? "bg-red-100 text-red-800" : 
+            alert.variant === "warning" ? "bg-yellow-100 text-yellow-800" : 
+            "bg-blue-100 text-blue-800"
+          } dark:opacity-90`}>
           <strong className="block font-medium">{alert.title}</strong>
           <span>{alert.message}</span>
         </div>
@@ -464,12 +412,8 @@ export default function Orders() {
 
       {/* Header */}
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
-          Orders Management
-        </h1>
-        <p className="text-gray-600 dark:text-gray-400">
-          Manage and track all customer orders
-        </p>
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Orders Management</h1>
+        <p className="text-gray-600 dark:text-gray-400">Manage and track all customer orders</p>
       </div>
 
       {/* Filters */}
@@ -482,7 +426,7 @@ export default function Orders() {
               placeholder="Search by memo no, order ID, customer ID, or mobile..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
             />
           </div>
 
@@ -491,13 +435,13 @@ export default function Orders() {
             <select
               value={statusFilter || "pending"}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+              className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
             >
               <option value="all">All</option>
               <option value="pending">Pending</option>
               <option value="checkout">Checkout</option>
               <option value="partial">Partial Delivery</option>
-              <option value="delivery">Delivery</option>
+              <option value="delivery">Full Delivery</option>
               <option value="cancelled">Cancelled</option>
             </select>
           </div>
@@ -523,118 +467,86 @@ export default function Orders() {
                 <TableRow>
                   <TableCell colSpan={6} className="text-center py-8">
                     <div className="text-gray-500 dark:text-gray-400">
-                      {getNoOrdersMessage(statusFilter) || "No order found"}
+                      {getNoOrdersMessage(statusFilter)}
                     </div>
                   </TableCell>
                 </TableRow>
               ) : (
-                filteredOrders.map((order) => (
-                  <TableRow
-                    key={order.id}
-                    className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
-                  >
-                    <TableCell>
-                      <div className="p-2">
-                        <div className="font-medium text-gray-900 dark:text-white">
-                          {order.memo_no}
+                filteredOrders.map((order) => {
+                  const partial = isOrderPartial(order);
+                  return (
+                    <TableRow key={order.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+                      <TableCell>
+                        <div className="p-2">
+                          <div className="font-medium text-gray-900 dark:text-white">{order.memo_no}</div>
                         </div>
-                      </div>
-                    </TableCell>
+                      </TableCell>
 
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <Calendar className="h-4 w-4 text-gray-400" />
-                        <span className="text-gray-700 dark:text-gray-300">
-                          {new Date(order.order_date).toLocaleDateString()}
-                        </span>
-                      </div>
-                    </TableCell>
-
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <User className="h-4 w-4 text-gray-400" />
-                        <span className="text-gray-700 dark:text-gray-300">
-                          {order.customer_name}
-                        </span>
-                      </div>
-                    </TableCell>
-
-                    <TableCell>
-                      <div className="space-y-1">
+                      <TableCell>
                         <div className="flex items-center gap-2">
-                          <span className="font-semibold text-sm text-gray-900 dark:text-white">
-                            Payable:{" QR "}
-                            {order.total_payable_amount}
+                          <Calendar className="h-4 w-4 text-gray-400" />
+                          <span className="text-gray-700 dark:text-gray-300">
+                            {new Date(order.order_date).toLocaleDateString()}
                           </span>
                         </div>
-                        {order.advance_payment_amount > 0 && (
-                          <div className="text-xs font-medium text-green-600 dark:text-green-400">
-                            Advance:{" QR "}
-                            {order.advance_payment_amount}
-                          </div>
-                        )}
-                        {order.due_amount > 0 && (
-                          <div className="text-xs text-red-600 dark:text-red-400">
-                            Due:{" QR "}
-                            {order.due_amount}
-                          </div>
-                        )}
-                      </div>
-                    </TableCell>
+                      </TableCell>
 
-                    <TableCell>
-                      <Badge
-                        size="sm"
-                        color={
-                          order.status === "pending"
-                            ? "warning"
-                            : order.status === "checkout"
-                            ? "info"
-                            : order.status === "delivery" &&
-                              ((order.items_delivered > 0 &&
-                                order.items_delivered < order.total_items) ||
-                                order.advance_payment_amount <
-                                  order.total_payable_amount)
-                            ? "dark"
-                            : order.status === "delivery"
-                            ? "success"
-                            : "error" // cancelled or unknown
-                        }
-                      >
-                        {order.status === "delivery" &&
-                        ((order.items_delivered > 0 &&
-                          order.items_delivered < order.total_items) ||
-                          order.advance_payment_amount <
-                            order.total_payable_amount)
-                          ? "Partial Delivery"
-                          : order.status.charAt(0).toUpperCase() +
-                            order.status.slice(1)}
-                      </Badge>
-                    </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <User className="h-4 w-4 text-gray-400" />
+                          <span className="text-gray-700 dark:text-gray-300">{order.customer_name}</span>
+                        </div>
+                      </TableCell>
 
-                    <TableCell>
-                      <div className="flex p-2 items-center gap-2">
-                        {/* View Button */}
-                        <Button
-                          onClick={() => openModal(order)}
-                          size="sm"
-                          variant="outline"
-                          className="flex items-center gap-2"
-                          disabled={loadingButtons[`${order.id}-view`]}
-                        >
-                          {loadingButtons[`${order.id}-view`] ? (
-                            <Loader2 className="animate-spin w-4 h-4" />
-                          ) : (
-                            <Eye className="h-4 w-4" />
+                      <TableCell>
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2">
+                            <span className="font-semibold text-sm text-gray-900 dark:text-white">
+                              Payable: QR {order.total_payable_amount}
+                            </span>
+                          </div>
+                          {order.advance_payment_amount > 0 && (
+                            <div className="text-xs font-medium text-green-600 dark:text-green-400">
+                              Advance: QR {order.advance_payment_amount}
+                            </div>
                           )}
-                        </Button>
+                          {order.due_amount > 0 && (
+                            <div className="text-xs text-red-600 dark:text-red-400">
+                              Due: QR {order.due_amount}
+                            </div>
+                          )}
+                        </div>
+                      </TableCell>
 
-                        {/* Conditional action buttons */}
-                        {order.status === "pending" && (
-                          <>
-                            {/* Checkout */}
+                      <TableCell>
+                        <span   color={getStatusColor(order)}>
+                          {partial ? "Partial Delivery" : order.status.charAt(0).toUpperCase() + order.status.slice(1)}
+                        </span>
+                      </TableCell>
+
+                      <TableCell>
+                        <div className="flex p-2 items-center gap-2">
+                          {/* View Button */}
+                          <Button
+                            onClick={() => openModal(order)}
+                            size="sm"
+                            variant="outline"
+                            className="flex items-center gap-2"
+                            disabled={loadingButtons[`${order.id}-view`]}
+                          >
+                            {loadingButtons[`${order.id}-view`] ? (
+                              <Loader2 className="animate-spin w-4 h-4" />
+                            ) : (
+                              <Eye className="h-4 w-4" />
+                            )}
+                          </Button>
+
+                          {/* ACTION BUTTONS LOGIC */}
+                          
+                          {/* Checkout Button: Visible if status == pending */}
+                          {order.status === "pending" && (
                             <Button
-                              onClick={() => handleNextStateClick(order)}
+                              onClick={() => handleActionClick(order, 'checkout')}
                               size="sm"
                               variant="info"
                               className="flex items-center gap-2"
@@ -649,19 +561,12 @@ export default function Orders() {
                                 </>
                               )}
                             </Button>
-                          </>
-                        )}
+                          )}
 
-                        {(order.status === "checkout" ||
-                          (order.status === "delivery" &&
-                            ((order.items_delivered > 0 &&
-                              order.items_delivered < order.total_items) ||
-                              order.advance_payment_amount <
-                                order.total_payable_amount))) && (
-                          <>
-                            {/* Delivery */}
+                          {/* Delivery Button: Visible if status == checkout OR isPartial */}
+                          {(order.status === "checkout" || partial) && (
                             <Button
-                              onClick={() => handleNextStateClick(order)}
+                              onClick={() => handleActionClick(order, 'delivery')}
                               size="sm"
                               variant="primary"
                               className="flex items-center gap-2"
@@ -672,45 +577,36 @@ export default function Orders() {
                               ) : (
                                 <>
                                   <Package className="h-4 w-4" />
-                                  Delivery &nbsp;
+                                  Delivery
                                 </>
                               )}
                             </Button>
-                          </>
-                        )}
+                          )}
 
-                        {(order.status === "pending" ||
-                          order.status === "checkout" ||
-                          (order.status === "delivery" &&
-                            order.total_items > order.items_delivered)) && (
-                          <>
-                            {/* Cancel */}
-                            {userRole == "chairman" ? (
-                              <Button
-                                onClick={() => handleCancelClick(order)}
-                                size="sm"
-                                variant="warning"
-                                className="flex items-center gap-2"
-                                disabled={loadingButtons[`${order.id}-cancel`]}
-                              >
-                                {loadingButtons[`${order.id}-cancel`] ? (
-                                  <Loader2 className="animate-spin w-4 h-4" />
-                                ) : (
-                                  <>
-                                    <CircleX className="h-4 w-4" />
-                                    Cancel
-                                  </>
-                                )}
-                              </Button>
-                            ) : (
-                              ""
-                            )}
-                          </>
-                        )}
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))
+                          {/* Cancel Button: Visible if status == pending OR isPartial OR status == checkout */}
+                          {userRole === "chairman" && (order.status === "pending" || order.status === "checkout" || partial) && (
+                            <Button
+                              onClick={() => handleCancelClick(order)}
+                              size="sm"
+                              variant="warning"
+                              className="flex items-center gap-2"
+                              disabled={loadingButtons[`${order.id}-cancel`]}
+                            >
+                              {loadingButtons[`${order.id}-cancel`] ? (
+                                <Loader2 className="animate-spin w-4 h-4" />
+                              ) : (
+                                <>
+                                  <CircleX className="h-4 w-4" />
+                                  Cancel
+                                </>
+                              )}
+                            </Button>
+                          )}
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })
               )}
             </TableBody>
           </Table>
@@ -721,7 +617,6 @@ export default function Orders() {
       {isModalOpen && (selectedOrder || confirmationAction) && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
           <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl w-11/12 max-w-3xl relative animate-fadeIn scale-95 transform transition-all p-6">
-            {/* Header */}
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg md:text-xl font-semibold text-gray-900 dark:text-white">
                 {confirmationAction
@@ -738,12 +633,10 @@ export default function Orders() {
               </button>
             </div>
 
-            {/* Body */}
             <div className="space-y-4">
               {confirmationAction ? (
                 <>
-                  {confirmationAction.type === "nextStatus" &&
-                  confirmationAction.nextStatus === "delivery" ? (
+                  {confirmationAction.type === "nextStatus" && confirmationAction.nextStatus === "delivery" ? (
                     <div className="space-y-4">
                       <div>
                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
@@ -752,12 +645,9 @@ export default function Orders() {
                         <select
                           value={deliveryFormData.payment_account_id}
                           onChange={(e) =>
-                            setDeliveryFormData((prev) => ({
-                              ...prev,
-                              payment_account_id: e.target.value,
-                            }))
+                            setDeliveryFormData((prev) => ({ ...prev, payment_account_id: e.target.value }))
                           }
-                          className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+                          className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
                         >
                           <option value="">Select payment account</option>
                           {accounts.map((account) => (
@@ -777,12 +667,9 @@ export default function Orders() {
                           placeholder="Enter paid amount"
                           value={deliveryFormData.paid_amount}
                           onChange={(e) =>
-                            setDeliveryFormData((prev) => ({
-                              ...prev,
-                              paid_amount: Number(e.target.value || 0),
-                            }))
+                            setDeliveryFormData((prev) => ({ ...prev, paid_amount: Number(e.target.value || 0) }))
                           }
-                          className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+                          className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
                         />
                       </div>
                       <div>
@@ -797,12 +684,10 @@ export default function Orders() {
                           onChange={(e) =>
                             setDeliveryFormData((prev) => ({
                               ...prev,
-                              total_items_delivered: Number(
-                                e.target.value || 0
-                              ),
+                              total_items_delivered: Number(e.target.value || 0),
                             }))
                           }
-                          className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+                          className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
                         />
                       </div>
                       <div>
@@ -813,59 +698,44 @@ export default function Orders() {
                           type="date"
                           value={deliveryFormData.exit_date}
                           onChange={(e) =>
-                            setDeliveryFormData((prev) => ({
-                              ...prev,
-                              exit_date: e.target.value,
-                            }))
+                            setDeliveryFormData((prev) => ({ ...prev, exit_date: e.target.value }))
                           }
-                          className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+                          className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
                         />
                       </div>
                     </div>
                   ) : (
                     <p className="text-gray-700 dark:text-gray-400">
-                      Are you sure you want to{" "}
-                      {confirmationAction.type === "cancel"
-                        ? "cancel"
-                        : `move to ${confirmationAction.nextStatus}`}{" "}
-                      this order?
+                      Are you sure you want to {confirmationAction.type === "cancel" ? "cancel" : `move to ${confirmationAction.nextStatus}`} this order?
                     </p>
                   )}
                 </>
               ) : (
-                // Order details
+                /* Detail View */
                 <div>
-                  {/* Customer & Salesperson Table */}
                   <div className="overflow-x-auto mb-4">
                     <table className="min-w-full text-sm border border-gray-200 dark:border-gray-700 rounded-lg">
                       <thead className="bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300">
                         <tr>
                           <th className="px-4 py-2 text-left">Customer Info</th>
-                          <th className="px-4 py-2 text-left">
-                            Salesperson Info
-                          </th>
+                          <th className="px-4 py-2 text-left">Salesperson Info</th>
                         </tr>
                       </thead>
                       <tbody>
                         <tr className="border-t dark:border-gray-700">
                           <td className="px-4 py-2">
-                            <strong>Name:</strong>{" "}
-                            {selectedOrder?.customer_name || "-"} <br />
-                            <strong>Mobile:</strong>{" "}
-                            {selectedOrder?.customer_mobile || "-"}
+                            <strong>Name:</strong> {selectedOrder?.customer_name || "-"} <br />
+                            <strong>Mobile:</strong> {selectedOrder?.customer_mobile || "-"}
                           </td>
                           <td className="px-4 py-2">
-                            <strong>Name:</strong>{" "}
-                            {selectedOrder?.salesperson_name || "-"} <br />
-                            <strong>Mobile:</strong>{" "}
-                            {selectedOrder?.salesperson_mobile || "-"}
+                            <strong>Name:</strong> {selectedOrder?.salesperson_name || "-"} <br />
+                            <strong>Mobile:</strong> {selectedOrder?.salesperson_mobile || "-"}
                           </td>
                         </tr>
                       </tbody>
                     </table>
                   </div>
 
-                  {/* Order Dates & Status Table */}
                   <div className="overflow-x-auto">
                     <table className="min-w-full text-sm border border-gray-200 dark:border-gray-700 rounded-lg">
                       <thead className="bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300">
@@ -877,77 +747,44 @@ export default function Orders() {
                       <tbody>
                         <tr className="border-t dark:border-gray-700">
                           <td className="px-4 py-2">
-                            <strong>Memo: {selectedOrder?.memo_no}</strong>{" "}
-                            <br />
-                            <strong>Status: </strong>{" "}
-                            <span
-                              className={`inline-block px-2 py-1 text-xs rounded-sm ${getStatusColor(
-                                selectedOrder?.status || ""
-                              )}`}
-                            >
-                              {(selectedOrder?.status === "delivery" &&
-                                selectedOrder?.total_items >
-                                  selectedOrder?.items_delivered) === true
-                                ? "partial delivery"
-                                : selectedOrder?.status}
-                            </span>{" "}
-                            <br />
+                            <strong>Memo: {selectedOrder?.memo_no}</strong> <br />
+                            <strong>Status: </strong> 
+                            <span className={`inline-block px-2 py-1 text-xs rounded-sm ${selectedOrder ? getStatusColor(selectedOrder) : ''}`}>
+                               {selectedOrder && isOrderPartial(selectedOrder) ? "Partial Delivery" : selectedOrder?.status}
+                            </span> <br />
                             <strong>Due Amount: </strong>
-                            {"  QR "}
-                            {(selectedOrder?.total_payable_amount ?? 0) -
-                              (selectedOrder?.advance_payment_amount ?? 0)}
+                            {" QR "}
+                            {(selectedOrder?.total_payable_amount ?? 0) - (selectedOrder?.advance_payment_amount ?? 0)}
                           </td>
                           <td className="px-4 py-2">
-                            <strong>Order Date:</strong>{" "}
-                            {selectedOrder?.order_date
-                              ? formatDate(selectedOrder.order_date)
-                              : "-"}{" "}
-                            <br />
-                            <strong>Delivery Date:</strong>{" "}
-                            {selectedOrder?.delivery_date
-                              ? formatDate(selectedOrder.delivery_date)
-                              : "-"}{" "}
-                            <br />
-                            <strong>Exit Date:</strong>{" "}
-                            {selectedOrder?.exit_date
-                              ? formatDate(selectedOrder.exit_date)
-                              : "-"}
+                            <strong>Order Date:</strong> {selectedOrder?.order_date ? formatDate(selectedOrder.order_date) : "-"} <br />
+                            <strong>Delivery Date:</strong> {selectedOrder?.delivery_date ? formatDate(selectedOrder.delivery_date) : "-"} <br />
+                            <strong>Exit Date:</strong> {selectedOrder?.exit_date ? formatDate(selectedOrder.exit_date) : "-"}
                           </td>
                         </tr>
                       </tbody>
                     </table>
                   </div>
-                  {/* Product info */}
+
                   <div className="mt-4">
                     <strong>Products:</strong>
                     <div className="overflow-x-auto border rounded-lg mt-2">
                       <table className="min-w-full text-sm">
                         <thead className="bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300">
                           <tr>
-                            <th className="px-4 py-2 text-left">
-                              Product Name
-                            </th>
+                            <th className="px-4 py-2 text-left">Product Name</th>
                             <th className="px-4 py-2 text-right">Quantity</th>
                             <th className="px-4 py-2 text-right">Total</th>
                           </tr>
                         </thead>
-
                         <tbody>
                           {selectedOrder?.items.map((item) => (
-                            <tr
-                              key={item.id}
-                              className="border-t dark:border-gray-700"
-                            >
+                            <tr key={item.id} className="border-t dark:border-gray-700">
                               <td className="px-4 py-2">{item.product_name}</td>
-                              <td className="px-4 py-2 text-right ">
-                                {item.quantity}
-                              </td>
-                              <td className="px-4 py-2 font-medium text-right ">
-                                {" QR " + item.total_price}
-                              </td>
+                              <td className="px-4 py-2 text-right ">{item.quantity}</td>
+                              <td className="px-4 py-2 font-medium text-right ">{" QR " + item.total_price}</td>
                             </tr>
                           ))}
-                          {/* total products and amount */}
                           <tr className="border-t border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-900/30">
                             <td className="px-4 py-2 text-left text-green-800 dark:text-green-300 font-medium">
                               <strong>Total Products & Amount:</strong>
@@ -956,15 +793,14 @@ export default function Orders() {
                               {selectedOrder?.total_items || 0}
                             </td>
                             <td className="px-4 py-2 text-right text-green-900 dark:text-green-200 font-semibold">
-                              {"QR " +
-                                (selectedOrder?.total_payable_amount || 0)}
+                              {"QR " + (selectedOrder?.total_payable_amount || 0)}
                             </td>
                           </tr>
                         </tbody>
                       </table>
                     </div>
                   </div>
-                  {/* Delivery Info */}
+
                   <div className="mt-4">
                     <strong>Delivery Info:</strong>
                     <div className="overflow-x-auto border rounded-lg mt-2">
@@ -973,90 +809,38 @@ export default function Orders() {
                           <tr>
                             <th className="px-4 py-2 text-left">Exit Date</th>
                             <th className="px-4 py-2 text-right">Quantity</th>
-                            <th className="px-4 py-2 text-right">
-                              Paid Amount
-                            </th>
+                            <th className="px-4 py-2 text-right">Paid Amount</th>
                           </tr>
                         </thead>
-
                         <tbody>
                           {(() => {
-                            if (!selectedOrder?.delivery_info) {
-                              return (
-                                <tr className="border-t dark:border-gray-700">
-                                  <td
-                                    colSpan={3}
-                                    className="px-4 py-2 text-center text-gray-500 dark:text-gray-400"
-                                  >
-                                    No result
-                                  </td>
-                                </tr>
-                              );
-                            }
-
-                            const items = selectedOrder.delivery_info
-                              .split(":::")
-                              .map((info) => info.trim())
-                              .filter((info) => info !== "");
-
-                            if (items.length === 0) {
-                              return (
-                                <tr className="border-t dark:border-gray-700">
-                                  <td
-                                    colSpan={3}
-                                    className="px-4 py-2 text-center text-gray-500 dark:text-gray-400"
-                                  >
-                                    No result
-                                  </td>
-                                </tr>
-                              );
-                            }
+                            if (!selectedOrder?.delivery_info) return <tr className="border-t dark:border-gray-700"><td colSpan={3} className="px-4 py-2 text-center text-gray-500">No result</td></tr>;
+                            const items = selectedOrder.delivery_info.split(":::").map((info) => info.trim()).filter((info) => info !== "");
+                            if (items.length === 0) return <tr className="border-t dark:border-gray-700"><td colSpan={3} className="px-4 py-2 text-center text-gray-500">No result</td></tr>;
 
                             let totalQty = 0;
                             let totalPaid = 0;
-
                             const rows = items.map((info, index) => {
-                              const [exitDate, quantity, paidAmount] =
-                                info.split("@");
+                              const [exitDate, quantity, paidAmount] = info.split("@");
                               const qtyNum = parseFloat(quantity) || 0;
                               const paidNum = parseFloat(paidAmount) || 0;
-
                               totalQty += qtyNum;
                               totalPaid += paidNum;
-
                               return (
-                                <tr
-                                  key={index}
-                                  className="border-t dark:border-gray-700"
-                                >
-                                  <td className="px-4 py-2">
-                                    {exitDate || "-"}
-                                  </td>
-                                  <td className="px-4 py-2 text-right">
-                                    {qtyNum}
-                                  </td>
-                                  <td className="px-4 py-2 font-medium text-right">
-                                    {"QR " + paidNum.toFixed(2)}
-                                  </td>
+                                <tr key={index} className="border-t dark:border-gray-700">
+                                  <td className="px-4 py-2">{exitDate || "-"}</td>
+                                  <td className="px-4 py-2 text-right">{qtyNum}</td>
+                                  <td className="px-4 py-2 font-medium text-right">{"QR " + paidNum.toFixed(2)}</td>
                                 </tr>
                               );
                             });
-
                             return (
                               <>
                                 {rows}
-
-                                {/* Total Row */}
                                 <tr className="border-t border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-900/30">
-                                  <td className="px-4 py-2 text-left text-green-800 dark:text-green-300 font-medium">
-                                    <strong>Total Products & Amount:</strong>
-                                  </td>
-                                  <td className="px-4 py-2 text-right text-green-900 dark:text-green-200 font-semibold">
-                                    {totalQty}
-                                  </td>
-                                  <td className="px-4 py-2 text-right text-green-900 dark:text-green-200 font-semibold">
-                                    {"QR " + totalPaid.toFixed(2)}
-                                  </td>
+                                  <td className="px-4 py-2 text-left text-green-800 dark:text-green-300 font-medium"><strong>Total:</strong></td>
+                                  <td className="px-4 py-2 text-right text-green-900 dark:text-green-200 font-semibold">{totalQty}</td>
+                                  <td className="px-4 py-2 text-right text-green-900 dark:text-green-200 font-semibold">{"QR " + totalPaid.toFixed(2)}</td>
                                 </tr>
                               </>
                             );
@@ -1069,43 +853,21 @@ export default function Orders() {
               )}
             </div>
 
-            {/* Footer */}
             <div className="flex justify-start gap-3 mt-6">
-              {confirmationAction ? (
+              {confirmationAction && (
                 <button
                   onClick={handleConfirmAction}
                   className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white"
                 >
-                  {isSubmitting ? (
-                    <>
-                      <Loader2 className="animate-spin w-4 h-4 mr-2" />
-                    </>
-                  ) : (
-                    "Confirm"
-                  )}
+                  {isSubmitting ? <Loader2 className="animate-spin w-4 h-4 mr-2" /> : "Confirm"}
                 </button>
-              ) : (
-                ""
-                // <button
-                //   onClick={() => handleEdit(selectedOrder!)}
-                //   className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white"
-                // >
-                //   Edit Order
-                // </button>
               )}
-              {selectedOrder?.status && selectedOrder?.status === "pending" && (
-                <button
-                  onClick={() => handleEditOrder(selectedOrder!)}
-                  className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white"
-                >
+              {selectedOrder?.status === "pending" && (
+                <button onClick={() => handleEditOrder(selectedOrder!)} className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white">
                   Edit Order
                 </button>
               )}
-
-              <button
-                onClick={closeModal}
-                className="px-4 py-2 rounded-lg bg-gray-300 dark:bg-gray-700 hover:bg-gray-400 dark:hover:bg-gray-600"
-              >
+              <button onClick={closeModal} className="px-4 py-2 rounded-lg bg-gray-300 dark:bg-gray-700 hover:bg-gray-400 dark:hover:bg-gray-600">
                 Close
               </button>
             </div>

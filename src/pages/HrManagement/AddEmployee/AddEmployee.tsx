@@ -11,7 +11,7 @@ const AddEmployee: React.FC = () => {
   }
   const { branchId } = context;
 
-  const[isSubmitting, setIsSubmitting] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [formData, setFormData] = useState({
     name: "",
@@ -35,21 +35,18 @@ const AddEmployee: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    setIsSubmitting(true)
+    setIsSubmitting(true);
     try {
       const payload = {
         ...formData,
         joining_date: new Date(formData.joining_date).toISOString(), // full ISO format
       };
 
-      const response = await axiosInstance.post('/hr/employee',
-        payload,
-        {
-          headers: {
-            "X-Branch-ID": branchId,
-          },
-        }
-      );
+      const response = await axiosInstance.post("/hr/employee", payload, {
+        headers: {
+          "X-Branch-ID": branchId,
+        },
+      });
 
       if (response.status === 200 || response.status === 201) {
         Swal.fire({
@@ -66,7 +63,6 @@ const AddEmployee: React.FC = () => {
           passport_no: "",
           joining_date: new Date().toISOString().split("T")[0],
         });
-
       }
     } catch (error: any) {
       console.error("Error adding employee:", error);
@@ -77,8 +73,8 @@ const AddEmployee: React.FC = () => {
           error.response?.data?.message ||
           "Something went wrong while adding employee.",
       });
-    } finally{
-      setIsSubmitting(false)
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -189,29 +185,27 @@ const AddEmployee: React.FC = () => {
           </div>
 
           {/* Submit */}
-<div className="md:col-span-2 mt-3">
-  <button
-    type="submit"
-    disabled={isSubmitting}
-    className={`w-full py-3 rounded-md text-white font-medium text-sm transition-colors duration-300 flex items-center justify-center
-      ${
-        isSubmitting
-          ? "bg-blue-400 cursor-not-allowed"
-          : "bg-blue-600 hover:bg-blue-700"
-      }`}
-  >
-    {isSubmitting ? (
-      <>
-        <Loader2 className="animate-spin w-4 h-4 mr-2" />
-        Processing...
-      </>
-    ) : (
-      "Add Customer"
-    )}
-  </button>
-</div>
-
-          
+          <div className="md:col-span-2 mt-3">
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className={`w-full py-3 rounded-md text-white font-medium text-sm transition-colors duration-300 flex items-center justify-center
+              ${
+                isSubmitting
+                  ? "bg-blue-400 cursor-not-allowed"
+                  : "bg-blue-600 hover:bg-blue-700"
+              }`}
+            >
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="animate-spin w-4 h-4 mr-2" />
+                  Processing...
+                </>
+              ) : (
+                "Add Employee"
+              )}
+            </button>
+          </div>
         </form>
       </div>
     </div>
