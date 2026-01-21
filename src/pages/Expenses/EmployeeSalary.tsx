@@ -38,7 +38,7 @@ const EmployeeSalary: React.FC = () => {
   // Initialize with current date
   const [salaryDate, setSalaryDate] = useState(() => {
     const now = new Date();
-    return now.toISOString().split("T")[0]; // "YYYY-MM-DD"
+    return now.toISOString(); // "YYYY-MM-DD"
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);

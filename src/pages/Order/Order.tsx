@@ -20,8 +20,8 @@ import {
   ShoppingCart,
 } from "lucide-react";
 import { AppContext } from "../../context/AppContext";
-import { formatDate } from "../../utils/dateFormatter";
 import { useNavigate } from "react-router";
+import { formatDate } from "../../utils/dateFormatter";
 
 // --- Interfaces ---
 interface OrderItem {
@@ -216,7 +216,7 @@ export default function Orders() {
     const matchesSearch =
       order.memo_no.toLowerCase().includes(query) ||
       order.customer_name.toLowerCase().includes(query) ||
-      order.customer_mobile.includes(query);
+      order.customer_mobile==query;
 
     let matchesStatus = false;
     if (statusFilter === "all") {
@@ -298,7 +298,7 @@ export default function Orders() {
       }
     } else if (actionType === "delivery") {
       // Move Checkout/Partial -> Delivery (Open Modal)
-      const today = new Date().toISOString().split("T")[0];
+      const today = new Date().toISOString().slice(0, 10);
 
       // Calculate remaining items/payment for convenience
       const remainingItems = order.total_items - order.items_delivered;
@@ -375,44 +375,48 @@ export default function Orders() {
         setLoadingButtons((prev) => ({ ...prev, [`${order.id}-next`]: false }));
         return;
       }
+      
 
       try {
-        const { data } = await axiosInstance.patch(
-          `/orders/delivery`,
-          {
-            order_id: order.id,
-            exit_date,
-            paid_amount: Number(paid_amount),
-            total_items_delivered: total_items_delivered,
-            payment_account_id: Number(payment_account_id),
-          },
-          { headers: { "X-Branch-ID": branchId } }
-        );
-        closeModal();
-        setAlert({
-          variant: "success",
-          title: "Success",
-          message: data.message || "Order marked as delivered",
-        });
-        fetchOrders();
-      } catch (err) {
-        console.error(err);
-        setAlert({
-          variant: "error",
-          title: "Error",
-          message: "Failed to mark order as delivered",
-        });
-      } finally {
-        setLoadingButtons((prev) => ({ ...prev, [`${order.id}-next`]: false }));
-      }
+  const payload = {
+    order_id: order.id,
+    exit_date: new Date(exit_date).toISOString(), // ensure UTC
+    paid_amount: Number(paid_amount),
+    total_items_delivered: total_items_delivered,
+    payment_account_id: Number(payment_account_id),
+  };
+
+  const { data } = await axiosInstance.patch(
+    `/orders/delivery`,
+    payload,
+    { headers: { "X-Branch-ID": branchId } }
+  );
+  
+  closeModal();
+  setAlert({
+    variant: "success",
+    title: "Success",
+    message: data.message || "Order marked as delivered",
+  });
+  fetchOrders();
+} catch (err) {
+  console.error(err);
+  setAlert({
+    variant: "error",
+    title: "Error",
+    message: "Failed to mark order as delivered",
+  });
+} finally {
+  setLoadingButtons((prev) => ({ ...prev, [`${order.id}-next`]: false }));
+}
+
     }
     setIsSubmitting(false);
   };
 
   const handleEditOrder = (order: Order) => {
     closeModal();
-    order.order_date =
-      order.order_date?.slice(0, 10) || new Date().toISOString().slice(0, 10);
+    order.order_date = order.order_date?.slice(0, 10) || new Date().toISOString().slice(0, 10);
     navigate("/add-order", { state: { initialData: order } });
   };
 
@@ -533,7 +537,7 @@ export default function Orders() {
                         <div className="flex items-center gap-2">
                           <Calendar className="h-4 w-4 text-gray-400" />
                           <span className="text-gray-700 dark:text-gray-300">
-                            {new Date(order.order_date).toLocaleDateString()}
+                            {formatDate(order.order_date)}
                           </span>
                         </div>
                       </TableCell>
@@ -575,8 +579,7 @@ export default function Orders() {
                         >
                           {partial
                             ? "Partial Delivery"
-                            : order.status.charAt(0).toUpperCase() +
-                              order.status.slice(1)}
+                            : order.status.charAt(0).toUpperCase() + order.status.slice(1)}
                         </span>
                       </TableCell>
 

@@ -167,8 +167,8 @@ const TransactionReport: React.FC = () => {
         <td>${(t.created_at || "").slice(0, 10)}</td>
         <td>${t.memo_no}</td>
         <td>${t.transaction_id || ""}</td>
-        <td>${t.from_account_name} (${t.from_type.slice(0, -1)})</td>
-        <td>${t.to_account_name} (${t.to_type.slice(0, -1)})</td>
+        <td>${t.from_account_name} (${t.from_type == "branch" ? "branch" : t.from_type.slice(0, -1)})</td>
+        <td>${t.to_account_name} (${t.to_type  == "branch" ? "branch" : t.to_type.slice(0, -1)})</td>
         <td>${t.transaction_type}</td>
         <td style="text-align:right">${Number(t.amount || 0).toFixed(2)}</td>
         <td>${t.notes || ""}</td>

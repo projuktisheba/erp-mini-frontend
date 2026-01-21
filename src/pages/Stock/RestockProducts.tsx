@@ -156,7 +156,7 @@ const RestockProducts: React.FC = () => {
     setCanPrint(false)
     try {
       const apiData = {
-        date: formData.order_date + "T00:00:00Z",
+        date: new Date(formData.order_date).toISOString,
         products: formData.items
       };
       const res = await axiosInstance.post(`/products/restock`, apiData, {

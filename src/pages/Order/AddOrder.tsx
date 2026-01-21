@@ -42,6 +42,7 @@ const AddOrder: React.FC = () => {
 
   // Helper to get current date
   const getCurrentDate = () => new Date().toISOString().slice(0, 10);
+
   const location = useLocation();
   // Get initialData from router state with type safety
   const initialData: OrderFormData = location.state?.initialData;
@@ -292,8 +293,9 @@ const AddOrder: React.FC = () => {
     try {
       const apiData = {
         ...formData,
-        order_date: formData.order_date + "T00:00:00Z",
-        delivery_date: formData.delivery_date + "T00:00:00Z",
+        order_date: new Date(formData.order_date).toISOString(),
+        delivery_date: new Date(formData.delivery_date).toISOString(),
+
         items: formData.items.map((i: ProductItem) => ({
           product_id: i.product_id,
           quantity: i.quantity,
